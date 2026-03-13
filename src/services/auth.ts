@@ -11,20 +11,30 @@ const account = new Account(client);
 
 /**
  * Sign up a new user with email and password
+ * 
+ * Note: Appwrite only allows ONE active session per Account instance.
+ * If a session already exists, we must delete it first before creating a new one.
+ * The deleteSession is wrapped in try/catch because no session might exist.
  */
 export const signUp = async (email: string, password: string, name: string) => {
   try {
-    // Delete any existing session first
+    // Delete any existing session first (required by Appwrite - only 1 session allowed)
     try {
       await account.deleteSession('current');
     } catch (err) {
-      // Session might not exist, that's fine
+      // Session might not exist, that's fine - continue with signup
     }
 
+    // Create new user account
     const user = await account.create(ID.unique(), email, password, name);
     
-    // Automatically create session after signup
+    // Automatically create authenticated session after signup
     await account.createEmailPasswordSession(email, password);
+
+    // Set auth cookie for middleware validation
+    if (typeof window !== 'undefined') {
+      document.cookie = 'auth_session=true; path=/; SameSite=Lax';
+    }
     
     return user;
   } catch (error) {
@@ -34,17 +44,29 @@ export const signUp = async (email: string, password: string, name: string) => {
 
 /**
  * Log in user with email and password
+ * 
+ * Note: Appwrite only allows ONE active session per Account instance.
+ * If a session already exists (from previous login, page refresh, etc),
+ * we must delete it first before creating a new authenticated session.
+ * The deleteSession is wrapped in try/catch because no session might exist.
  */
 export const logIn = async (email: string, password: string) => {
   try {
-    // Delete any existing session first to prevent "session is active" error
+    // Delete any existing session first (required by Appwrite - only 1 session allowed)
     try {
       await account.deleteSession('current');
     } catch (err) {
-      // Session might not exist, that's fine
+      // Session might not exist, that's fine - continue with login
     }
 
+    // Create fresh authenticated session with new credentials
     const session = await account.createEmailPasswordSession(email, password);
+    
+    // Set auth cookie for middleware validation
+    if (typeof window !== 'undefined') {
+      document.cookie = 'auth_session=true; path=/; SameSite=Lax';
+    }
+    
     return session;
   } catch (error) {
     throw error;
@@ -68,6 +90,11 @@ export const getCurrentUser = async () => {
 export const logOut = async () => {
   try {
     await account.deleteSession('current');
+    
+    // Clear auth cookie
+    if (typeof window !== 'undefined') {
+      document.cookie = 'auth_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    }
   } catch (error) {
     throw error;
   }

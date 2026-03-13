@@ -52,7 +52,7 @@ export default function LoginPage() {
       }
 
       await login(formData.email, formData.password);
-      router.push('/admin/dashboard');
+      router.push('/admin/admins');
     } catch (err: any) {
       console.error('Login error:', err);
       const errorMessage = err.message || 'Login failed. Please try again.';

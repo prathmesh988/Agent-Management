@@ -9,8 +9,9 @@ const protectedRoutes = ['/admin'];
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Get the session cookie from the request
-  const sessionCookie = request.cookies.get('a_session_')?.value;
+  // Get the auth session cookie from the request
+  // We use a custom 'auth_session' cookie set by the client on successful login
+  const authSessionCookie = request.cookies.get('auth_session')?.value;
 
   // Check if the route is public
   const isPublicRoute = publicRoutes.includes(pathname);
@@ -21,7 +22,7 @@ export async function middleware(request: NextRequest) {
   );
 
   // If route is protected and user is not authenticated, redirect to login
-  if (isProtectedRoute && !sessionCookie) {
+  if (isProtectedRoute && !authSessionCookie) {
     // Store the original URL to redirect back after login
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
@@ -29,7 +30,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is authenticated and tries to access login/signup, allow (they can logout if needed)
-  if (sessionCookie && (pathname === '/login' || pathname === '/signup')) {
+  if (authSessionCookie && (pathname === '/login' || pathname === '/signup')) {
     // Optionally redirect authenticated users away from login/signup
     // return NextResponse.redirect(new URL('/admin/dashboard', request.url));
   }
@@ -49,3 +50,4 @@ export const config = {
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
+
