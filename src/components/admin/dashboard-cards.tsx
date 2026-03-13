@@ -19,7 +19,7 @@ export function DashboardStatsCards({ stats }: DashboardStatsCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, index) => (
-        <Card key={index} className="p-6">
+        <Card key={index} className="p-6 transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-default">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium text-slate-600">{stat.title}</p>
@@ -31,7 +31,7 @@ export function DashboardStatsCards({ stats }: DashboardStatsCardsProps) {
                 </p>
               )}
             </div>
-            <div className={`rounded-lg p-3 ${stat.color}`}>
+            <div className={`rounded-lg p-3 ${stat.color} transition-transform duration-300 group-hover:scale-110`}>
               {stat.icon}
             </div>
           </div>

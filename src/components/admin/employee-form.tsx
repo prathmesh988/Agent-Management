@@ -146,10 +146,10 @@ export function EmployeeForm({
         </div>
 
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} className="transition-all duration-200 hover:shadow-md hover:scale-105">
             {isLoading ? 'Saving...' : employee ? 'Update Employee' : 'Add Employee'}
           </Button>
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" className="transition-all duration-200 hover:shadow-md hover:scale-105">
             Cancel
           </Button>
         </div>

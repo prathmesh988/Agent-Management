@@ -36,7 +36,7 @@ export function AdminTable({
     <Card>
       <div className="flex items-center justify-between p-6 border-b border-slate-200">
         <h2 className="text-lg font-semibold text-slate-900">Admin Users</h2>
-        <Button onClick={onAddAdmin} className="gap-2">
+        <Button onClick={onAddAdmin} className="gap-2 transition-all duration-200 hover:shadow-lg hover:scale-105">
           <Plus className="h-4 w-4" />
           Add Admin
         </Button>
@@ -56,7 +56,7 @@ export function AdminTable({
           </TableHeader>
           <TableBody>
             {admins.map((admin) => (
-              <TableRow key={admin.id}>
+              <TableRow key={admin.id} className="transition-colors duration-200 hover:bg-slate-50">
                 <TableCell className="font-medium">{admin.name}</TableCell>
                 <TableCell className="text-slate-600">{admin.email}</TableCell>
                 <TableCell>
@@ -87,13 +87,14 @@ export function AdminTable({
                       variant="ghost"
                       size="sm"
                       onClick={() => onEditAdmin?.(admin)}
+                      className="transition-all duration-200 hover:scale-110 hover:bg-amber-100 hover:text-amber-600"
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 transition-all duration-200 hover:scale-110 hover:bg-red-100"
                       onClick={() => onDeleteAdmin?.(admin)}
                     >
                       <Trash2 className="h-4 w-4" />

@@ -22,20 +22,20 @@ export function EmployeeProfile({
       {/* Header */}
       <div className="flex items-center justify-between">
         <Link href="/admin/employees">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="transition-all duration-200 hover:shadow-md hover:scale-105">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
         </Link>
         <div className="flex gap-2">
-          <Button onClick={onEdit} variant="outline">
+          <Button onClick={onEdit} variant="outline" className="transition-all duration-200 hover:shadow-md hover:scale-105">
             <Edit2 className="h-4 w-4 mr-2" />
             Edit
           </Button>
           <Button
             onClick={onDelete}
             variant="outline"
-            className="text-red-600 hover:text-red-700"
+            className="text-red-600 hover:text-red-700 transition-all duration-200 hover:shadow-md hover:scale-105"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete

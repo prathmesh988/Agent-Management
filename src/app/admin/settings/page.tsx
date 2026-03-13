@@ -55,7 +55,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          <Button>Save Changes</Button>
+          <Button className="transition-all duration-200 hover:shadow-md hover:scale-105">Save Changes</Button>
         </div>
       </Card>
 
@@ -112,7 +112,7 @@ export default function SettingsPage() {
                 Enhance account security with 2FA
               </p>
             </div>
-            <Button variant="outline">Enable</Button>
+            <Button variant="outline" className="transition-all duration-200 hover:shadow-md hover:scale-105">Enable</Button>
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
@@ -122,7 +122,7 @@ export default function SettingsPage() {
                 Update your account password
               </p>
             </div>
-            <Button variant="outline">Change</Button>
+            <Button variant="outline" className="transition-all duration-200 hover:shadow-md hover:scale-105">Change</Button>
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
@@ -151,7 +151,7 @@ export default function SettingsPage() {
                 Download a backup of all employee data
               </p>
             </div>
-            <Button variant="outline">Export</Button>
+            <Button variant="outline" className="transition-all duration-200 hover:shadow-md hover:scale-105">Export</Button>
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
@@ -161,7 +161,7 @@ export default function SettingsPage() {
                 This action cannot be undone
               </p>
             </div>
-            <Button variant="outline" className="text-red-600 hover:text-red-700">
+            <Button variant="outline" className="text-red-600 hover:text-red-700 transition-all duration-200 hover:shadow-md hover:scale-105">
               Reset
             </Button>
           </div>

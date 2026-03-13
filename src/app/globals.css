@@ -137,5 +137,54 @@
     @apply font-sans;
   }
   
+  /* Input hover and focus animations */
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="password"],
+  textarea,
+  select {
+    @apply transition-all duration-200;
+  }
+
+  input[type="text"]:hover,
+  input[type="email"]:hover,
+  input[type="number"]:hover,
+  input[type="password"]:hover,
+  textarea:hover,
+  select:hover {
+    @apply shadow-sm;
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="number"]:focus,
+  input[type="password"]:focus,
+  textarea:focus,
+  select:focus {
+    @apply shadow-md ring-2 ring-blue-500;
+  }
+
+  /* Checkbox and radio hover animations */
+  input[type="checkbox"],
+  input[type="radio"] {
+    @apply transition-all duration-200;
+  }
+
+  input[type="checkbox"]:hover,
+  input[type="radio"]:hover {
+    @apply scale-110;
+  }
+
+  /* Button smooth transitions (already applied via Tailwind classes, but adding base) */
+  button {
+    @apply transition-all duration-200;
+  }
+
+  /* Link animations */
+  a {
+    @apply transition-colors duration-200;
+  }
 }
+
 

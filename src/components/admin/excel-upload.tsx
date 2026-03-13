@@ -118,10 +118,10 @@ export function ExcelUploadComponent({
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
+        className={`relative border-2 border-dashed rounded-lg p-12 text-center transition-all duration-300 cursor-pointer ${
           dragActive
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-slate-300 bg-slate-50 hover:border-slate-400'
+            ? 'border-blue-500 bg-blue-50 scale-105 shadow-md'
+            : 'border-slate-300 bg-slate-50 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md hover:scale-101'
         }`}
       >
         <Upload className="mx-auto h-12 w-12 text-slate-400 mb-4" />
@@ -152,7 +152,7 @@ export function ExcelUploadComponent({
           <Button
             type="button"
             variant="outline"
-            className="w-full"
+            className="w-full transition-all duration-200 hover:shadow-md hover:scale-105"
             onClick={() => document.getElementById('file-input')?.click()}
           >
             Select File
@@ -217,7 +217,7 @@ export function ExcelUploadComponent({
         <Button
           onClick={handleUpload}
           disabled={!file || isLoading || uploadStatus === 'success'}
-          className="w-full"
+          className="w-full transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
           {isLoading || uploadProgress > 0 ? 'Uploading...' : 'Upload File'}
         </Button>

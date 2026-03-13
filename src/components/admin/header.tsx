@@ -16,7 +16,7 @@ export function AdminHeader() {
           <Button
             variant="ghost"
             size="icon"
-            className="text-slate-600 hover:text-slate-900"
+            className="text-slate-600 hover:text-slate-900 transition-all duration-200 hover:scale-110 hover:bg-slate-100"
           >
             <Bell className="h-5 w-5" />
           </Button>
@@ -25,7 +25,7 @@ export function AdminHeader() {
           <Button
             variant="ghost"
             size="icon"
-            className="text-slate-600 hover:text-slate-900"
+            className="text-slate-600 hover:text-slate-900 transition-all duration-200 hover:scale-110 hover:bg-slate-100"
           >
             <User className="h-5 w-5" />
           </Button>
@@ -34,7 +34,7 @@ export function AdminHeader() {
           <Button
             variant="ghost"
             size="icon"
-            className="text-slate-600 hover:text-slate-900"
+            className="text-slate-600 hover:text-slate-900 transition-all duration-200 hover:scale-110 hover:bg-slate-100"
           >
             <LogOut className="h-5 w-5" />
           </Button>

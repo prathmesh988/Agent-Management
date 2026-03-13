@@ -53,7 +53,7 @@ export function AdminSidebar() {
       <Button
         variant="ghost"
         size="icon"
-        className="md:hidden fixed top-4 left-4 z-40"
+        className="md:hidden fixed top-4 left-4 z-40 transition-transform duration-200 hover:scale-110"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? <X /> : <Menu />}
@@ -83,10 +83,10 @@ export function AdminSidebar() {
                 href={item.href}
                 onClick={() => setIsOpen(false)}
                 className={cn(
-                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-colors',
+                  'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200',
                   isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-slate-300 hover:bg-slate-700 hover:text-white hover:-translate-x-0.5'
                 )}
               >
                 <Icon className="h-5 w-5" />

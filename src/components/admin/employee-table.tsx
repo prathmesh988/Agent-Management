@@ -143,7 +143,7 @@ export function EmployeeTable({
               <TableHead>
                 <button
                   onClick={() => toggleSort('id')}
-                  className="font-semibold hover:text-slate-900"
+                  className="font-semibold hover:text-slate-900 transition-colors duration-200 cursor-pointer"
                 >
                   Employee ID
                 </button>
@@ -151,7 +151,7 @@ export function EmployeeTable({
               <TableHead>
                 <button
                   onClick={() => toggleSort('name')}
-                  className="font-semibold hover:text-slate-900"
+                  className="font-semibold hover:text-slate-900 transition-colors duration-200 cursor-pointer"
                 >
                   Name
                 </button>
@@ -160,7 +160,7 @@ export function EmployeeTable({
               <TableHead>
                 <button
                   onClick={() => toggleSort('department')}
-                  className="font-semibold hover:text-slate-900"
+                  className="font-semibold hover:text-slate-900 transition-colors duration-200 cursor-pointer"
                 >
                   Department
                 </button>
@@ -172,7 +172,7 @@ export function EmployeeTable({
           </TableHeader>
           <TableBody>
             {paginatedEmployees.map((employee) => (
-              <TableRow key={employee.id}>
+              <TableRow key={employee.id} className="transition-colors duration-200 hover:bg-slate-50">
                 <TableCell className="font-medium">{employee.id}</TableCell>
                 <TableCell>{employee.name}</TableCell>
                 <TableCell className="text-slate-600">{employee.email}</TableCell>
@@ -198,6 +198,7 @@ export function EmployeeTable({
                         variant="ghost"
                         size="sm"
                         onClick={() => onView?.(employee)}
+                        className="transition-all duration-200 hover:scale-110 hover:bg-blue-100 hover:text-blue-600"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -206,13 +207,14 @@ export function EmployeeTable({
                       variant="ghost"
                       size="sm"
                       onClick={() => onEdit?.(employee)}
+                      className="transition-all duration-200 hover:scale-110 hover:bg-amber-100 hover:text-amber-600"
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 transition-all duration-200 hover:scale-110 hover:bg-red-100"
                       onClick={() => onDelete?.(employee)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -237,6 +239,7 @@ export function EmployeeTable({
             size="sm"
             disabled={currentPage === 1}
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            className="transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -246,6 +249,7 @@ export function EmployeeTable({
               variant={currentPage === i + 1 ? 'default' : 'outline'}
               size="sm"
               onClick={() => setCurrentPage(i + 1)}
+              className="transition-all duration-200 hover:scale-105"
             >
               {i + 1}
             </Button>
@@ -255,6 +259,7 @@ export function EmployeeTable({
             size="sm"
             disabled={currentPage === totalPages}
             onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            className="transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
