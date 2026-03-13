@@ -29,10 +29,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If user is authenticated and tries to access login/signup, allow (they can logout if needed)
+  // If user is authenticated and tries to access login/signup, redirect to admin panel
   if (authSessionCookie && (pathname === '/login' || pathname === '/signup')) {
-    // Optionally redirect authenticated users away from login/signup
-    // return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+    return NextResponse.redirect(new URL('/admin/admins', request.url));
   }
 
   return NextResponse.next();
