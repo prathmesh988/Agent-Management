@@ -10,7 +10,8 @@ import {
   Shield, 
   Settings,
   Menu,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,11 @@ const navItems = [
     title: 'Upload Employees',
     href: '/admin/employees/upload',
     icon: Upload,
+  },
+  {
+    title: 'Certificates',
+    href: '/admin/certificates',
+    icon: FileText,
   },
   {
     title: 'Admins',
