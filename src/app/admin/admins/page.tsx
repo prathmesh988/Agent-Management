@@ -3,7 +3,7 @@
 import { AdminTable } from "@/components/admin/admin-table";
 import { mockAdmins } from "@/lib/data/mock-data";
 import { useState } from "react";
-import { Eye, PencilIcon, Shield, Card as CardIcon } from "lucide-react";
+import { Eye, PencilIcon, Shield, CardSim as CardIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 export default function AdminsPage() {
