@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import { 
   LayoutDashboard, 
   Users, 
@@ -75,7 +76,13 @@ export function AdminSidebar() {
         )}
       >
         <div className="p-6 border-b border-slate-700">
-          <h1 className="text-2xl font-bold">Admin Panel</h1>
+          <Image
+            src="/airvincble.svg"
+            alt="Airvincible Logo"
+            width={120}
+            height={40}
+            className="h-10 w-auto"
+          />
         </div>
 
         <nav className="flex flex-col space-y-2 p-4">
