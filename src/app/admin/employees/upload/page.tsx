@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 
 export default function ExcelUploadPage() {
   const handleUpload = (file: File) => {
-    // TODO: Implement actual file upload to backend
     console.log("File uploaded:", file.name);
   };
 
@@ -106,6 +105,31 @@ export default function ExcelUploadPage() {
 
       <ExcelUploadComponent onUpload={handleUpload} />
 
+      {/* Important Setup Note */}
+      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6">
+        <div className="flex gap-4">
+          <div className="flex-shrink-0">
+            <div className="flex items-center justify-center h-8 w-8 rounded-md bg-amber-500 text-white">
+              ⚙️
+            </div>
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-amber-900 mb-3">
+              Database Schema Updated
+            </h4>
+            <p className="text-sm text-amber-800 mb-3">
+              If this is your first upload or you're coming from an older version, initialize the database with the new schema:
+            </p>
+            <code className="block p-2 bg-amber-100 text-amber-900 text-xs rounded font-mono mb-3">
+              npx ts-node scripts/migrate-employees-table.ts
+            </code>
+            <p className="text-xs text-amber-700">
+              This will set up the employees table with all required columns optimized for your payroll data.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Requirements Info */}
       <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 rounded-xl p-8">
         <h3 className="text-lg font-semibold text-slate-900 mb-6">
@@ -121,37 +145,48 @@ export default function ExcelUploadPage() {
                 <span className="inline-flex w-5 h-5 rounded-full bg-blue-600 text-white items-center justify-center text-xs">
                   ✓
                 </span>
+                EmPl. ID (Employee ID)
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="inline-flex w-5 h-5 rounded-full bg-blue-600 text-white items-center justify-center text-xs">
+                  ✓
+                </span>
                 Name
               </li>
-              <li className="flex items-center gap-2">
-                <span className="inline-flex w-5 h-5 rounded-full bg-blue-600 text-white items-center justify-center text-xs">
-                  ✓
-                </span>
-                Email
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="inline-flex w-5 h-5 rounded-full bg-blue-600 text-white items-center justify-center text-xs">
-                  ✓
-                </span>
-                Department
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="inline-flex w-5 h-5 rounded-full bg-blue-600 text-white items-center justify-center text-xs">
-                  ✓
-                </span>
-                Role
-              </li>
+            </ul>
+            <h4 className="font-medium text-slate-900 mb-3 mt-6">
+              Optional Columns
+            </h4>
+            <ul className="space-y-2 text-sm text-slate-600">
+              <li>• S.No. (Serial Number)</li>
+              <li>• CTC (Annual Salary)</li>
+              <li>• Atten Allow (Attendance Allowance)</li>
+              <li>• Designation, Process, DOJ</li>
+              <li>• UAN NO., Account Number, IFSC Code, Bank Name</li>
+              <li>• Present, Absent, Leave, HD, Week Off, Holiday</li>
+              <li>• CL, LC, TRP, TRA, TRL (Various Leave Types)</li>
+              <li>• OT, Final days, Arrear, Advance</li>
+              <li>• Gross Salary, TDS, Net Salary, Penalty, Paid</li>
             </ul>
           </div>
           <div>
             <h4 className="font-medium text-slate-900 mb-3">
               File Specifications
             </h4>
-            <ul className="space-y-2 text-sm text-slate-700">
+            <ul className="space-y-2 text-sm text-slate-700 mb-6">
               <li>• Supported formats: .xlsx, .xls, .csv</li>
               <li>• Maximum file size: 5MB</li>
               <li>• Header row is required</li>
               <li>• One employee per row</li>
+            </ul>
+
+            <h4 className="font-medium text-slate-900 mb-3">
+              Data Types
+            </h4>
+            <ul className="space-y-2 text-sm text-slate-700">
+              <li>• Text fields: Employee ID, Name, Designation, etc.</li>
+              <li>• Number fields: Days, Salary, CTC, etc.</li>
+              <li>• Date fields: DOJ (format: YYYY-MM-DD)</li>
             </ul>
           </div>
         </div>
