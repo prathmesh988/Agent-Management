@@ -84,30 +84,56 @@ export function ExcelUploadComponent({
 
     setUploadProgress(0);
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(interval);
-          return 90;
-        }
-        return prev + Math.random() * 30;
-      });
-    }, 500);
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append("file", file);
 
-    // Simulate upload completion
-    setTimeout(() => {
+      // Upload progress simulation
+      const interval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(interval);
+            return 90;
+          }
+          return prev + Math.random() * 30;
+        });
+      }, 500);
+
+      // Call the API endpoint
+      const response = await fetch("/api/upload-employees", {
+        method: "POST",
+        body: formData,
+      });
+
       clearInterval(interval);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Upload failed:", errorData);
+        setUploadStatus("error");
+        setUploadProgress(0);
+        return;
+      }
+
+      const result = await response.json();
+      console.log("Upload successful:", result);
+
       setUploadProgress(100);
       setUploadStatus("success");
       onUpload?.(file);
 
+      // Reset after 2 seconds
       setTimeout(() => {
         setFile(null);
         setUploadProgress(0);
         setUploadStatus("idle");
       }, 2000);
-    }, 2000);
+    } catch (error) {
+      console.error("Upload error:", error);
+      setUploadStatus("error");
+      setUploadProgress(0);
+    }
   };
 
   return (
