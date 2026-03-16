@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Employee } from "@/lib/data/mock-data";
+import { Employee } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -157,7 +157,9 @@ export function EmployeeTable({
     startIndex + ITEMS_PER_PAGE,
   );
 
-  const departments = Array.from(new Set(employees.map((e) => e.department).filter(Boolean)));
+  const departments = Array.from(
+    new Set(employees.map((e) => e.department).filter(Boolean)),
+  );
 
   const toggleSort = (field: keyof Employee) => {
     if (sortField === field) {

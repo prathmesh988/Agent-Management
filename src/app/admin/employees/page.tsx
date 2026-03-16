@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { EmployeeTable } from '@/components/admin/employee-table';
-import { EditEmployeeModal } from '@/components/admin/edit-employee-modal';
-import { Employee } from '@/lib/data/mock-data';
-import { useEmployees } from '@/hooks/useEmployees';
-import { useState } from 'react';
+import { EmployeeTable } from "@/components/admin/employee-table";
+import { EditEmployeeModal } from "@/components/admin/edit-employee-modal";
+import { Employee } from "@/lib/types";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useState } from "react";
 
 export default function EmployeesPage() {
   const { employees, updateEmployee, deleteEmployee } = useEmployees();
