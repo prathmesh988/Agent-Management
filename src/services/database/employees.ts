@@ -16,6 +16,34 @@ export interface EmployeeRecord {
   ifscCode?: string;
   bankName?: string;
   paymentMode?: string;
+  // Day columns (1-27)
+  day1?: string;
+  day2?: string;
+  day3?: string;
+  day4?: string;
+  day5?: string;
+  day6?: string;
+  day7?: string;
+  day8?: string;
+  day9?: string;
+  day10?: string;
+  day11?: string;
+  day12?: string;
+  day13?: string;
+  day14?: string;
+  day15?: string;
+  day16?: string;
+  day17?: string;
+  day18?: string;
+  day19?: string;
+  day20?: string;
+  day21?: string;
+  day22?: string;
+  day23?: string;
+  day24?: string;
+  day25?: string;
+  day26?: string;
+  day27?: string;
   presentDays?: number;
   absentDays?: number;
   leaveDays?: number;
@@ -36,7 +64,9 @@ export interface EmployeeRecord {
   grossSalary?: number;
   attendanceDeduction?: number;
   employeeContribution?: number;
+  employeeEsic?: number;
   employerContribution?: number;
+  employerEsic?: number;
   tds?: number;
   netSalary?: number;
   penalty?: number;
@@ -202,4 +232,189 @@ export async function fetchEmployeesWithSalary(): Promise<EmployeeRecord[]> {
     console.error("Error fetching employees with salary:", error);
     throw error;
   }
+}
+
+/**
+ * Fetch employees with detailed attendance records (day-wise)
+ */
+export async function fetchEmployeesWithAttendance(): Promise<
+  EmployeeRecord[]
+> {
+  try {
+    const tablesDB = createTablesDBWithAuth();
+    const response = await tablesDB.listRows({
+      databaseId: DB_CONFIG.DATABASE_ID,
+      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      queries: [Query.isNotNull("presentDays")],
+    });
+
+    return response.rows as EmployeeRecord[];
+  } catch (error) {
+    console.error("Error fetching employees with attendance:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch employees with detailed salary deductions (PF, ESIC, TDS)
+ */
+export async function fetchEmployeesWithDeductions(): Promise<
+  EmployeeRecord[]
+> {
+  try {
+    const tablesDB = createTablesDBWithAuth();
+    const response = await tablesDB.listRows({
+      databaseId: DB_CONFIG.DATABASE_ID,
+      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      queries: [Query.isNotNull("employeeContribution")],
+    });
+
+    return response.rows as EmployeeRecord[];
+  } catch (error) {
+    console.error("Error fetching employees with deductions:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch employees with complete salary and contribution details
+ */
+export async function fetchEmployeesWithCompleteDetails(): Promise<
+  EmployeeRecord[]
+> {
+  try {
+    const tablesDB = createTablesDBWithAuth();
+    const response = await tablesDB.listRows({
+      databaseId: DB_CONFIG.DATABASE_ID,
+      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      queries: [
+        Query.isNotNull("grossSalary"),
+        Query.isNotNull("employeeContribution"),
+      ],
+    });
+
+    return response.rows as EmployeeRecord[];
+  } catch (error) {
+    console.error("Error fetching employees with complete details:", error);
+    throw error;
+  }
+}
+
+/**
+ * Calculate attendance summary from day-wise data for an employee
+ */
+export function calculateAttendanceSummary(employee: EmployeeRecord): {
+  totalDaysWorked: number;
+  attendancePercentage: number;
+} {
+  const days = Array.from({ length: 27 }, (_, i) => {
+    const key = `day${i + 1}` as keyof EmployeeRecord;
+    return employee[key];
+  }).filter((day) => day !== undefined && day !== null && day !== "");
+
+  const totalDaysWorked = days.length;
+  const presentDays = employee.presentDays || 0;
+  const totalWorkingDays = presentDays + (employee.absentDays || 0);
+  const attendancePercentage =
+    totalWorkingDays > 0
+      ? Math.round((presentDays / totalWorkingDays) * 100)
+      : 0;
+
+  return {
+    totalDaysWorked,
+    attendancePercentage,
+  };
+}
+
+/**
+ * Calculate salary breakdown with all deductions
+ */
+export function calculateSalaryBreakdown(employee: EmployeeRecord): {
+  gross: number;
+  totalDeductions: number;
+  net: number;
+  breakdownDetails: {
+    employeePF?: number;
+    employeeESIC?: number;
+    employerPF?: number;
+    employerESIC?: number;
+    tds?: number;
+    attendance?: number;
+    penalty?: number;
+  };
+} {
+  const gross = employee.grossSalary || 0;
+  const employeePF = employee.employeeContribution || 0;
+  const employeeESIC = employee.employeeEsic || 0;
+  const employerPF = employee.employerContribution || 0;
+  const employerESIC = employee.employerEsic || 0;
+  const tds = employee.tds || 0;
+  const attendanceDeduction = employee.attendanceDeduction || 0;
+  const penalty = employee.penalty || 0;
+
+  const totalDeductions =
+    employeePF + employeeESIC + tds + attendanceDeduction + penalty;
+  const net = employee.netSalary || gross - totalDeductions;
+
+  return {
+    gross,
+    totalDeductions,
+    net,
+    breakdownDetails: {
+      employeePF: employeePF || undefined,
+      employeeESIC: employeeESIC || undefined,
+      employerPF: employerPF || undefined,
+      employerESIC: employerESIC || undefined,
+      tds: tds || undefined,
+      attendance: attendanceDeduction || undefined,
+      penalty: penalty || undefined,
+    },
+  };
+}
+
+/**
+ * Get employees with attendance below threshold
+ */
+export async function fetchEmployeesByAttendanceThreshold(
+  threshold: number,
+): Promise<EmployeeRecord[]> {
+  try {
+    const tablesDB = createTablesDBWithAuth();
+    const response = await tablesDB.listRows({
+      databaseId: DB_CONFIG.DATABASE_ID,
+      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      queries: [Query.isNotNull("presentDays")],
+    });
+
+    const employees = response.rows as EmployeeRecord[];
+    return employees.filter((emp) => {
+      const summary = calculateAttendanceSummary(emp);
+      return summary.attendancePercentage < threshold;
+    });
+  } catch (error) {
+    console.error("Error fetching employees by attendance threshold:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch employee day-wise attendance record
+ */
+export function getEmployeeDayWiseAttendance(employee: EmployeeRecord): {
+  day: number;
+  status: string | null;
+}[] {
+  const dayWiseAttendance = [];
+
+  for (let i = 1; i <= 27; i++) {
+    const key = `day${i}` as keyof EmployeeRecord;
+    const status = employee[key];
+
+    dayWiseAttendance.push({
+      day: i,
+      status: (status as string) || null,
+    });
+  }
+
+  return dayWiseAttendance;
 }
