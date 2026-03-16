@@ -157,7 +157,7 @@ export function EmployeeTable({
     startIndex + ITEMS_PER_PAGE,
   );
 
-  const departments = Array.from(new Set(employees.map((e) => e.department)));
+  const departments = Array.from(new Set(employees.map((e) => e.department).filter(Boolean)));
 
   const toggleSort = (field: keyof Employee) => {
     if (sortField === field) {
