@@ -27,13 +27,6 @@ export default function AdminsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-800 text-slate-900">Admin Management</h1>
-        <p className="mt-2 text-slate-600">
-          Manage admin users and their permissions across the system.
-        </p>
-      </div>
-
       <AdminTable
         admins={admins}
         onAddAdmin={handleAddAdmin}

@@ -30,13 +30,6 @@ export default function EmployeesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Employees</h1>
-        <p className="mt-2 text-slate-600">
-          Manage your workforce with search, filter, and pagination.
-        </p>
-      </div>
-
       <EmployeeTable
         employees={employees}
         onEdit={handleEdit}

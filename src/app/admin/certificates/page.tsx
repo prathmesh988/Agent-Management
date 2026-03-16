@@ -133,16 +133,6 @@ export default function CertificatesPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-4xl font-900 text-slate-950">
-          Employee Certificates
-        </h1>
-        <p className="mt-3 text-base text-slate-600">
-          Generate and manage certificates of employment for your employees.
-        </p>
-      </div>
-
       {/* Search and Filter - Aligned */}
       <div className="flex gap-4 items-end">
         <div className="space-y-2">
