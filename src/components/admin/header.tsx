@@ -3,13 +3,45 @@
 import { Button } from "@/components/ui/button";
 import { Bell, LogOut, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 
 export function AdminHeader() {
   const { logout, user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const getPageInfo = () => {
+    const pageMap: Record<string, { title: string; subtitle: string }> = {
+      "/admin/dashboard": {
+        title: "Dashboard",
+        subtitle: "Welcome back! Here's what's happening with your employees."
+      },
+      "/admin/employees": {
+        title: "Employees",
+        subtitle: "Manage your workforce with search, filter, and pagination."
+      },
+      "/admin/employees/upload": {
+        title: "Upload Employees",
+        subtitle: "Batch import your employee data from Excel files."
+      },
+      "/admin/certificates": {
+        title: "Employee Certificates",
+        subtitle: "Generate and manage certificates of employment for your employees."
+      },
+      "/admin/admins": {
+        title: "Admin Management",
+        subtitle: "Manage administrator accounts and permissions."
+      },
+      "/admin/settings": {
+        title: "Settings",
+        subtitle: "Configure your admin panel preferences and system settings."
+      },
+    };
+    
+    return pageMap[pathname] || { title: "Admin", subtitle: "" };
+  };
 
   const handleLogout = async () => {
     try {
@@ -22,10 +54,18 @@ export function AdminHeader() {
     }
   };
 
+  const pageInfo = getPageInfo();
+
   return (
     <header className="sticky top-0 z-20 w-full border-b border-slate-200 bg-white shadow-sm">
-      <div className="flex h-16 items-center justify-end px-6 md:ml-64">
-        <div className="flex items-center gap-2 ">
+      <div className="flex w-full h-20 items-center justify-between px-6">
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold text-slate-900">{pageInfo.title}</h1>
+          {pageInfo.subtitle && (
+            <p className="mt-1 text-sm text-slate-600">{pageInfo.subtitle}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0 ml-6">
           {/* Notifications */}
           <Button
             variant="ghost"

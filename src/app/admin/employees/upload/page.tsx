@@ -40,14 +40,6 @@ export default function ExcelUploadPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-800 text-slate-900">Upload Employees</h1>
-        <p className="mt-2 text-slate-600">
-          Import employee data from an Excel file or CSV format in just a few
-          steps.
-        </p>
-      </div>
-
       {/* Visual Step-by-Step Guide */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white border border-slate-200 rounded-xl p-6 text-center shadow-sm hover:shadow-md transition-shadow">

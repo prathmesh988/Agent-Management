@@ -8,13 +8,6 @@ import { ChevronRight } from 'lucide-react';
 export default function SettingsPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-        <p className="mt-2 text-slate-600">
-          Configure your admin panel preferences and system settings.
-        </p>
-      </div>
-
       {/* General Settings */}
       <Card>
         <div className="p-6 border-b border-slate-200">
