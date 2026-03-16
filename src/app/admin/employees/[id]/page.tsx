@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { EmployeeProfile } from '@/components/admin/employee-detail';
-import { EditEmployeeModal } from '@/components/admin/edit-employee-modal';
-import { Employee } from '@/lib/data/mock-data';
-import { useEmployees } from '@/hooks/useEmployees';
-import { useRouter } from 'next/navigation';
-import { useState, useEffect, use } from 'react';
+import { EmployeeProfile } from "@/components/admin/employee-detail";
+import { EditEmployeeModal } from "@/components/admin/edit-employee-modal";
+import { Employee } from "@/lib/types";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, use } from "react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function EmployeeDetailPage({
   params,
@@ -16,7 +16,12 @@ export default function EmployeeDetailPage({
 }) {
   const router = useRouter();
   const resolvedParams = use(params);
-  const { getEmployee, updateEmployee, deleteEmployee, isLoading: employeesLoading } = useEmployees();
+  const {
+    getEmployee,
+    updateEmployee,
+    deleteEmployee,
+    isLoading: employeesLoading,
+  } = useEmployees();
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +55,7 @@ export default function EmployeeDetailPage({
   const handleDelete = () => {
     if (confirm(`Are you sure you want to delete ${currentEmployee?.name}?`)) {
       deleteEmployee(resolvedParams.id);
-      router.push('/admin/employees');
+      router.push("/admin/employees");
     }
   };
 
@@ -77,7 +82,7 @@ export default function EmployeeDetailPage({
           <p className="text-red-600 font-medium">Employee not found</p>
           <p className="text-slate-600 text-sm">ID: {resolvedParams.id}</p>
           <button
-            onClick={() => router.push('/admin/employees')}
+            onClick={() => router.push("/admin/employees")}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Back to Employees

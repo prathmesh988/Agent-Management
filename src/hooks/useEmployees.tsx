@@ -1,7 +1,14 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Employee, generateMockEmployees } from '@/lib/data/mock-data';
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
+import { getEmployees } from "@/app/(actions)/employees";
+import { Employee } from "@/lib/types";
 
 interface EmployeeContextType {
   employees: Employee[];
@@ -11,17 +18,27 @@ interface EmployeeContextType {
   isLoading: boolean;
 }
 
-const EmployeeContext = createContext<EmployeeContextType | undefined>(undefined);
+const EmployeeContext = createContext<EmployeeContextType | undefined>(
+  undefined,
+);
 
 export function EmployeeProvider({ children }: { children: ReactNode }) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize employees on mount
+  // Fetch employees from database on mount
   useEffect(() => {
-    const initialEmployees = generateMockEmployees(50);
-    setEmployees(initialEmployees);
-    setIsLoading(false);
+    const fetchEmployees = async () => {
+      try {
+        const { employees: fetchedEmployees } = await getEmployees(100, 0);
+        setEmployees(fetchedEmployees);
+      } catch (error) {
+        console.error("Failed to fetch employees:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchEmployees();
   }, []);
 
   const getEmployee = (id: string): Employee | undefined => {
@@ -32,13 +49,13 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     // Ensure required fields have values
     const sanitized: Employee = {
       ...updatedEmployee,
-      department: updatedEmployee.department || 'Engineering',
-      role: updatedEmployee.role || 'Junior',
-      status: updatedEmployee.status || 'active',
+      department: updatedEmployee.department || "Engineering",
+      role: updatedEmployee.role || "Junior",
+      status: updatedEmployee.status || "active",
     };
-    
+
     setEmployees((prev) =>
-      prev.map((e) => (e.id === sanitized.id ? sanitized : e))
+      prev.map((e) => (e.id === sanitized.id ? sanitized : e)),
     );
   };
 
@@ -48,7 +65,13 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 
   return (
     <EmployeeContext.Provider
-      value={{ employees, getEmployee, updateEmployee, deleteEmployee, isLoading }}
+      value={{
+        employees,
+        getEmployee,
+        updateEmployee,
+        deleteEmployee,
+        isLoading,
+      }}
     >
       {children}
     </EmployeeContext.Provider>
@@ -58,7 +81,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 export function useEmployees() {
   const context = useContext(EmployeeContext);
   if (!context) {
-    throw new Error('useEmployees must be used within EmployeeProvider');
+    throw new Error("useEmployees must be used within EmployeeProvider");
   }
   return context;
 }

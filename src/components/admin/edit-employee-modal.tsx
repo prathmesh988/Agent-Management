@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Employee } from '@/lib/data/mock-data';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+import { useState, useEffect } from "react";
+import { Employee } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { X } from 'lucide-react';
+} from "@/components/ui/select";
+import { X } from "lucide-react";
 
 interface EditEmployeeModalProps {
   employee: Employee | null;
@@ -21,9 +21,20 @@ interface EditEmployeeModalProps {
   onSave: (employee: Employee) => void;
 }
 
-const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance', 'Operations'];
-const roles = ['Manager', 'Senior', 'Junior', 'Intern', 'Lead'];
-const statuses: ('active' | 'inactive' | 'on-leave')[] = ['active', 'inactive', 'on-leave'];
+const departments = [
+  "Engineering",
+  "Sales",
+  "Marketing",
+  "HR",
+  "Finance",
+  "Operations",
+];
+const roles = ["Manager", "Senior", "Junior", "Intern", "Lead"];
+const statuses: ("active" | "inactive" | "on-leave")[] = [
+  "active",
+  "inactive",
+  "on-leave",
+];
 
 export function EditEmployeeModal({
   employee,
@@ -33,14 +44,14 @@ export function EditEmployeeModal({
 }: EditEmployeeModalProps) {
   const [formData, setFormData] = useState<Employee>(
     employee || {
-      id: '',
-      name: '',
-      email: '',
-      department: '',
-      role: '',
-      status: 'active',
-      joinDate: '',
-    }
+      id: "",
+      name: "",
+      email: "",
+      designation: "",
+      department: "",
+      status: "active",
+      dateOfJoining: "",
+    },
   );
 
   // Autofill form when employee changes
@@ -53,7 +64,7 @@ export function EditEmployeeModal({
   if (!isOpen || !employee) return null;
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -71,13 +82,20 @@ export function EditEmployeeModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate required fields
-    if (!formData.name || !formData.email || !formData.department || !formData.role || !formData.status || !formData.joinDate) {
-      alert('Please fill in all required fields');
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.department ||
+      !formData.role ||
+      !formData.status ||
+      !formData.joinDate
+    ) {
+      alert("Please fill in all required fields");
       return;
     }
-    
+
     onSave(formData);
     onClose();
   };
@@ -135,7 +153,7 @@ export function EditEmployeeModal({
               <Select
                 value={formData.department}
                 onValueChange={(value) =>
-                  handleSelectChange('department', value)
+                  handleSelectChange("department", value)
                 }
               >
                 <SelectTrigger>
@@ -158,7 +176,7 @@ export function EditEmployeeModal({
               </label>
               <Select
                 value={formData.role}
-                onValueChange={(value) => handleSelectChange('role', value)}
+                onValueChange={(value) => handleSelectChange("role", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
@@ -182,8 +200,8 @@ export function EditEmployeeModal({
                 value={formData.status}
                 onValueChange={(value) =>
                   handleSelectChange(
-                    'status',
-                    value as 'active' | 'inactive' | 'on-leave'
+                    "status",
+                    value as "active" | "inactive" | "on-leave",
                   )
                 }
               >
@@ -222,7 +240,7 @@ export function EditEmployeeModal({
               <Input
                 type="tel"
                 name="phone"
-                value={formData.phone || ''}
+                value={formData.phone || ""}
                 onChange={handleChange}
                 placeholder="+1234567890"
               />
@@ -236,7 +254,7 @@ export function EditEmployeeModal({
               <Input
                 type="number"
                 name="salary"
-                value={formData.salary || ''}
+                value={formData.salary || ""}
                 onChange={handleChange}
                 placeholder="50000"
               />
