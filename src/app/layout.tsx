@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import { AuthProvider } from "@/hooks/useAuth";
 import { EmployeeProvider } from "@/hooks/useEmployees";
+import { CertificateProvider } from "@/hooks/useCertificates";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} antialiased`}>
         <AuthProvider>
-          <EmployeeProvider>{children}</EmployeeProvider>
+          <EmployeeProvider>
+            <CertificateProvider>{children}</CertificateProvider>
+          </EmployeeProvider>
         </AuthProvider>
       </body>
     </html>

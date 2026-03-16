@@ -1,4 +1,6 @@
 import React from 'react';
+import AirvincibleLogo from "../../../public/airvincble.png";
+import Image from 'next/image';
 
 // Interface for the component props, allowing dynamic content insertion.
 interface CertificateOfEmploymentProps {
@@ -73,12 +75,10 @@ const CertificateOfEmployment: React.FC<CertificateOfEmploymentProps> = ({
         <div className="mb-16">
           <div className="flex items-center mb-6">
             {/* Logo Icon Placeholder */}
-            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                </svg>
+            <div className="w-55 h-35 rounded-lg flex items-center justify-center mr-3">
+                {/* Replace with actual logo image */}
+                <Image src={AirvincibleLogo} alt="Company Logo" className="w-full h-full " />                                    
             </div>
-            <h1 className="text-2xl font-bold text-blue-600">{companyName}</h1>
           </div>
           <p className="text-gray-600">Certificate ID: {certificateId}</p>
         </div>
@@ -101,7 +101,7 @@ const CertificateOfEmployment: React.FC<CertificateOfEmploymentProps> = ({
 
           {/* Main Certification Text */}
           <p>
-            This letter certifies that {employeeName} is employed by {companyName}.
+            This letter certifies that {employeeName} is employed by Airvincible.
           </p>
           <p>
             {employeeName} has been working for this organization since {startDate} as a {jobTitle}.

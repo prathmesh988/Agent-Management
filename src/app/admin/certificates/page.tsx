@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { mockEmployees } from "@/lib/data/mock-data";
+import { useCertificates, Certificate } from "@/hooks/useCertificates";
+import { generateMultipleCertificatePDFs, generateCertificatePDF } from "@/lib/pdf-generator";
+import { EditCertificateModal } from "@/components/certificate/edit-certificate-modal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,36 +40,77 @@ function getAvatarColor(index: number) {
 }
 
 export default function CertificatesPage() {
+  const { certificates, updateCertificate, deleteCertificate } = useCertificates();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingCertificate, setEditingCertificate] = useState<Certificate | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  // Filter employees
-  const filteredEmployees = mockEmployees.filter(
-    (employee) =>
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.id.toLowerCase().includes(searchTerm.toLowerCase()),
+  // Filter certificates
+  const filteredCertificates = certificates.filter(
+    (cert) =>
+      cert.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cert.employeeEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cert.id.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleDownloadCertificate = (
-    employeeId: string,
-    employeeName: string,
-  ) => {
-    console.log(`Downloading certificate for ${employeeName}`);
-    // TODO: Implement PDF download functionality
+  const handleDownloadCertificate = async (certificateId: string, name: string) => {
+    try {
+      const cert = certificates.find((c) => c.id === certificateId);
+      if (!cert) {
+        alert('Certificate not found');
+        return;
+      }
+      
+      setIsGenerating(true);
+      await generateCertificatePDF(cert);
+      console.log(`Successfully downloaded certificate for ${name}`);
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to generate PDF: ${errorMessage}`);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleEditCertificate = (employeeId: string, employeeName: string) => {
-    console.log(`Editing certificate for ${employeeName}`);
-    // TODO: Implement edit functionality
+  const handleGenerateSelected = async () => {
+    try {
+      if (selectedIds.size === 0) {
+        alert('Please select at least one certificate');
+        return;
+      }
+
+      const selectedCerts = certificates.filter((c) => selectedIds.has(c.id));
+      setIsGenerating(true);
+      await generateMultipleCertificatePDFs(selectedCerts);
+      console.log(`Successfully generated ${selectedCerts.length} PDFs`);
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error('Error generating PDFs:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to generate PDFs: ${errorMessage}`);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleDeleteCertificate = (
-    employeeId: string,
-    employeeName: string,
-  ) => {
-    console.log(`Deleting certificate for ${employeeName}`);
-    // TODO: Implement delete functionality
+  const handleEditCertificate = (certificate: Certificate) => {
+    setEditingCertificate(certificate);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteCertificate = (certificateId: string, name: string) => {
+    if (confirm(`Are you sure you want to delete the certificate for ${name}?`)) {
+      deleteCertificate(certificateId);
+    }
+  };
+
+  const handleSaveEdit = (updatedCertificate: Certificate) => {
+    updateCertificate(updatedCertificate);
+    setIsModalOpen(false);
+    setEditingCertificate(null);
   };
 
   const toggleSelection = (id: string) => {
@@ -81,10 +124,10 @@ export default function CertificatesPage() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === filteredEmployees.length) {
+    if (selectedIds.size === filteredCertificates.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredEmployees.map((e) => e.id)));
+      setSelectedIds(new Set(filteredCertificates.map((c) => c.id)));
     }
   };
 
@@ -128,14 +171,15 @@ export default function CertificatesPage() {
         <div className="p-6 border-b border-slate-200">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-600 text-slate-900">
-              Certificates ({filteredEmployees.length})
+              Certificates ({filteredCertificates.length})
             </h2>
             <Button
+              onClick={handleGenerateSelected}
               className="gap-2 transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white font-500"
-              disabled={selectedIds.size === 0}
+              disabled={selectedIds.size === 0 || isGenerating}
             >
               <FileText className="h-4 w-4" />
-              Generate Selected ({selectedIds.size})
+              {isGenerating ? 'Generating...' : `Generate Selected (${selectedIds.size})`}
             </Button>
           </div>
         </div>
@@ -148,8 +192,8 @@ export default function CertificatesPage() {
                   <input
                     type="checkbox"
                     checked={
-                      selectedIds.size === filteredEmployees.length &&
-                      filteredEmployees.length > 0
+                      selectedIds.size === filteredCertificates.length &&
+                      filteredCertificates.length > 0
                     }
                     onChange={toggleSelectAll}
                     className="rounded border-slate-300 cursor-pointer"
@@ -165,7 +209,7 @@ export default function CertificatesPage() {
                   Job Title
                 </TableHead>
                 <TableHead className="py-4 px-6 text-left font-500 text-slate-700 text-sm">
-                  Join Date
+                  Start Date
                 </TableHead>
                 <TableHead className="py-4 px-6 text-right font-500 text-slate-700 text-sm">
                   Actions
@@ -173,16 +217,16 @@ export default function CertificatesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEmployees.map((employee, idx) => (
+              {filteredCertificates.map((cert, idx) => (
                 <TableRow
-                  key={employee.id}
+                  key={cert.id}
                   className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50"
                 >
                   <TableCell className="py-4 px-6 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(employee.id)}
-                      onChange={() => toggleSelection(employee.id)}
+                      checked={selectedIds.has(cert.id)}
+                      onChange={() => toggleSelection(cert.id)}
                       className="rounded border-slate-300 cursor-pointer"
                     />
                   </TableCell>
@@ -191,44 +235,63 @@ export default function CertificatesPage() {
                       <div
                         className={`shrink-0 h-10 w-10 rounded-full ${getAvatarColor(idx)} flex items-center justify-center text-white text-sm font-700`}
                       >
-                        {getInitials(employee.name)}
+                        {getInitials(cert.employeeName)}
                       </div>
                       <div>
                         <p className="font-600 text-slate-900 text-sm leading-tight">
-                          {employee.name}
+                          {cert.employeeName}
                         </p>
                         <p className="text-xs text-slate-500 mt-1">
-                          {employee.email}
+                          {cert.employeeEmail}
                         </p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="py-4 px-6 text-left text-sm text-slate-700">
-                    {employee.department}
+                    {cert.department}
                   </TableCell>
                   <TableCell className="py-4 px-6 text-left text-sm text-slate-700">
-                    {employee.role}
+                    {cert.jobTitle}
                   </TableCell>
                   <TableCell className="py-4 px-6 text-left text-sm text-slate-600">
-                    {employee.joinDate}
+                    {cert.startDate}
                   </TableCell>
                   <TableCell className="py-4 px-6 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Link href={`/admin/certificates/${employee.id}`}>
+                      <Link href={`/admin/certificates/${cert.id}`}>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200"
-                          title="Edit Certificate"
+                          title="View Certificate"
                         >
-                          <Edit2 className="h-4 w-4" />
+                          <FileText className="h-4 w-4" />
                         </Button>
                       </Link>
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => handleDownloadCertificate(cert.id, cert.employeeName)}
+                        disabled={isGenerating}
+                        className="h-9 w-9 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors duration-200"
+                        title="Download PDF"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditCertificate(cert)}
+                        className="h-9 w-9 text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors duration-200"
+                        title="Edit Certificate"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() =>
-                          handleDeleteCertificate(employee.id, employee.name)
+                          handleDeleteCertificate(cert.id, cert.employeeName)
                         }
                         className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
                         title="Delete Certificate"
@@ -243,58 +306,27 @@ export default function CertificatesPage() {
           </Table>
         </div>
 
-        {filteredEmployees.length === 0 && (
+        {filteredCertificates.length === 0 && (
           <div className="p-12 text-center">
             <FileText className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-            <p className="text-slate-700 font-500">No employees found</p>
+            <p className="text-slate-700 font-500">No certificates found</p>
             <p className="text-sm text-slate-500 mt-1">
-              Try adjusting your search filters
+              {searchTerm ? "Try a different search term" : "Create certificates for employees"}
             </p>
           </div>
         )}
       </Card>
 
-      {/* Features Info */}
-      <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200">
-        <div className="p-8">
-          <div className="flex gap-3 mb-6">
-            <Award className="h-6 w-6 text-blue-600 shrink-0 mt-0.5" />
-            <h3 className="font-600 text-slate-900 text-lg">
-              Certificate Management
-            </h3>
-          </div>
-          <div className="grid md:grid-cols-2 gap-6 text-sm">
-            <div>
-              <p className="font-500 text-slate-900 mb-1">
-                ✓ Generate certificates
-              </p>
-              <p className="text-slate-600">
-                with employee details for selected records
-              </p>
-            </div>
-            <div>
-              <p className="font-500 text-slate-900 mb-1">✓ Download as PDF</p>
-              <p className="text-slate-600">
-                Save and print certificates directly
-              </p>
-            </div>
-            <div>
-              <p className="font-500 text-slate-900 mb-1">
-                ✓ Email certificates
-              </p>
-              <p className="text-slate-600">
-                Send directly to employee mailboxes
-              </p>
-            </div>
-            <div>
-              <p className="font-500 text-slate-900 mb-1">✓ Bulk operations</p>
-              <p className="text-slate-600">
-                Process multiple certificates at once
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
+      {/* Edit Modal */}
+      <EditCertificateModal
+        certificate={editingCertificate}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingCertificate(null);
+        }}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 }
