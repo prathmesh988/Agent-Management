@@ -1,6 +1,6 @@
 import { Client, TablesDB, ID } from 'node-appwrite';
 
-const DATABASE_ID = '6784f57b0000a70f1b79';
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || '6784f57b0000a70f1b79';
 const TABLE_NAME = 'employees';
 const TABLE_ID = 'emp_employees';
 

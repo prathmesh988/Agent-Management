@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useCertificates, Certificate } from "@/hooks/useCertificates";
-import { generateMultipleCertificatePDFs, generateCertificatePDF } from "@/lib/pdf-generator";
+import {
+  generateMultipleCertificatePDFs,
+  generateCertificatePDF,
+} from "@/lib/pdf-generator";
 import { EditCertificateModal } from "@/components/certificate/edit-certificate-modal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -40,35 +43,43 @@ function getAvatarColor(index: number) {
 }
 
 export default function CertificatesPage() {
-  const { certificates, updateCertificate, deleteCertificate } = useCertificates();
+  const { certificates, updateCertificate, deleteCertificate } =
+    useCertificates();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [editingCertificate, setEditingCertificate] = useState<Certificate | null>(null);
+  const [editingCertificate, setEditingCertificate] =
+    useState<Certificate | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Filter certificates
   const filteredCertificates = certificates.filter(
     (cert) =>
-      cert.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cert.employeeEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cert.id.toLowerCase().includes(searchTerm.toLowerCase()),
+      (cert.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ??
+        false) ||
+      (cert.employeeEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ??
+        false) ||
+      (cert.id?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false),
   );
 
-  const handleDownloadCertificate = async (certificateId: string, name: string) => {
+  const handleDownloadCertificate = async (
+    certificateId: string,
+    name: string,
+  ) => {
     try {
       const cert = certificates.find((c) => c.id === certificateId);
       if (!cert) {
-        alert('Certificate not found');
+        alert("Certificate not found");
         return;
       }
-      
+
       setIsGenerating(true);
       await generateCertificatePDF(cert);
       console.log(`Successfully downloaded certificate for ${name}`);
     } catch (error) {
-      console.error('Error downloading certificate:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error("Error downloading certificate:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       alert(`Failed to generate PDF: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
@@ -78,18 +89,21 @@ export default function CertificatesPage() {
   const handleGenerateSelected = async () => {
     try {
       if (selectedIds.size === 0) {
-        alert('Please select at least one certificate');
+        alert("Please select at least one certificate");
         return;
       }
 
-      const selectedCerts = certificates.filter((c) => selectedIds.has(c.id));
+      const selectedCerts = certificates.filter(
+        (c) => c.id && selectedIds.has(c.id),
+      );
       setIsGenerating(true);
       await generateMultipleCertificatePDFs(selectedCerts);
       console.log(`Successfully generated ${selectedCerts.length} PDFs`);
       setSelectedIds(new Set());
     } catch (error) {
-      console.error('Error generating PDFs:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error("Error generating PDFs:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       alert(`Failed to generate PDFs: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
@@ -102,7 +116,9 @@ export default function CertificatesPage() {
   };
 
   const handleDeleteCertificate = (certificateId: string, name: string) => {
-    if (confirm(`Are you sure you want to delete the certificate for ${name}?`)) {
+    if (
+      confirm(`Are you sure you want to delete the certificate for ${name}?`)
+    ) {
       deleteCertificate(certificateId);
     }
   };
@@ -127,7 +143,13 @@ export default function CertificatesPage() {
     if (selectedIds.size === filteredCertificates.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredCertificates.map((c) => c.id)));
+      setSelectedIds(
+        new Set(
+          filteredCertificates
+            .map((c) => c.id)
+            .filter((id): id is string => id !== undefined),
+        ),
+      );
     }
   };
 
@@ -169,7 +191,9 @@ export default function CertificatesPage() {
               disabled={selectedIds.size === 0 || isGenerating}
             >
               <FileText className="h-4 w-4" />
-              {isGenerating ? 'Generating...' : `Generate Selected (${selectedIds.size})`}
+              {isGenerating
+                ? "Generating..."
+                : `Generate Selected (${selectedIds.size})`}
             </Button>
           </div>
         </div>
@@ -215,8 +239,8 @@ export default function CertificatesPage() {
                   <TableCell className="py-4 px-6 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(cert.id)}
-                      onChange={() => toggleSelection(cert.id)}
+                      checked={cert.id ? selectedIds.has(cert.id) : false}
+                      onChange={() => cert.id && toggleSelection(cert.id)}
                       className="rounded border-slate-300 cursor-pointer"
                     />
                   </TableCell>
@@ -225,7 +249,7 @@ export default function CertificatesPage() {
                       <div
                         className={`shrink-0 h-10 w-10 rounded-full ${getAvatarColor(idx)} flex items-center justify-center text-white text-sm font-700`}
                       >
-                        {getInitials(cert.employeeName)}
+                        {getInitials(cert.employeeName || "")}
                       </div>
                       <div>
                         <p className="font-600 text-slate-900 text-sm leading-tight">
@@ -261,8 +285,12 @@ export default function CertificatesPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleDownloadCertificate(cert.id, cert.employeeName)}
-                        disabled={isGenerating}
+                        onClick={() =>
+                          cert.id &&
+                          cert.employeeName &&
+                          handleDownloadCertificate(cert.id, cert.employeeName)
+                        }
+                        disabled={isGenerating || !cert.id}
                         className="h-9 w-9 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors duration-200"
                         title="Download PDF"
                       >
@@ -281,7 +309,7 @@ export default function CertificatesPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                          handleDeleteCertificate(cert.id, cert.employeeName)
+                          cert.id && cert.employeeName && handleDeleteCertificate(cert.id, cert.employeeName)
                         }
                         className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
                         title="Delete Certificate"
@@ -301,7 +329,9 @@ export default function CertificatesPage() {
             <FileText className="h-12 w-12 mx-auto mb-3 text-slate-300" />
             <p className="text-slate-700 font-500">No certificates found</p>
             <p className="text-sm text-slate-500 mt-1">
-              {searchTerm ? "Try a different search term" : "Create certificates for employees"}
+              {searchTerm
+                ? "Try a different search term"
+                : "Create certificates for employees"}
             </p>
           </div>
         )}

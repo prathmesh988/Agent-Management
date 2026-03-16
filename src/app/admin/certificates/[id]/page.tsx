@@ -1,16 +1,23 @@
-'use client';
+"use client";
 
-import CertificateOfEmployment from '@/components/certificate/certificate';
-import { EditCertificateModal } from '@/components/certificate/edit-certificate-modal';
-import { generateCertificatePDF } from '@/lib/pdf-generator';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { ArrowLeft, Download, Printer, Mail, Share2, Edit2 } from 'lucide-react';
-import { useCertificates, Certificate } from '@/hooks/useCertificates';
-import Link from 'next/link';
-import { useRef, useState, useEffect, use } from 'react';
+import CertificateOfEmployment from "@/components/certificate/certificate";
+import { EditCertificateModal } from "@/components/certificate/edit-certificate-modal";
+import { generateCertificatePDF } from "@/lib/pdf-generator";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  ArrowLeft,
+  Download,
+  Printer,
+  Mail,
+  Share2,
+  Edit2,
+} from "lucide-react";
+import { useCertificates, Certificate } from "@/hooks/useCertificates";
+import Link from "next/link";
+import { useRef, useState, useEffect, use } from "react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -71,10 +78,13 @@ export default function CertificateDetailPage({ params }: PageProps) {
       if (!certificate) return;
       setIsDownloading(true);
       await generateCertificatePDF(certificate);
-      console.log(`Successfully downloaded certificate for ${certificate.employeeName}`);
+      console.log(
+        `Successfully downloaded certificate for ${certificate.employeeName}`,
+      );
     } catch (error) {
-      console.error('Error downloading PDF:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error("Error downloading PDF:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       alert(`Failed to generate PDF: ${errorMessage}`);
     } finally {
       setIsDownloading(false);
@@ -82,11 +92,11 @@ export default function CertificateDetailPage({ params }: PageProps) {
   };
 
   const handleEmailCertificate = () => {
-    console.log('Emailing certificate to:', certificate.employeeEmail);
+    console.log("Emailing certificate to:", certificate.employeeEmail);
   };
 
   const handleShareCertificate = () => {
-    console.log('Sharing certificate for:', certificate.employeeName);
+    console.log("Sharing certificate for:", certificate.employeeName);
   };
 
   const handleEditSave = (updatedCertificate: Certificate) => {
@@ -140,7 +150,7 @@ export default function CertificateDetailPage({ params }: PageProps) {
             className="gap-2 transition-all duration-200 hover:shadow-lg hover:scale-105"
           >
             <Download className="h-4 w-4" />
-            {isDownloading ? 'Downloading...' : 'Download PDF'}
+            {isDownloading ? "Downloading..." : "Download PDF"}
           </Button>
           <Button
             onClick={handleEmailCertificate}
@@ -164,20 +174,20 @@ export default function CertificateDetailPage({ params }: PageProps) {
       {/* Certificate Preview */}
       <div ref={certificateRef} className="print:bg-white">
         <CertificateOfEmployment
-          date={new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+          date={new Date().toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
           })}
-          employeeName={certificate.employeeName}
-          startDate={certificate.startDate}
-          jobTitle={certificate.jobTitle}
-          departmentName={certificate.department}
-          typeOfEmployment={certificate.typeOfEmployment}
-          salaryAmount={certificate.salary}
-          workHoursPerWeek={certificate.workHoursPerWeek}
-          employeeAddressLine1={certificate.phone || certificate.address}
-          employeePostalCode={`Email: ${certificate.employeeEmail}`}
+          employeeName={certificate.employeeName || ""}
+          startDate={certificate.startDate || ""}
+          jobTitle={certificate.jobTitle || ""}
+          departmentName={certificate.department || ""}
+          typeOfEmployment={certificate.typeOfEmployment || ""}
+          salaryAmount={certificate.salary || ""}
+          workHoursPerWeek={certificate.workHoursPerWeek || ""}
+          employeeAddressLine1={certificate.phone || certificate.address || ""}
+          employeePostalCode={`Email: ${certificate.employeeEmail || ""}`}
           companyName={certificate.companyName}
           certificateId={certificate.certificateId}
           certifierName={certificate.certifierName}
