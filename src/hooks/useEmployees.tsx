@@ -7,8 +7,8 @@ import {
   ReactNode,
   useEffect,
 } from "react";
-import { Employee } from "@/lib/data/mock-data";
 import { getEmployees } from "@/app/(actions)/employees";
+import { Employee } from "@/lib/types";
 
 interface EmployeeContextType {
   employees: Employee[];

@@ -1,6 +1,11 @@
 import { createTablesDBWithAuth, DB_CONFIG } from "./client";
 import { Query } from "node-appwrite";
+import { Employee } from "@/lib/types";
 
+// Re-export Employee type for convenience
+export type { Employee };
+
+// Legacy interface - kept for backward compatibility
 export interface EmployeeRecord {
   $id?: string;
   serialNo?: number;

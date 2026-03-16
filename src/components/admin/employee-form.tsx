@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Employee } from '@/lib/data/mock-data';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
+import { Employee } from "@/lib/types";
 
 interface EmployeeFormProps {
   employee?: Employee;
@@ -19,9 +19,16 @@ interface EmployeeFormProps {
   isLoading?: boolean;
 }
 
-const departments = ['Engineering', 'Sales', 'Marketing', 'HR', 'Finance', 'Operations'];
-const roles = ['Manager', 'Senior', 'Junior', 'Intern', 'Lead'];
-const statuses = ['active', 'inactive', 'on-leave'];
+const departments = [
+  "Engineering",
+  "Sales",
+  "Marketing",
+  "HR",
+  "Finance",
+  "Operations",
+];
+const roles = ["Manager", "Senior", "Junior", "Intern", "Lead"];
+const statuses = ["active", "inactive", "on-leave"];
 
 export function EmployeeForm({
   employee,
@@ -29,12 +36,12 @@ export function EmployeeForm({
   isLoading = false,
 }: EmployeeFormProps) {
   const [formData, setFormData] = useState<Partial<Employee>>({
-    name: employee?.name || '',
-    email: employee?.email || '',
-    department: employee?.department || '',
-    role: employee?.role || '',
-    status: employee?.status || 'active',
-    phone: employee?.phone || '',
+    name: employee?.name || "",
+    email: employee?.email || "",
+    department: employee?.department || "",
+    role: employee?.role || "",
+    status: employee?.status || "active",
+    phone: employee?.phone || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -52,16 +59,18 @@ export function EmployeeForm({
   return (
     <Card className="p-6">
       <h2 className="text-lg font-semibold text-slate-900 mb-6">
-        {employee ? 'Edit Employee' : 'Add Employee'}
+        {employee ? "Edit Employee" : "Add Employee"}
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Full Name</label>
+            <label className="text-sm font-medium text-slate-700">
+              Full Name
+            </label>
             <Input
-              value={formData.name || ''}
-              onChange={(e) => handleChange('name', e.target.value)}
+              value={formData.name || ""}
+              onChange={(e) => handleChange("name", e.target.value)}
               placeholder="John Doe"
               required
             />
@@ -71,18 +80,20 @@ export function EmployeeForm({
             <label className="text-sm font-medium text-slate-700">Email</label>
             <Input
               type="email"
-              value={formData.email || ''}
-              onChange={(e) => handleChange('email', e.target.value)}
+              value={formData.email || ""}
+              onChange={(e) => handleChange("email", e.target.value)}
               placeholder="john@company.com"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Department</label>
+            <label className="text-sm font-medium text-slate-700">
+              Department
+            </label>
             <Select
-              value={formData.department || ''}
-              onValueChange={(value) => handleChange('department', value)}
+              value={formData.department || ""}
+              onValueChange={(value) => handleChange("department", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select department" />
@@ -100,8 +111,8 @@ export function EmployeeForm({
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Role</label>
             <Select
-              value={formData.role || ''}
-              onValueChange={(value) => handleChange('role', value)}
+              value={formData.role || ""}
+              onValueChange={(value) => handleChange("role", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select role" />
@@ -119,8 +130,8 @@ export function EmployeeForm({
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Phone</label>
             <Input
-              value={formData.phone || ''}
-              onChange={(e) => handleChange('phone', e.target.value)}
+              value={formData.phone || ""}
+              onChange={(e) => handleChange("phone", e.target.value)}
               placeholder="+1 (555) 123-4567"
             />
           </div>
@@ -128,8 +139,8 @@ export function EmployeeForm({
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Status</label>
             <Select
-              value={formData.status || 'active'}
-              onValueChange={(value) => handleChange('status', value as any)}
+              value={formData.status || "active"}
+              onValueChange={(value) => handleChange("status", value as any)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
@@ -146,10 +157,22 @@ export function EmployeeForm({
         </div>
 
         <div className="flex gap-3 pt-4">
-          <Button type="submit" disabled={isLoading} className="transition-all duration-200 hover:shadow-md hover:scale-105">
-            {isLoading ? 'Saving...' : employee ? 'Update Employee' : 'Add Employee'}
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="transition-all duration-200 hover:shadow-md hover:scale-105"
+          >
+            {isLoading
+              ? "Saving..."
+              : employee
+                ? "Update Employee"
+                : "Add Employee"}
           </Button>
-          <Button type="button" variant="outline" className="transition-all duration-200 hover:shadow-md hover:scale-105">
+          <Button
+            type="button"
+            variant="outline"
+            className="transition-all duration-200 hover:shadow-md hover:scale-105"
+          >
             Cancel
           </Button>
         </div>

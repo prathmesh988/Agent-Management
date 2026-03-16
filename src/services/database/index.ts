@@ -29,6 +29,7 @@ export {
   fetchEmployeesWithSalary,
   type EmployeeRecord,
 } from "./employees";
+export type { Employee } from "@/lib/types";
 
 // Certificate exports
 export {
