@@ -3,13 +3,14 @@
 import { Employee } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Edit2, Trash2, ArrowLeft, Mail, Briefcase, Calendar, Users } from "lucide-react";
+import { Edit2, Trash2, ArrowLeft, Mail, Briefcase, Calendar, Users, BarChart3 } from "lucide-react";
 import Link from "next/link";
 
 interface EmployeeProfileProps {
   employee: Employee;
   onEdit?: () => void;
   onDelete?: () => void;
+  employeeId?: string;
 }
 
 // Helper function to get initials
@@ -50,6 +51,7 @@ export function EmployeeProfile({
   employee,
   onEdit,
   onDelete,
+  employeeId,
 }: EmployeeProfileProps) {
   const totalDeductions =
     (employee.tds5perc || 0) +
@@ -122,6 +124,12 @@ export function EmployeeProfile({
 
           {/* Right: Action Buttons */}
           <div className="flex gap-2 flex-shrink-0">
+            <Link href={`/admin/employees/${employeeId || employee.id}/attendance`}>
+              <Button className="bg-purple-600 hover:bg-purple-700 text-white transition-all duration-200 shadow-sm">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Attendance
+              </Button>
+            </Link>
             <Button
               onClick={onEdit}
               className="bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 shadow-sm"

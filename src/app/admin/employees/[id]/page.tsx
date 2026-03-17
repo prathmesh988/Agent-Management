@@ -144,6 +144,7 @@ export default function EmployeeDetailPage({
         <>
           <EmployeeProfile
             employee={currentEmployee}
+            employeeId={resolvedParams.id}
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
