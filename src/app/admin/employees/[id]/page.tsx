@@ -6,6 +6,7 @@ import { Employee } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, use } from "react";
 import { getEmployee } from "@/app/(actions)/employees";
+import { useEmployees } from "@/hooks/useEmployees";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export default function EmployeeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const { updateEmployee } = useEmployees();
   const resolvedParams = use(params);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,9 +55,16 @@ export default function EmployeeDetailPage({
     setIsModalOpen(true);
   };
 
-  const handleSaveEdit = (updatedEmployee: Employee) => {
-    setCurrentEmployee(updatedEmployee);
-    setIsModalOpen(false);
+  const handleSaveEdit = async (updatedEmployee: Employee) => {
+    try {
+      await updateEmployee(updatedEmployee);
+      setCurrentEmployee(updatedEmployee);
+      setIsModalOpen(false);
+      alert("Employee updated successfully!");
+    } catch (error) {
+      console.error("Error saving employee:", error);
+      alert("Failed to update employee. Please try again.");
+    }
   };
 
   const handleDelete = () => {

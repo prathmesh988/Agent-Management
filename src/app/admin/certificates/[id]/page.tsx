@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Certificate } from "@/lib/types";
 import { getEmployee } from "@/app/(actions)/employees";
+import { useCertificates } from "@/hooks/useCertificates";
 import Link from "next/link";
 import { useRef, useState, useEffect, use } from "react";
 
@@ -25,6 +26,7 @@ interface PageProps {
 
 export default function CertificateDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
+  const { updateCertificate } = useCertificates();
   const certificateRef = useRef<HTMLDivElement>(null);
   const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -332,10 +334,16 @@ export default function CertificateDetailPage({ params }: PageProps) {
     console.log("Sharing certificate for:", certificate.employeeName);
   };
 
-  const handleEditSave = (updatedCertificate: Certificate) => {
-    // Just update local state for now
-    setCertificate(updatedCertificate);
-    setIsModalOpen(false);
+  const handleEditSave = async (updatedCertificate: Certificate) => {
+    try {
+      await updateCertificate(updatedCertificate);
+      setCertificate(updatedCertificate);
+      setIsModalOpen(false);
+      alert("Certificate updated successfully!");
+    } catch (error) {
+      console.error("Error saving certificate:", error);
+      alert("Failed to update certificate. Please try again.");
+    }
   };
 
   return (

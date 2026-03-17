@@ -28,6 +28,7 @@ export {
   fetchEmployeesByProcess,
   getEmployeeCount,
   fetchEmployeesWithSalary,
+  updateEmployee,
   type EmployeeRecord,
 } from "./employees";
 export type { Employee } from "@/lib/types";
@@ -39,4 +40,5 @@ export {
   searchCertificates,
   fetchCertificatesByEmployee,
   getCertificateCount,
+  updateCertificate,
 } from "./certificates";

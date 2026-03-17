@@ -8,7 +8,7 @@ import {
   useEffect,
 } from "react";
 import { Certificate } from "@/lib/types";
-import { getCertificates } from "@/app/(actions)/certificates";
+import { getCertificates, updateCertificateAction } from "@/app/(actions)/certificates";
 
 // Re-export Certificate type for backward compatibility
 export type { Certificate };
@@ -51,12 +51,23 @@ export function CertificateProvider({ children }: { children: ReactNode }) {
     return certificates.find((c) => c.id === id);
   };
 
-  const updateCertificate = (updatedCertificate: Certificate) => {
-    setCertificates((prev) =>
-      prev.map((c) =>
-        c.id === updatedCertificate.id ? updatedCertificate : c,
-      ),
-    );
+  const updateCertificate = async (updatedCertificate: Certificate) => {
+    try {
+      // Update in database via server action
+      if (updatedCertificate.id) {
+        await updateCertificateAction(updatedCertificate.id, updatedCertificate);
+      }
+      
+      // Update local state
+      setCertificates((prev) =>
+        prev.map((c) =>
+          c.id === updatedCertificate.id ? updatedCertificate : c,
+        ),
+      );
+    } catch (error) {
+      console.error("Error updating certificate:", error);
+      throw error;
+    }
   };
 
   const deleteCertificate = (id: string) => {

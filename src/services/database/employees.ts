@@ -15,7 +15,7 @@ export interface EmployeeRecord {
   attendanceAllowance?: number;
   process?: string;
   designation?: string;
-  dateOfJoining?: string;
+  dateOfJoining?: number;
   uanNumber?: string;
   accountNumber?: string;
   ifscCode?: string;
@@ -79,28 +79,47 @@ export interface EmployeeRecord {
 }
 
 /**
- * Fetch a single employee by ID
+ * Fetch a single employee by ID (document ID or employeeId field)
+ * Tries document ID first, then falls back to searching by employeeId field
  */
 export async function fetchEmployee(
   documentId: string,
 ): Promise<EmployeeRecord | null> {
   try {
     const databases = createDatabasesWithAuth();
-    console.log("Attempting to fetch employee with ID:", documentId);
-    console.log("Database ID:", DB_CONFIG.DATABASE_ID);
-    console.log("Collection ID:", DB_CONFIG.EMPLOYEES_COLLECTION_ID);
+    console.log("🔍 Attempting to fetch employee with ID:", documentId);
+    console.log("📦 Database ID:", DB_CONFIG.DATABASE_ID);
+    console.log("📦 Collection ID:", DB_CONFIG.EMPLOYEES_COLLECTION_ID);
     
-    const response = await databases.getDocument({
+    // First, try to fetch by document ID
+    try {
+      const response = await databases.getDocument({
+        databaseId: DB_CONFIG.DATABASE_ID,
+        collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
+        documentId: documentId,
+      });
+      console.log("✅ Successfully fetched employee by document ID:", response);
+      return response as EmployeeRecord;
+    } catch (docError) {
+      console.log("⚠️ Document ID fetch failed, trying employeeId field search...");
+    }
+
+    // Fall back to searching by employeeId field
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
       collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
-      documentId: documentId,
+      queries: [Query.equal("employeeId", documentId)],
     });
 
-    console.log("Successfully fetched employee:", response);
-    return response as EmployeeRecord;
+    if (response.documents && response.documents.length > 0) {
+      console.log("✅ Successfully found employee by employeeId field:", response.documents[0]);
+      return response.documents[0] as EmployeeRecord;
+    }
+
+    console.log("❌ Employee not found by document ID or employeeId:", documentId);
+    return null;
   } catch (error) {
-    console.error("Error fetching employee:", error);
-    console.error("Failed to fetch employee with ID:", documentId);
+    console.error("❌ Error fetching employee:", error);
     return null;
   }
 }
@@ -377,6 +396,41 @@ export function calculateAttendanceSummary(employee: EmployeeRecord): {
     totalDaysWorked,
     attendancePercentage,
   };
+}
+
+/**
+ * Update an employee record in the database
+ */
+export async function updateEmployee(
+  documentId: string,
+  updates: Partial<EmployeeRecord>,
+): Promise<EmployeeRecord> {
+  try {
+    const databases = createDatabasesWithAuth();
+    
+    // Filter out undefined and read-only fields
+    const cleanedUpdates = Object.fromEntries(
+      Object.entries(updates)
+        .filter(([key, value]) => {
+          if (value === undefined) return false;
+          if (key === '$id') return false;
+          return true;
+        })
+    );
+    
+    const response = await databases.updateDocument({
+      databaseId: DB_CONFIG.DATABASE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
+      documentId: documentId,
+      data: cleanedUpdates,
+    });
+
+    console.log("Successfully updated employee:", response);
+    return response as EmployeeRecord;
+  } catch (error) {
+    console.error("Error updating employee:", error);
+    throw error;
+  }
 }
 
 /**

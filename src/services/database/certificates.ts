@@ -125,3 +125,43 @@ export async function getCertificateCount(): Promise<number> {
     throw error;
   }
 }
+
+/**
+ * Update a certificate
+ */
+export async function updateCertificate(
+  documentId: string,
+  updates: Partial<Certificate>,
+): Promise<Certificate> {
+  try {
+    console.log("🟢 [DB] Updating certificate document ID:", documentId);
+    console.log("🟢 [DB] Updates to apply:", updates);
+    
+    const databases = createDatabasesWithAuth();
+    
+    // Filter out undefined values and read-only fields
+    const cleanedUpdates = Object.fromEntries(
+      Object.entries(updates)
+        .filter(([key, value]) => {
+          if (value === undefined) return false;
+          if (key === '$id' || key === 'id') return false;
+          return true;
+        })
+    );
+    
+    console.log("🟢 [DB] Final payload:", cleanedUpdates);
+    
+    const response = await databases.updateDocument({
+      databaseId: DB_CONFIG.DATABASE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
+      documentId: documentId,
+      data: cleanedUpdates,
+    });
+
+    console.log("🟢 [DB] Successfully updated certificate:", response);
+    return response as Certificate;
+  } catch (error) {
+    console.error("🔴 [DB] Error updating certificate:", error);
+    throw error;
+  }
+}

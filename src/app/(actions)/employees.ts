@@ -4,6 +4,7 @@ import {
   fetchAllEmployees as dbFetchAllEmployees,
   fetchEmployee as dbFetchEmployee,
   searchEmployees as dbSearchEmployees,
+  updateEmployee as dbUpdateEmployee,
   EmployeeRecord,
 } from "@/services/database";
 import { Employee } from "@/lib/types";
@@ -20,7 +21,7 @@ function transformEmployeeRecord(record: EmployeeRecord): Employee {
     department: record.process || "",
     sno: record.serialNo,
     designation: record.designation || "",
-    dateOfJoining: record.dateOfJoining ? parseInt((record.dateOfJoining as unknown as string).toString()) : 0,
+    dateOfJoining: record.dateOfJoining || 0,
     ctc: record.ctc,
     attendanceAllowance: record.attendanceAllowance,
     process: record.process,
@@ -109,4 +110,116 @@ export async function searchEmployeesAction(
     console.error("Error searching employees:", error);
     throw error;
   }
+}
+
+/**
+ * Server action: Update an employee
+ * Supports all fields in the employee schema for complete persistence
+ */
+export async function updateEmployeeAction(
+  employeeId: string,
+  updates: Partial<Employee>,
+): Promise<Employee> {
+  try {
+    // All numeric fields from database schema (double type)
+    const numericFields = new Set([
+      'sno', 'ctc', 'attendanceAllowance', 'dateOfJoining',
+      'presentDays', 'absentDays', 'leaveDays', 'halfDays', 'weekOffDays', 'holidayDays',
+      'cl', 'lc', 'trp', 'tra', 'trl', 'totalPresent', 'overtime', 'finalDays',
+      'arrear', 'advance', 'shiftAllowance', 'grossSalary', 'attendanceDeduction',
+      'employeeContribution', 'employeeEsic', 'employerContribution', 'employerEsic',
+      'tds', 'netSalary', 'penalty', 'paidAmount', 'serialNo'
+    ]);
+
+    // Convert Employee interface back to EmployeeRecord for database
+    // Map ALL employee fields for complete cloud persistence with type conversion
+    const dbUpdates: Record<string, any> = {
+      // Basic Info
+      name: updates.name,
+      employeeId: updates.employeeId,
+      designation: updates.designation,
+      process: updates.department || updates.process, // Map department to process field
+      serialNo: convertToNumber(updates.sno, 'sno'),
+      
+      // Salary & Allowances
+      ctc: convertToNumber(updates.ctc, 'ctc'),
+      attendanceAllowance: convertToNumber(updates.attendanceAllowance, 'attendanceAllowance'),
+      shiftAllowance: convertToNumber(updates.shiftAllowance, 'shiftAllowance'),
+      grossSalary: convertToNumber(updates.grossSalary, 'grossSalary'),
+      netSalary: convertToNumber(updates.netSalary, 'netSalary'),
+      
+      // Bank & Payment Details
+      uanNumber: updates.uanNumber,
+      accountNumber: updates.accountNumber,
+      ifscCode: updates.ifscCode,
+      bankName: updates.bankName,
+      paymentMode: updates.paymentMode,
+      
+      // Attendance & Leaves
+      presentDays: convertToNumber(updates.presentDays, 'presentDays'),
+      absentDays: convertToNumber(updates.absentDays, 'absentDays'),
+      leaveDays: convertToNumber(updates.leaveDays, 'leaveDays'),
+      halfDays: convertToNumber(updates.halfDays, 'halfDays'),
+      weekOffDays: convertToNumber(updates.weekOffDays, 'weekOffDays'),
+      holidayDays: convertToNumber(updates.holidayDays, 'holidayDays'),
+      cl: convertToNumber(updates.cl, 'cl'),
+      lc: convertToNumber(updates.lc, 'lc'),
+      trp: convertToNumber(updates.trp, 'trp'),
+      tra: convertToNumber(updates.tra, 'tra'),
+      trl: convertToNumber(updates.trl, 'trl'),
+      totalPresent: convertToNumber(updates.totalPresent, 'totalPresent'),
+      finalDays: convertToNumber(updates.finalDays, 'finalDays'),
+      
+      // Deductions & Contributions
+      attendanceDeduction: convertToNumber(updates.attendanceDeduction, 'attendanceDeduction'),
+      employeeContribution: convertToNumber(updates.employeeContribution, 'employeeContribution'),
+      employeeEsic: convertToNumber(updates.employeeEsic, 'employeeEsic'),
+      employerContribution: convertToNumber(updates.employerContribution, 'employerContribution'),
+      employerEsic: convertToNumber(updates.employerEsic, 'employerEsic'),
+      tds: convertToNumber(updates.tds5perc, 'tds'),
+      
+      // Special Cases
+      overtime: convertToNumber(updates.overtime, 'overtime'),
+      arrear: convertToNumber(updates.arrear, 'arrear'),
+      advance: convertToNumber(updates.advance, 'advance'),
+      penalty: convertToNumber(updates.penalty, 'penalty'),
+      paidAmount: convertToNumber(updates.paidAmount, 'paidAmount'),
+      
+      // Only include dateOfJoining if it's a valid positive number
+      ...(updates.dateOfJoining && updates.dateOfJoining > 0 ? { dateOfJoining: updates.dateOfJoining } : {}),
+    };
+
+    // Filter out undefined values to avoid validation errors
+    const cleanedUpdates = Object.fromEntries(
+      Object.entries(dbUpdates).filter(([_, value]) => value !== undefined)
+    ) as Partial<EmployeeRecord>;
+
+    const updated = await dbUpdateEmployee(employeeId, cleanedUpdates);
+    return transformEmployeeRecord(updated);
+  } catch (error) {
+    console.error("Error updating employee:", error);
+    throw error;
+  }
+}
+
+/**
+ * Helper function to safely convert values to numbers
+ */
+function convertToNumber(value: any, fieldName: string): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  
+  if (typeof value === 'number') {
+    return value;
+  }
+  
+  if (typeof value === 'string') {
+    const num = parseFloat(value);
+    if (isNaN(num)) {
+      console.warn(`⚠️ Could not convert "${fieldName}": "${value}" to number`);
+      return undefined;
+    }
+    return num;
+  }
+  
+  return undefined;
 }

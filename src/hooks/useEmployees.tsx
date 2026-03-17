@@ -7,7 +7,7 @@ import {
   ReactNode,
   useEffect,
 } from "react";
-import { getEmployees } from "@/app/(actions)/employees";
+import { getEmployees, updateEmployeeAction } from "@/app/(actions)/employees";
 import { Employee } from "@/lib/types";
 
 interface EmployeeContextType {
@@ -46,18 +46,19 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     return employees.find((e) => e.id === id);
   };
 
-  const updateEmployee = (updatedEmployee: Employee) => {
-    // Ensure required fields have values
-    const sanitized: Employee = {
-      ...updatedEmployee,
-      department: updatedEmployee.department || "Engineering",
-      designation: updatedEmployee.designation || "Junior",
-      status: updatedEmployee.status || "active",
-    };
-
-    setEmployees((prev) =>
-      prev.map((e) => (e.id === sanitized.id ? sanitized : e)),
-    );
+  const updateEmployee = async (updatedEmployee: Employee) => {
+    try {
+      // Update in database via server action
+      await updateEmployeeAction(updatedEmployee.id, updatedEmployee);
+      
+      // Update local state
+      setEmployees((prev) =>
+        prev.map((e) => (e.id === updatedEmployee.id ? updatedEmployee : e)),
+      );
+    } catch (error) {
+      console.error("Error updating employee:", error);
+      throw error;
+    }
   };
 
   const deleteEmployee = (id: string) => {

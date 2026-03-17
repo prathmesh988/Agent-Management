@@ -16,10 +16,16 @@ export default function EmployeesPage() {
     setIsModalOpen(true);
   };
 
-  const handleSaveEdit = (updatedEmployee: Employee) => {
-    updateEmployee(updatedEmployee);
-    setIsModalOpen(false);
-    setEditingEmployee(null);
+  const handleSaveEdit = async (updatedEmployee: Employee) => {
+    try {
+      await updateEmployee(updatedEmployee);
+      setIsModalOpen(false);
+      setEditingEmployee(null);
+      alert("Employee updated successfully!");
+    } catch (error) {
+      console.error("Error saving employee:", error);
+      alert("Failed to update employee. Please try again.");
+    }
   };
 
   const handleDelete = (employee: Employee) => {
