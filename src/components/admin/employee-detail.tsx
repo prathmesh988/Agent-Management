@@ -180,6 +180,101 @@ export function EmployeeProfile({
       <div className="grid grid-cols-3 gap-6">
         {/* LEFT COLUMN (60%) - Work & Bank Details */}
         <div className="col-span-2 space-y-6">
+          {/* Attendance Section - MOVED TO TOP */}
+          <Card className="p-7 border border-slate-100 shadow-sm rounded-lg hover:shadow-md transition-shadow">
+            <h3 className="text-sm uppercase font-bold text-slate-700 tracking-wider mb-6">
+              Attendance Overview
+            </h3>
+
+            <div className="grid grid-cols-4 gap-6">
+              {/* Present Days */}
+              {employee.presentDays !== undefined && (
+                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+                  <p className="text-xs uppercase font-bold text-emerald-600 tracking-wider mb-2">
+                    Present
+                  </p>
+                  <p className="text-3xl font-bold text-emerald-700">
+                    {employee.presentDays}
+                  </p>
+                  <p className="text-xs text-emerald-600 mt-1">days</p>
+                </div>
+              )}
+
+              {/* Absent Days */}
+              {employee.absentDays !== undefined && (
+                <div className="bg-red-50 rounded-lg p-4 border border-red-100">
+                  <p className="text-xs uppercase font-bold text-red-600 tracking-wider mb-2">
+                    Absent
+                  </p>
+                  <p className="text-3xl font-bold text-red-700">{employee.absentDays}</p>
+                  <p className="text-xs text-red-600 mt-1">days</p>
+                </div>
+              )}
+
+              {/* Leave Days */}
+              {employee.leaveDays !== undefined && (
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                  <p className="text-xs uppercase font-bold text-blue-600 tracking-wider mb-2">
+                    Leave
+                  </p>
+                  <p className="text-3xl font-bold text-blue-700">{employee.leaveDays}</p>
+                  <p className="text-xs text-blue-600 mt-1">days</p>
+                </div>
+              )}
+
+              {/* Half Days */}
+              {employee.halfDays !== undefined && (
+                <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
+                  <p className="text-xs uppercase font-bold text-amber-600 tracking-wider mb-2">
+                    Half Days
+                  </p>
+                  <p className="text-3xl font-bold text-amber-700">
+                    {employee.halfDays}
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">days</p>
+                </div>
+              )}
+            </div>
+
+            {/* Additional Attendance Details Grid */}
+            <div className="grid grid-cols-4 gap-4 mt-6">
+              {employee.weekOffDays !== undefined && (
+                <div>
+                  <p className="text-xs uppercase font-bold text-slate-500 tracking-wider mb-1">
+                    Week Off
+                  </p>
+                  <p className="text-xl font-bold text-slate-900">{employee.weekOffDays}</p>
+                </div>
+              )}
+              {employee.holidayDays !== undefined && (
+                <div>
+                  <p className="text-xs uppercase font-bold text-slate-500 tracking-wider mb-1">
+                    Holidays
+                  </p>
+                  <p className="text-xl font-bold text-slate-900">{employee.holidayDays}</p>
+                </div>
+              )}
+              {employee.totalPresent !== undefined && (
+                <div>
+                  <p className="text-xs uppercase font-bold text-slate-500 tracking-wider mb-1">
+                    Total Present
+                  </p>
+                  <p className="text-xl font-bold text-emerald-600">
+                    {employee.totalPresent}
+                  </p>
+                </div>
+              )}
+              {employee.overtime !== undefined && (
+                <div>
+                  <p className="text-xs uppercase font-bold text-slate-500 tracking-wider mb-1">
+                    Overtime
+                  </p>
+                  <p className="text-xl font-bold text-slate-900">{employee.overtime}</p>
+                </div>
+              )}
+            </div>
+          </Card>
+
           {/* Job Information Card */}
           <Card className="p-7 border border-slate-100 shadow-sm rounded-lg hover:shadow-md transition-shadow">
             <h3 className="text-sm uppercase font-bold text-slate-700 tracking-wider mb-5">
@@ -267,11 +362,89 @@ export function EmployeeProfile({
               )}
             </div>
           </Card>
+
+          {/* Deductions & Contributions */}
+          <Card className="p-7 border border-slate-100 shadow-sm rounded-lg hover:shadow-md transition-shadow">
+            <h3 className="text-sm uppercase font-bold text-slate-700 tracking-wider mb-6">
+              Deductions & Contributions
+            </h3>
+
+            <div className="grid grid-cols-3 gap-6">
+              {/* PF Contributions */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <p className="text-xs uppercase font-bold text-slate-600 tracking-wider mb-3">
+                  Provident Fund
+                </p>
+                {employee.employeeContribution && (
+                  <div className="mb-3">
+                    <p className="text-xs text-slate-500 mb-1">Employee</p>
+                    <p className="text-lg font-bold text-slate-900">
+                      ₹{employee.employeeContribution.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                {employee.employerContribution && (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Employer</p>
+                    <p className="text-lg font-bold text-slate-900">
+                      ₹{employee.employerContribution.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* ESIC */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <p className="text-xs uppercase font-bold text-slate-600 tracking-wider mb-3">
+                  ESIC
+                </p>
+                {employee.employeeEsic && (
+                  <div className="mb-3">
+                    <p className="text-xs text-slate-500 mb-1">Employee</p>
+                    <p className="text-lg font-bold text-slate-900">
+                      ₹{employee.employeeEsic.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                {employee.employerEsic && (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Employer</p>
+                    <p className="text-lg font-bold text-slate-900">
+                      ₹{employee.employerEsic.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Tax & Other Deductions */}
+              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                <p className="text-xs uppercase font-bold text-slate-600 tracking-wider mb-3">
+                  Tax & Other
+                </p>
+                {employee.tds5perc && (
+                  <div className="mb-3">
+                    <p className="text-xs text-slate-500 mb-1">TDS</p>
+                    <p className="text-lg font-bold text-red-600">
+                      ₹{employee.tds5perc.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+                {employee.paidAmount && (
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Paid Amount</p>
+                    <p className="text-lg font-bold text-emerald-600">
+                      ₹{employee.paidAmount.toLocaleString()}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
         </div>
 
-        {/* RIGHT COLUMN (40%) - Financials & Compensation */}
+        {/* RIGHT COLUMN (40%) - Compensation & Adjustments */}
         <div className="space-y-6">
-          {/* Compensation Card - Consolidated */}
+          {/* Compensation Card - Moved to top right */}
           <Card className="p-7 border border-slate-100 shadow-sm rounded-lg hover:shadow-md transition-shadow bg-gradient-to-br from-emerald-50 to-white">
             <h3 className="text-sm uppercase font-bold text-slate-700 tracking-wider mb-5">
               Compensation
@@ -391,179 +564,6 @@ export function EmployeeProfile({
           </Card>
         </div>
       </div>
-
-      {/* ========== ATTENDANCE SECTION ========== */}
-      <Card className="p-7 border border-slate-100 shadow-sm rounded-lg hover:shadow-md transition-shadow">
-        <h3 className="text-sm uppercase font-bold text-slate-700 tracking-wider mb-6">
-          Attendance Overview
-        </h3>
-
-        <div className="grid grid-cols-4 gap-6">
-          {/* Present Days */}
-          {employee.presentDays !== undefined && (
-            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
-              <p className="text-xs uppercase font-bold text-emerald-600 tracking-wider mb-2">
-                Present
-              </p>
-              <p className="text-3xl font-bold text-emerald-700">
-                {employee.presentDays}
-              </p>
-              <p className="text-xs text-emerald-600 mt-1">days</p>
-            </div>
-          )}
-
-          {/* Absent Days */}
-          {employee.absentDays !== undefined && (
-            <div className="bg-red-50 rounded-lg p-4 border border-red-100">
-              <p className="text-xs uppercase font-bold text-red-600 tracking-wider mb-2">
-                Absent
-              </p>
-              <p className="text-3xl font-bold text-red-700">{employee.absentDays}</p>
-              <p className="text-xs text-red-600 mt-1">days</p>
-            </div>
-          )}
-
-          {/* Leave Days */}
-          {employee.leaveDays !== undefined && (
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-              <p className="text-xs uppercase font-bold text-blue-600 tracking-wider mb-2">
-                Leave
-              </p>
-              <p className="text-3xl font-bold text-blue-700">{employee.leaveDays}</p>
-              <p className="text-xs text-blue-600 mt-1">days</p>
-            </div>
-          )}
-
-          {/* Half Days */}
-          {employee.halfDays !== undefined && (
-            <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
-              <p className="text-xs uppercase font-bold text-amber-600 tracking-wider mb-2">
-                Half Days
-              </p>
-              <p className="text-3xl font-bold text-amber-700">
-                {employee.halfDays}
-              </p>
-              <p className="text-xs text-amber-600 mt-1">days</p>
-            </div>
-          )}
-        </div>
-
-        {/* Additional Attendance Details Grid */}
-        <div className="grid grid-cols-4 gap-4 mt-6">
-          {employee.weekOffDays !== undefined && (
-            <div>
-              <p className="text-xs uppercase font-bold text-slate-500 tracking-wider mb-1">
-                Week Off
-              </p>
-              <p className="text-xl font-bold text-slate-900">{employee.weekOffDays}</p>
-            </div>
-          )}
-          {employee.holidayDays !== undefined && (
-            <div>
-              <p className="text-xs uppercase font-bold text-slate-500 tracking-wider mb-1">
-                Holidays
-              </p>
-              <p className="text-xl font-bold text-slate-900">{employee.holidayDays}</p>
-            </div>
-          )}
-          {employee.totalPresent !== undefined && (
-            <div>
-              <p className="text-xs uppercase font-bold text-slate-500 tracking-wider mb-1">
-                Total Present
-              </p>
-              <p className="text-xl font-bold text-emerald-600">
-                {employee.totalPresent}
-              </p>
-            </div>
-          )}
-          {employee.overtime !== undefined && (
-            <div>
-              <p className="text-xs uppercase font-bold text-slate-500 tracking-wider mb-1">
-                Overtime
-              </p>
-              <p className="text-xl font-bold text-slate-900">{employee.overtime}</p>
-            </div>
-          )}
-        </div>
-      </Card>
-
-      {/* ========== DEDUCTIONS & CONTRIBUTIONS ========== */}
-      <Card className="p-7 border border-slate-100 shadow-sm rounded-lg hover:shadow-md transition-shadow">
-        <h3 className="text-sm uppercase font-bold text-slate-700 tracking-wider mb-6">
-          Deductions & Contributions
-        </h3>
-
-        <div className="grid grid-cols-3 gap-6">
-          {/* PF Contributions */}
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <p className="text-xs uppercase font-bold text-slate-600 tracking-wider mb-3">
-              Provident Fund
-            </p>
-            {employee.employeeContribution && (
-              <div className="mb-3">
-                <p className="text-xs text-slate-500 mb-1">Employee</p>
-                <p className="text-lg font-bold text-slate-900">
-                  ₹{employee.employeeContribution.toLocaleString()}
-                </p>
-              </div>
-            )}
-            {employee.employerContribution && (
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Employer</p>
-                <p className="text-lg font-bold text-slate-900">
-                  ₹{employee.employerContribution.toLocaleString()}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* ESIC */}
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <p className="text-xs uppercase font-bold text-slate-600 tracking-wider mb-3">
-              ESIC
-            </p>
-            {employee.employeeEsic && (
-              <div className="mb-3">
-                <p className="text-xs text-slate-500 mb-1">Employee</p>
-                <p className="text-lg font-bold text-slate-900">
-                  ₹{employee.employeeEsic.toLocaleString()}
-                </p>
-              </div>
-            )}
-            {employee.employerEsic && (
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Employer</p>
-                <p className="text-lg font-bold text-slate-900">
-                  ₹{employee.employerEsic.toLocaleString()}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Tax & Other Deductions */}
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <p className="text-xs uppercase font-bold text-slate-600 tracking-wider mb-3">
-              Tax & Other
-            </p>
-            {employee.tds5perc && (
-              <div className="mb-3">
-                <p className="text-xs text-slate-500 mb-1">TDS</p>
-                <p className="text-lg font-bold text-red-600">
-                  ₹{employee.tds5perc.toLocaleString()}
-                </p>
-              </div>
-            )}
-            {employee.paidAmount && (
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Paid Amount</p>
-                <p className="text-lg font-bold text-emerald-600">
-                  ₹{employee.paidAmount.toLocaleString()}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }
