@@ -95,3 +95,14 @@ export interface Certificate {
   certifierName?: string;
   certifierTitle?: string;
 }
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'mvp';
+  labels: string[];
+  permissions: ('READ' | 'WRITE' | 'UPDATE' | 'DELETE')[];
+  createdAt: string;
+  status: 'active' | 'inactive';
+}
