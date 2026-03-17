@@ -27,9 +27,10 @@ function transformEmployeeRecord(record: EmployeeRecord): Employee {
 
 /**
  * Server action: Fetch all employees from database
+ * Default limit increased to 5000 to support large datasets
  */
 export async function getEmployees(
-  limit: number = 100,
+  limit: number = 5000,
   offset: number = 0,
 ): Promise<{ employees: Employee[]; total: number }> {
   try {

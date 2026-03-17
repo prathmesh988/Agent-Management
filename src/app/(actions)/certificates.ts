@@ -39,9 +39,10 @@ function normalizeCertificate(cert: any): Certificate {
 
 /**
  * Server action: Fetch all certificates from database
+ * Default limit increased to 5000 to support large datasets
  */
 export async function getCertificates(
-  limit: number = 100,
+  limit: number = 5000,
   offset: number = 0,
 ): Promise<{ certificates: Certificate[]; total: number }> {
   try {
