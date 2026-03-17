@@ -2,7 +2,6 @@
 
 import CertificateOfEmployment from "@/components/certificate/certificate";
 import { EditCertificateModal } from "@/components/certificate/edit-certificate-modal";
-import { generateCertificatePDF } from "@/lib/pdf-generator";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -51,12 +50,13 @@ export default function CertificateDetailPage({ params }: PageProps) {
         
         const certData: Certificate = {
           id: employee.id,
+          employeeId: employee.employeeId,
           employeeName: employee.name,
           employeeEmail: employee.email,
           jobTitle: employee.designation,
           department: employee.department,
           startDate: dateOfJoining,
-          salary: employee.grossSalary?.toString(),
+          salary: employee.ctc?.toString(),
           companyName: "Company Name",
           address: "Company Address",
         };
@@ -106,20 +106,220 @@ export default function CertificateDetailPage({ params }: PageProps) {
     window.print();
   };
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = () => {
     try {
       if (!certificate) return;
       setIsDownloading(true);
-      await generateCertificatePDF(certificate);
-      console.log(
-        `Successfully downloaded certificate for ${certificate.employeeName}`,
-      );
+      
+      // Create a new window with print-friendly certificate
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Please disable popup blocker to download certificate");
+        setIsDownloading(false);
+        return;
+      }
+
+      // Generate clean HTML for printing
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Certificate of Employment - ${certificate.employeeName}</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              background: white;
+              padding: 20px;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+              .certificate-container {
+                box-shadow: none;
+              }
+            }
+            .certificate-container {
+              width: 100%;
+              max-width: 8.5in;
+              height: 11in;
+              padding: 40px;
+              background: white;
+              margin: 0 auto;
+              position: relative;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .top-graphic {
+              position: absolute;
+              top: 0;
+              right: 0;
+              width: 150px;
+              height: 150px;
+            }
+            .header {
+              margin-bottom: 50px;
+              position: relative;
+              z-index: 1;
+            }
+            .certificate-id {
+              color: #666;
+              font-size: 12px;
+              margin-bottom: 10px;
+            }
+            .title {
+              text-align: center;
+              font-size: 32px;
+              font-weight: bold;
+              color: #111;
+              margin: 30px 0 40px 0;
+              letter-spacing: 2px;
+            }
+            .body-content {
+              color: #333;
+              line-height: 1.8;
+              font-size: 14px;
+            }
+            .body-content p {
+              margin: 15px 0;
+            }
+            .details-grid {
+              margin: 30px 0;
+              display: grid;
+              grid-template-columns: 200px 1fr;
+              gap: 10px 20px;
+            }
+            .detail-label {
+              font-weight: bold;
+              color: #555;
+            }
+            .detail-value {
+              color: #333;
+            }
+            .footer {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 60px;
+              padding-top: 30px;
+            }
+            .signature-section {
+              flex: 1;
+            }
+            .signature-line {
+              color: #999;
+              font-size: 12px;
+              margin-bottom: 30px;
+            }
+            .signer-name {
+              font-weight: bold;
+              font-size: 14px;
+              margin-bottom: 5px;
+            }
+            .signer-title {
+              font-size: 12px;
+              color: #666;
+            }
+            .contact-section {
+              flex: 1;
+              text-align: right;
+              font-size: 12px;
+              color: #666;
+            }
+            .contact-section p {
+              margin: 8px 0;
+            }
+            a {
+              color: #0066cc;
+              text-decoration: none;
+            }
+            @page {
+              margin: 0;
+              size: letter;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="certificate-container">
+            <svg class="top-graphic" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M200 0L100 100L200 200V0Z" fill="#3B82F6" fill-opacity="0.8"/>
+              <path d="M200 0L150 50L200 100V0Z" fill="#1F2937"/>
+              <rect x="130" y="40" width="30" height="30" transform="rotate(45 130 40)" fill="#1F2937"/>
+            </svg>
+
+            <div class="header">
+              <div class="certificate-id">Certificate ID: ${certificate.certificateId || "XXXX-XXXX-XXXX"}</div>
+            </div>
+
+            <h2 class="title">CERTIFICATE OF EMPLOYMENT</h2>
+
+            <div class="body-content">
+              <p>Date: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+              <div style="margin: 20px 0;">
+                <p>${certificate.employeeName || ""}</p>
+                <p>${certificate.contactAddressLine1 || ""}</p>
+              </div>
+
+              <p>This letter certifies that <strong>${certificate.employeeName}</strong> is employed by <strong>Airvincible</strong>.</p>
+              <p><strong>${certificate.employeeName}</strong> has been working for this organization since <strong>${certificate.startDate}</strong> as a <strong>${certificate.jobTitle}</strong>.</p>
+
+              <div class="details-grid">
+                <div class="detail-label">Employee Position:</div>
+                <div class="detail-value">${certificate.jobTitle || "N/A"}</div>
+
+                <div class="detail-label">Department:</div>
+                <div class="detail-value">${certificate.department || "N/A"}</div>
+
+                <div class="detail-label">Hiring Date:</div>
+                <div class="detail-value">${certificate.startDate || "N/A"}</div>
+
+                <div class="detail-label">Annual Salary:</div>
+                <div class="detail-value">${certificate.salary || "N/A"}</div>
+
+                <div class="detail-label">Work Hours Per Week:</div>
+                <div class="detail-value">${certificate.workHoursPerWeek || "40 hours"}</div>
+              </div>
+
+              <p style="margin-top: 30px;">For any additional information, please contact me.</p>
+            </div>
+
+            <div class="footer">
+              <div class="signature-section">
+                <div class="signature-line">_____________________</div>
+                <div class="signer-name">${certificate.certifierName || "AUTHORIZED SIGNATORY"}</div>
+                <div class="signer-title">${certificate.certifierTitle || "HR Manager"}</div>
+              </div>
+
+              <div class="contact-section">
+                <p><span style="font-weight: bold;">Phone:</span> ${certificate.contactPhone || "N/A"}</p>
+                <p><span style="font-weight: bold;">Email:</span> <a href="mailto:${certificate.contactEmail}">${certificate.contactEmail || "N/A"}</a></p>
+                <p><span style="font-weight: bold;">Address:</span> ${certificate.contactAddressLine1 || "N/A"}</p>
+              </div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              // Automatically print after page loads
+              window.print();
+            };
+          </script>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      setIsDownloading(false);
     } catch (error) {
-      console.error("Error downloading PDF:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      alert(`Failed to generate PDF: ${errorMessage}`);
-    } finally {
+      console.error("Error opening print preview:", error);
+      alert("Failed to open print preview");
       setIsDownloading(false);
     }
   };

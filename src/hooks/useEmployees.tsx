@@ -31,6 +31,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     const fetchEmployees = async () => {
       try {
         const { employees: fetchedEmployees } = await getEmployees();
+        console.log("Fetched Employees:", fetchedEmployees);
         setEmployees(fetchedEmployees);
       } catch (error) {
         console.error("Failed to fetch employees:", error);

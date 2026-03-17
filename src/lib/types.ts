@@ -76,6 +76,7 @@ export interface Employee {
 export interface Certificate {
   $id?: string;
   id?: string;
+  employeeId?: string;
   certificateId?: string;
   employeeName?: string;
   employeeEmail?: string;

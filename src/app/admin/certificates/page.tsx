@@ -4,10 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Employee } from "@/lib/types";
-import {
-  generateMultipleCertificatePDFs,
-  generateCertificatePDF,
-} from "@/lib/pdf-generator";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,8 +53,54 @@ export default function CertificatesPage() {
       (emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
       (emp.id?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false),
   );
+  console.log("Filtered Employees:", filteredEmployees);
 
-  const handleDownloadCertificate = async (
+  const generateCertificateHTML = (certData: any) => `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: white; }
+        .container { width: 8.5in; height: 11in; padding: 40px; background: white; position: relative; }
+        .title { text-align: center; font-size: 32px; font-weight: bold; margin: 30px 0 40px 0; }
+        .body { color: #333; line-height: 1.8; font-size: 14px; }
+        .body p { margin: 15px 0; }
+        .grid { margin: 30px 0; display: grid; grid-template-columns: 200px 1fr; gap: 10px 20px; }
+        .label { font-weight: bold; }
+        .footer { margin-top: 60px; padding-top: 30px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2 class="title">CERTIFICATE OF EMPLOYMENT</h2>
+        <div class="body">
+          <p>Date: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>
+          <p>This letter certifies that <strong>${certData.employeeName}</strong> is employed by <strong>Airvincible</strong>.</p>
+          <p><strong>${certData.employeeName}</strong> has been working since <strong>${certData.startDate}</strong> as <strong>${certData.jobTitle}</strong>.</p>
+          <div class="grid">
+            <div class="label">Position:</div>
+            <div>${certData.jobTitle}</div>
+            <div class="label">Department:</div>
+            <div>${certData.department}</div>
+            <div class="label">Salary:</div>
+            <div>${certData.salary}</div>
+          </div>
+          <p style="margin-top: 30px;">For information, please contact HR.</p>
+        </div>
+        <div class="footer">
+          <div style="border-top: 1px solid #999; padding-top: 10px;">
+            <div style="font-weight: bold;">AUTHORIZED SIGNATORY</div>
+            <div style="font-size: 12px; color: #666;">HR Manager</div>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const handleDownloadCertificate = (
     employeeId: string,
     name: string,
   ) => {
@@ -70,26 +112,194 @@ export default function CertificatesPage() {
       }
 
       setIsGenerating(true);
-      // Convert employee to certificate format for PDF generation
       const certData = {
         id: emp.id,
+        employeeId: emp.employeeId,
         employeeName: emp.name,
-        employeeEmail: emp.email,
         jobTitle: emp.designation,
         department: emp.department,
         startDate: emp.dateOfJoining,
-        salary: emp.grossSalary?.toString(),
-        companyName: "Company Name",
-        address: "Company Address",
+        salary: `₹${emp.ctc}`,
+        certificateId: `CERT-${emp.employeeId}`,
       };
-      await generateCertificatePDF(certData as any);
-      console.log(`Successfully downloaded certificate for ${name}`);
+
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Please disable popup blocker to download certificate");
+        setIsGenerating(false);
+        return;
+      }
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Certificate - ${certData.employeeName}</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              background: white;
+              color: #333;
+            }
+            .container {
+              width: 8.5in;
+              height: 11in;
+              padding: 40px;
+              background: white;
+              position: relative;
+              display: flex;
+              flex-direction: column;
+            }
+            .top-graphic {
+              position: absolute;
+              top: 0;
+              right: 0;
+              width: 150px;
+              height: 150px;
+              opacity: 0.3;
+            }
+            .content {
+              position: relative;
+              z-index: 1;
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+            }
+            .header {
+              margin-bottom: 40px;
+            }
+            .certificate-id {
+              color: #666;
+              font-size: 12px;
+              margin-bottom: 10px;
+            }
+            .title {
+              text-align: center;
+              font-size: 32px;
+              font-weight: bold;
+              color: #111;
+              margin: 30px 0 40px 0;
+              letter-spacing: 2px;
+            }
+            .body {
+              color: #333;
+              line-height: 1.8;
+              font-size: 14px;
+              flex: 1;
+            }
+            .body p {
+              margin: 15px 0;
+            }
+            .details-grid {
+              margin: 30px 0;
+              display: grid;
+              grid-template-columns: 200px 1fr;
+              gap: 10px 20px;
+            }
+            .detail-label {
+              font-weight: bold;
+              color: #555;
+            }
+            .detail-value {
+              color: #333;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #999;
+            }
+            .signature-line {
+              border-top: 1px solid #999;
+              padding-top: 10px;
+              margin-top: 30px;
+            }
+            .signer-name {
+              font-weight: bold;
+              margin-top: 5px;
+            }
+            .signer-title {
+              font-size: 12px;
+              color: #666;
+            }
+            strong {
+              font-weight: bold;
+            }
+            @page { margin: 0; size: letter; }
+            @media print { body { padding: 0; } .container { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <svg class="top-graphic" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M200 0L100 100L200 200V0Z" fill="#3B82F6"/>
+              <path d="M200 0L150 50L200 100V0Z" fill="#1F2937"/>
+            </svg>
+
+            <div class="content">
+              <div class="header">
+                <div class="certificate-id">Certificate ID: ${certData.certificateId}</div>
+              </div>
+
+              <h2 class="title">CERTIFICATE OF EMPLOYMENT</h2>
+
+              <div class="body">
+                <p>Date: ${new Date().toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}</p>
+
+                <p>This letter certifies that <strong>${certData.employeeName}</strong> is employed by <strong>Airvincible</strong>.</p>
+
+                <p><strong>${certData.employeeName}</strong> has been working for this organization since <strong>${certData.startDate}</strong> as a <strong>${certData.jobTitle}</strong>.</p>
+
+                <div class="details-grid">
+                  <div class="detail-label">Employee Position:</div>
+                  <div class="detail-value">${certData.jobTitle}</div>
+
+                  <div class="detail-label">Department:</div>
+                  <div class="detail-value">${certData.department}</div>
+
+                  <div class="detail-label">Hiring Date:</div>
+                  <div class="detail-value">${certData.startDate}</div>
+
+                  <div class="detail-label">Annual Salary:</div>
+                  <div class="detail-value">${certData.salary}</div>
+                </div>
+
+                <p style="margin-top: 30px;">For any additional information, please contact me.</p>
+              </div>
+
+              <div class="footer">
+                <div class="signature-line">
+                  <div class="signer-name">AUTHORIZED SIGNATORY</div>
+                  <div class="signer-title">HR Manager</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() { window.print(); };
+          </script>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      
+      console.log(`Opened print preview for ${name}`);
+      setIsGenerating(false);
     } catch (error) {
-      console.error("Error downloading certificate:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      alert(`Failed to generate PDF: ${errorMessage}`);
-    } finally {
+      console.error("Error opening print preview:", error);
+      alert("Failed to open print preview");
       setIsGenerating(false);
     }
   };
@@ -104,27 +314,59 @@ export default function CertificatesPage() {
       const selectedEmps = employees.filter(
         (e) => e.id && selectedIds.has(e.id),
       );
-      const certificates = selectedEmps.map((emp) => ({
+
+      setIsGenerating(true);
+
+      // Prepare certificate data for API
+      const certificatesData = selectedEmps.map((emp) => ({
         id: emp.id,
+        employeeId: emp.employeeId,
         employeeName: emp.name,
-        employeeEmail: emp.email,
         jobTitle: emp.designation,
         department: emp.department,
         startDate: emp.dateOfJoining,
-        salary: emp.grossSalary?.toString(),
-        companyName: "Company Name",
-        address: "Company Address",
+        salary: `₹${emp.ctc}`,
+        certificateId: `CERT-${emp.employeeId}`,
       }));
 
-      setIsGenerating(true);
-      await generateMultipleCertificatePDFs(certificates as any);
-      console.log(`Successfully generated ${selectedEmps.length} PDFs`);
+      console.log(
+        `Sending ${certificatesData.length} certificates to API for generation`,
+      );
+
+      // Call API to generate ZIP with PDFs
+      const response = await fetch("/api/certificates/download-all", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ certificates: certificatesData }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || `API error: ${response.statusText}`,
+        );
+      }
+
+      // Get ZIP blob and trigger download
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Certificates_${new Date().getTime()}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log(`Successfully downloaded ZIP with ${selectedEmps.length} certificates`);
       setSelectedIds(new Set());
     } catch (error) {
-      console.error("Error generating PDFs:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      alert(`Failed to generate PDFs: ${errorMessage}`);
+      console.error("Error generating certificates:", error);
+      alert(
+        `Failed to generate certificates: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -301,8 +543,8 @@ export default function CertificatesPage() {
                     </TableCell>
                     <TableCell className="py-4 px-6 text-left text-sm text-slate-600">
                       ₹
-                      {emp.grossSalary
-                        ? (emp.grossSalary / 1000).toFixed(1)
+                      {emp.ctc
+                        ? (emp.ctc / 1000).toFixed(1)
                         : 0}
                       K
                     </TableCell>

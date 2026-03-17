@@ -86,15 +86,21 @@ export async function fetchEmployee(
 ): Promise<EmployeeRecord | null> {
   try {
     const databases = createDatabasesWithAuth();
+    console.log("Attempting to fetch employee with ID:", documentId);
+    console.log("Database ID:", DB_CONFIG.DATABASE_ID);
+    console.log("Collection ID:", DB_CONFIG.EMPLOYEES_COLLECTION_ID);
+    
     const response = await databases.getDocument({
       databaseId: DB_CONFIG.DATABASE_ID,
       collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       documentId: documentId,
     });
 
+    console.log("Successfully fetched employee:", response);
     return response as EmployeeRecord;
   } catch (error) {
     console.error("Error fetching employee:", error);
+    console.error("Failed to fetch employee with ID:", documentId);
     return null;
   }
 }

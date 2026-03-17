@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const activeEmployees = employees.filter((e) => e.status === "active").length;
   const totalAdmins = mockAdmins.length;
   const totalSalary = employees.reduce(
-    (sum, e) => sum + (e.grossSalary || 0),
+    (sum, e) => sum + (e.ctc || 0),
     0,
   );
   const totalAttendance = employees.reduce(
@@ -201,8 +201,8 @@ export default function DashboardPage() {
                     </TableCell>
                     <TableCell className="text-sm font-semibold text-slate-900">
                       ₹
-                      {employee.grossSalary
-                        ? (employee.grossSalary / 1000).toFixed(1)
+                      {employee.ctc
+                        ? (employee.ctc / 1000).toFixed(1)
                         : 0}
                       K
                     </TableCell>

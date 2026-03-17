@@ -119,8 +119,7 @@ const CertificateOfEmployment: React.FC<CertificateOfEmploymentProps> = ({
             <div className="font-medium text-gray-700">Hiring date:</div>
             <div>{startDate}</div>
 
-            <div className="font-medium text-gray-700">Position type:</div>
-            <div>{typeOfEmployment}</div>
+         
 
             <div className="font-medium text-gray-700">Annual salary:</div>
             <div>{salaryAmount}</div>

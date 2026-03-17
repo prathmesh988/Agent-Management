@@ -34,7 +34,7 @@ export const createDatabasesWithAuth = () => {
 // Database and table constants
 export const DB_CONFIG = {
   DATABASE_ID: process.env.APPWRITE_DATABASE_ID || "69b7ec04003c8a35a2d8",
-  EMPLOYEES_COLLECTION_ID: "rydr_db",
-  EMPLOYEES_COLLECTION_NAME: "rydr_db",
+  EMPLOYEES_COLLECTION_ID: process.env.APPWRITE_COLLECTION_ID || "rydr_db",
+  EMPLOYEES_COLLECTION_NAME: process.env.APPWRITE_COLLECTION_NAME || "rydr_db",
   // Certificates data comes from the same employees table
 };
