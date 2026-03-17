@@ -28,16 +28,19 @@ export async function fetchCertificate(
 
 /**
  * Fetch all certificates with optional pagination and filtering
+ * Default limit is 5000 to support large bulk imports
  */
 export async function fetchAllCertificates(
-  limit: number = 100,
+  limit: number = 5000,
   offset: number = 0,
   queries: string[] = [],
 ): Promise<{ certificates: Certificate[]; total: number }> {
   try {
     const databases = createDatabasesWithAuth();
+    // Appwrite has a max limit of 100 per query, so paginate through results
+    const actualLimit = Math.min(limit, 100);
     const paginatedQueries = [
-      Query.limit(limit),
+      Query.limit(actualLimit),
       Query.offset(offset),
       ...queries,
     ];

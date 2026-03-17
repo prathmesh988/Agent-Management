@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Employee } from "@/lib/types";
 import {
@@ -18,8 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, FileText, Award, Edit2, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { Download, FileText, Trash2 } from "lucide-react";
 
 // Helper function to get initials
 function getInitials(name: string) {
@@ -43,6 +43,7 @@ function getAvatarColor(index: number) {
 }
 
 export default function CertificatesPage() {
+  const router = useRouter();
   const { employees, updateEmployee, deleteEmployee, isLoading } =
     useEmployees();
   const [searchTerm, setSearchTerm] = useState("");
@@ -258,13 +259,17 @@ export default function CertificatesPage() {
                 {filteredEmployees.map((emp, idx) => (
                   <TableRow
                     key={emp.id}
-                    className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50"
+                    onClick={() => router.push(`/admin/certificates/${emp.id}`)}
+                    className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50 cursor-pointer"
                   >
                     <TableCell className="py-4 px-6 text-left">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(emp.id)}
-                        onChange={() => toggleSelection(emp.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleSelection(emp.id);
+                        }}
                         className="rounded border-slate-300 cursor-pointer"
                       />
                     </TableCell>
@@ -302,17 +307,7 @@ export default function CertificatesPage() {
                       K
                     </TableCell>
                     <TableCell className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link href={`/admin/employees/${emp.id}`}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200"
-                            title="View Employee"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                        </Link>
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -323,7 +318,7 @@ export default function CertificatesPage() {
                           }
                           disabled={isGenerating || !emp.id}
                           className="h-9 w-9 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors duration-200"
-                          title="Download PDF"
+                          title="Download Certificate PDF"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -336,7 +331,7 @@ export default function CertificatesPage() {
                             handleDeleteEmployee(emp.id, emp.name)
                           }
                           className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
-                          title="Delete Employee"
+                          title="Remove Employee"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

@@ -3,7 +3,7 @@ import { Client, Databases, ID, Query, AppwriteException } from 'node-appwrite';
 import { initializeEmployeesTable, tableExists, DATABASE_ID, COLLECTION_ID } from '@/lib/initialize-table';
 import { processExcelFileFromBuffer, TransformedEmployee } from '@/lib/excel-import';
 
-const CHUNK_SIZE = 50; // Process employees in batches of 50
+const CHUNK_SIZE = 100; // Process employees in batches of 100 to speed up bulk imports
 
 /**
  * Helper function to check if employee already exists
@@ -61,7 +61,7 @@ async function insertEmployeesBatch(
 
             // Log progress every 10 records
             if (inserted % 10 === 0) {
-                console.log(`Progress: ${inserted} employees inserted...`);
+                console.log(`Progress: ${inserted} employees inserted, ${skipped} skipped...`);
             }
         } catch (error) {
             const errorMsg = error instanceof AppwriteException ? error.message : 'Unknown error';
@@ -164,9 +164,9 @@ export async function POST(request: NextRequest) {
             totalInserted.skipped += batchResult.skipped;
             totalInserted.errors.push(...batchResult.errors);
 
-            // Add delay between batches to avoid rate limiting
+            // Add minimal delay between batches to avoid rate limiting
             if (i + CHUNK_SIZE < employees.length) {
-                await new Promise((resolve) => setTimeout(resolve, 500));
+                await new Promise((resolve) => setTimeout(resolve, 100));
             }
         }
 

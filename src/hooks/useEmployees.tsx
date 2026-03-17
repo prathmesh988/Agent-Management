@@ -30,7 +30,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const { employees: fetchedEmployees } = await getEmployees(100, 0);
+        const { employees: fetchedEmployees } = await getEmployees();
         setEmployees(fetchedEmployees);
       } catch (error) {
         console.error("Failed to fetch employees:", error);

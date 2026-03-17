@@ -82,38 +82,39 @@ export interface EmployeeRecord {
  * Fetch a single employee by ID
  */
 export async function fetchEmployee(
-  employeeId: string,
+  documentId: string,
 ): Promise<EmployeeRecord | null> {
   try {
     const databases = createDatabasesWithAuth();
-    const response = await databases.listDocuments({
+    const response = await databases.getDocument({
       databaseId: DB_CONFIG.DATABASE_ID,
       collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
-      queries: [Query.equal("employeeId", employeeId)],
+      documentId: documentId,
     });
 
-    if (response.documents && response.documents.length > 0) {
-      return response.documents[0] as EmployeeRecord;
-    }
-    return null;
+    return response as EmployeeRecord;
   } catch (error) {
     console.error("Error fetching employee:", error);
-    throw error;
+    return null;
   }
 }
 
 /**
  * Fetch all employees with optional pagination and filtering
+ * Default limit is 5000 to support large bulk imports
+ * Note: Appwrite Query.limit() has a max of 100 per request, so pagination is needed for >100
  */
 export async function fetchAllEmployees(
-  limit: number = 100,
+  limit: number = 5000,
   offset: number = 0,
   queries: string[] = [],
 ): Promise<{ employees: EmployeeRecord[]; total: number }> {
   try {
     const databases = createDatabasesWithAuth();
+    // Appwrite has a max limit of 100 per query, so paginate through results
+    const actualLimit = Math.min(limit, 100);
     const paginatedQueries = [
-      Query.limit(limit),
+      Query.limit(actualLimit),
       Query.offset(offset),
       ...queries,
     ];
@@ -129,6 +130,47 @@ export async function fetchAllEmployees(
     };
   } catch (error) {
     console.error("Error fetching all employees:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch ALL employees across multiple pages (handles >100 records)
+ * Automatically paginates through all results
+ */
+export async function fetchAllEmployeesPaginated(
+  queries: string[] = [],
+): Promise<EmployeeRecord[]> {
+  try {
+    const databases = createDatabasesWithAuth();
+    const allEmployees: EmployeeRecord[] = [];
+    const pageSize = 100; // Appwrite max limit per request
+    let offset = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const paginatedQueries = [
+        Query.limit(pageSize),
+        Query.offset(offset),
+        ...queries,
+      ];
+
+      const response = await databases.listDocuments({
+        databaseId: DB_CONFIG.DATABASE_ID,
+        collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
+        queries: paginatedQueries,
+      });
+
+      allEmployees.push(...(response.documents as EmployeeRecord[]));
+      offset += pageSize;
+
+      // Check if there are more records to fetch
+      hasMore = allEmployees.length < response.total;
+    }
+
+    return allEmployees;
+  } catch (error) {
+    console.error("Error fetching all employees paginated:", error);
     throw error;
   }
 }

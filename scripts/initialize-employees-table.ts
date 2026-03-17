@@ -32,7 +32,7 @@ async function main() {
     console.log('✓ Table initialized successfully!');
     console.log('');
     console.log('Summary:');
-    console.log('- Database ID: 6784f57b0000a70f1b79');
+    console.log('- Database ID: 69b7ec04003c8a35a2d8');
     console.log('- Table name: employees');
     console.log('- Total columns: 43');
     console.log('');

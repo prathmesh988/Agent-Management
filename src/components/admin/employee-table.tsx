@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Employee } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,10 +44,15 @@ const ITEMS_PER_PAGE = 10;
 function ActionDropdown({ employee, onView, onEdit, onDelete }: any) {
   const [isOpen, setIsOpen] = useState(false);
 
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="relative inline-block">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleClick}
         className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-all duration-200 hover:text-slate-900"
       >
         <MoreVertical className="h-4 w-4" />
@@ -116,6 +122,7 @@ export function EmployeeTable({
   onEdit,
   onDelete,
 }: EmployeeTableProps) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -268,7 +275,11 @@ export function EmployeeTable({
           </TableHeader>
           <TableBody>
             {paginatedEmployees.map((employee, idx) => (
-              <TableRow key={employee.id}>
+              <TableRow
+                key={employee.id}
+                onClick={() => router.push(`/admin/employees/${employee.id}`)}
+                className="cursor-pointer hover:bg-slate-50 transition-colors duration-200"
+              >
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div

@@ -13,7 +13,8 @@ import {
   Share2,
   Edit2,
 } from "lucide-react";
-import { useCertificates, Certificate } from "@/hooks/useCertificates";
+import { Certificate } from "@/lib/types";
+import { getEmployee } from "@/app/(actions)/employees";
 import Link from "next/link";
 import { useRef, useState, useEffect, use } from "react";
 
@@ -26,21 +27,53 @@ interface PageProps {
 export default function CertificateDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const certificateRef = useRef<HTMLDivElement>(null);
-  const { getCertificate, updateCertificate, isLoading } = useCertificates();
   const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
-    if (isLoading) return;
+    const loadCertificate = async () => {
+      try {
+        // Fetch employee data using the ID parameter
+        const employee = await getEmployee(resolvedParams.id);
+        
+        if (!employee) {
+          setCertificate(null);
+          setPageLoading(false);
+          return;
+        }
 
-    const cert = getCertificate(resolvedParams.id);
-    setCertificate(cert || null);
-    setPageLoading(false);
-  }, [resolvedParams.id, isLoading, getCertificate]);
+        // Transform employee data to certificate format
+        const dateOfJoining = employee.dateOfJoining
+          ? new Date(employee.dateOfJoining).toLocaleDateString()
+          : "";
+        
+        const certData: Certificate = {
+          id: employee.id,
+          employeeName: employee.name,
+          employeeEmail: employee.email,
+          jobTitle: employee.designation,
+          department: employee.department,
+          startDate: dateOfJoining,
+          salary: employee.grossSalary?.toString(),
+          companyName: "Company Name",
+          address: "Company Address",
+        };
+        
+        setCertificate(certData);
+      } catch (error) {
+        console.error("Error loading certificate:", error);
+        setCertificate(null);
+      } finally {
+        setPageLoading(false);
+      }
+    };
 
-  if (pageLoading || isLoading) {
+    loadCertificate();
+  }, [resolvedParams.id]);
+
+  if (pageLoading) {
     return (
       <div className="flex items-center justify-center h-96">
         <p className="text-slate-600">Loading certificate...</p>
@@ -100,8 +133,9 @@ export default function CertificateDetailPage({ params }: PageProps) {
   };
 
   const handleEditSave = (updatedCertificate: Certificate) => {
-    updateCertificate(updatedCertificate);
+    // Just update local state for now
     setCertificate(updatedCertificate);
+    setIsModalOpen(false);
   };
 
   return (

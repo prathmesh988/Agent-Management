@@ -18,8 +18,8 @@
 import { Client, TablesDB } from "node-appwrite";
 
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "69b86fc300070678494b";
-const TABLE_ID = "orcus_extended";
-const TABLE_NAME = "orcus_extended";
+const TABLE_ID = "rydr_db";
+const TABLE_NAME = "rydr_db";
 
 async function migrateTable() {
   const client = new Client()
@@ -59,7 +59,7 @@ async function migrateTable() {
     console.log("✅ Migration completed successfully!");
     console.log("");
     console.log("New Schema Summary:");
-    console.log("- Database ID: 6784f57b0000a70f1b79");
+    console.log("- Database ID: 69b7ec04003c8a35a2d8");
     console.log("- Table name: employees");
     console.log("- Total columns: 38");
     console.log("");

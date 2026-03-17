@@ -22,6 +22,7 @@ export {
 export {
   fetchEmployee,
   fetchAllEmployees,
+  fetchAllEmployeesPaginated,
   searchEmployees,
   fetchEmployeesByDesignation,
   fetchEmployeesByProcess,

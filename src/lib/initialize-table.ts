@@ -1,8 +1,8 @@
 import { Client, Databases, ID } from "node-appwrite";
 
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "6784f57b0000a70f1b79";
-const COLLECTION_NAME = "orcus_extended";
-const COLLECTION_ID = "orcus_extended";
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "69b7ec04003c8a35a2d8";
+const COLLECTION_NAME = "rydr_db";
+const COLLECTION_ID = "rydr_db";
 
 /**
  * Initialize the employees table with all required columns
