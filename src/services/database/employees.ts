@@ -82,23 +82,20 @@ export interface EmployeeRecord {
  * Fetch a single employee by ID
  */
 export async function fetchEmployee(
-  employeeId: string,
+  documentId: string,
 ): Promise<EmployeeRecord | null> {
   try {
     const databases = createDatabasesWithAuth();
-    const response = await databases.listDocuments({
+    const response = await databases.getDocument({
       databaseId: DB_CONFIG.DATABASE_ID,
       collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
-      queries: [Query.equal("employeeId", employeeId)],
+      documentId: documentId,
     });
 
-    if (response.documents && response.documents.length > 0) {
-      return response.documents[0] as EmployeeRecord;
-    }
-    return null;
+    return response as EmployeeRecord;
   } catch (error) {
     console.error("Error fetching employee:", error);
-    throw error;
+    return null;
   }
 }
 
