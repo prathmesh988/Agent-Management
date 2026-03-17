@@ -3,9 +3,9 @@
 import { EmployeeProfile } from "@/components/admin/employee-detail";
 import { EditEmployeeModal } from "@/components/admin/edit-employee-modal";
 import { Employee } from "@/lib/types";
-import { useEmployees } from "@/hooks/useEmployees";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, use } from "react";
+import { fetchEmployee, type EmployeeRecord } from "@/services/database";
 
 export const dynamic = "force-dynamic";
 
@@ -16,45 +16,87 @@ export default function EmployeeDetailPage({
 }) {
   const router = useRouter();
   const resolvedParams = use(params);
-  const {
-    getEmployee,
-    updateEmployee,
-    deleteEmployee,
-    isLoading: employeesLoading,
-  } = useEmployees();
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (employeesLoading) return;
+    const loadEmployeeDetails = async () => {
+      try {
+        // Fetch employee from database using the new database service
+        const employee = await fetchEmployee(resolvedParams.id);
 
-    const employee = getEmployee(resolvedParams.id);
+        if (!employee) {
+          setNotFound(true);
+          setIsLoading(false);
+          return;
+        }
 
-    if (!employee) {
-      setNotFound(true);
-      setIsLoading(false);
-      return;
-    }
+        // Type cast the employee record to Employee type
+        // EmployeeRecord has all necessary fields for Employee interface
+        const typedEmployee: Employee = {
+          id: employee.$id || resolvedParams.id,
+          employeeId: employee.employeeId || "",
+          name: employee.name || "",
+          email: "", // Email not in EmployeeRecord, use empty string
+          status: "active",
+          ctc: employee.ctc,
+          attendanceAllowance: employee.attendanceAllowance,
+          process: employee.process,
+          designation: employee.designation,
+          dateOfJoining: new Date(employee.dateOfJoining || "").getTime(), // Convert string date to timestamp
+          uanNumber: employee.uanNumber,
+          accountNumber: employee.accountNumber,
+          ifscCode: employee.ifscCode,
+          bankName: employee.bankName,
+          paymentMode: employee.paymentMode,
+          presentDays: employee.presentDays,
+          absentDays: employee.absentDays,
+          leaveDays: employee.leaveDays,
+          halfDays: employee.halfDays,
+          weekOffDays: employee.weekOffDays,
+          holidayDays: employee.holidayDays,
+          cl: employee.cl,
+          totalPresent: employee.totalPresent,
+          overtime: employee.overtime,
+          arrear: employee.arrear,
+          advance: employee.advance,
+          shiftAllowance: employee.shiftAllowance,
+          grossSalary: employee.grossSalary,
+          netSalary: employee.netSalary,
+          tds5perc: employee.tds,
+          employeeContribution: employee.employeeContribution,
+          employerContribution: employee.employerContribution,
+          employeeEsic: employee.employeeEsic,
+          employerEsic: employee.employerEsic,
+          penalty: employee.penalty,
+          paidAmount: employee.paidAmount,
+        };
 
-    setCurrentEmployee(employee);
-    setIsLoading(false);
-  }, [resolvedParams.id, employeesLoading, getEmployee]);
+        setCurrentEmployee(typedEmployee);
+      } catch (error) {
+        console.error("Error loading employee details:", error);
+        setNotFound(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadEmployeeDetails();
+  }, [resolvedParams.id]);
 
   const handleEdit = () => {
     setIsModalOpen(true);
   };
 
   const handleSaveEdit = (updatedEmployee: Employee) => {
-    updateEmployee(updatedEmployee);
     setCurrentEmployee(updatedEmployee);
     setIsModalOpen(false);
   };
 
   const handleDelete = () => {
     if (confirm(`Are you sure you want to delete ${currentEmployee?.name}?`)) {
-      deleteEmployee(resolvedParams.id);
       router.push("/admin/employees");
     }
   };
