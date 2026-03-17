@@ -80,7 +80,6 @@ export default function CertificatesPage() {
         salary: emp.grossSalary?.toString(),
         companyName: "Company Name",
         address: "Company Address",
-        phone: emp.phone,
       };
       await generateCertificatePDF(certData as any);
       console.log(`Successfully downloaded certificate for ${name}`);
@@ -114,7 +113,6 @@ export default function CertificatesPage() {
         salary: emp.grossSalary?.toString(),
         companyName: "Company Name",
         address: "Company Address",
-        phone: emp.phone,
       }));
 
       setIsGenerating(true);

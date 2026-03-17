@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client, TablesDB, ID, Query, AppwriteException } from 'node-appwrite';
-import { initializeEmployeesTable, tableExists, DATABASE_ID, TABLE_ID } from '@/lib/initialize-table';
+import { Client, Databases, ID, Query, AppwriteException } from 'node-appwrite';
+import { initializeEmployeesTable, tableExists, DATABASE_ID, COLLECTION_ID } from '@/lib/initialize-table';
 import { processExcelFileFromBuffer, TransformedEmployee } from '@/lib/excel-import';
 
 const CHUNK_SIZE = 50; // Process employees in batches of 50
@@ -9,13 +9,13 @@ const CHUNK_SIZE = 50; // Process employees in batches of 50
  * Helper function to check if employee already exists
  */
 async function employeeExists(
-    tablesDB: TablesDB,
+    databases: Databases,
     empId: string
 ): Promise<boolean> {
     try {
-        const result = await tablesDB.listRows({
+        const result = await databases.listDocuments({
             databaseId: DATABASE_ID,
-            tableId: TABLE_ID,
+            collectionId: COLLECTION_ID,
             queries: [Query.equal('employeeId', empId), Query.limit(1)],
         });
         return result.total > 0;
@@ -29,7 +29,7 @@ async function employeeExists(
  * Insert employees in batches to avoid rate limiting
  */
 async function insertEmployeesBatch(
-    tablesDB: TablesDB,
+    databases: Databases,
     employees: TransformedEmployee[],
     startIndex: number = 0
 ): Promise<{ inserted: number; skipped: number; errors: string[] }> {
@@ -41,7 +41,7 @@ async function insertEmployeesBatch(
     for (const employee of employees) {
         try {
             // Check if employee already exists
-            const exists = await employeeExists(tablesDB, employee.employeeId as string);
+            const exists = await employeeExists(databases, employee.employeeId as string);
             if (exists) {
                 skipped++;
                 currentIndex++;
@@ -49,10 +49,10 @@ async function insertEmployeesBatch(
             }
 
             // Insert the employee record
-            await tablesDB.createRow({
+            await databases.createDocument({
                 databaseId: DATABASE_ID,
-                tableId: TABLE_ID,
-                rowId: ID.unique(),
+                collectionId: COLLECTION_ID,
+                documentId: ID.unique(),
                 data: employee,
             });
 
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
             .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
             .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '')
             .setKey(process.env.APPWRITE_PROJECT_ID_API_SECRET || '');
-        const tablesDB = new TablesDB(client);
+        const databases = new Databases(client);
 
         // Check if table exists, if not initialize it
         console.log('Checking if table exists...');
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
 
         for (let i = 0; i < employees.length; i += CHUNK_SIZE) {
             const chunk = employees.slice(i, i + CHUNK_SIZE);
-            const batchResult = await insertEmployeesBatch(tablesDB, chunk, i);
+            const batchResult = await insertEmployeesBatch(databases, chunk, i);
 
             totalInserted.inserted += batchResult.inserted;
             totalInserted.skipped += batchResult.skipped;

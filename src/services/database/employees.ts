@@ -1,4 +1,4 @@
-import { createTablesDBWithAuth, DB_CONFIG } from "./client";
+import { createDatabasesWithAuth, DB_CONFIG } from "./client";
 import { Query } from "node-appwrite";
 import { Employee } from "@/lib/types";
 
@@ -85,15 +85,15 @@ export async function fetchEmployee(
   employeeId: string,
 ): Promise<EmployeeRecord | null> {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [Query.equal("employeeId", employeeId)],
     });
 
-    if (response.rows && response.rows.length > 0) {
-      return response.rows[0] as EmployeeRecord;
+    if (response.documents && response.documents.length > 0) {
+      return response.documents[0] as EmployeeRecord;
     }
     return null;
   } catch (error) {
@@ -111,20 +111,20 @@ export async function fetchAllEmployees(
   queries: string[] = [],
 ): Promise<{ employees: EmployeeRecord[]; total: number }> {
   try {
-    const tablesDB = createTablesDBWithAuth();
+    const databases = createDatabasesWithAuth();
     const paginatedQueries = [
       Query.limit(limit),
       Query.offset(offset),
       ...queries,
     ];
-    const response = await tablesDB.listRows({
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: paginatedQueries,
     });
 
     return {
-      employees: response.rows as EmployeeRecord[],
+      employees: response.documents as EmployeeRecord[],
       total: response.total,
     };
   } catch (error) {
@@ -140,10 +140,10 @@ export async function searchEmployees(
   searchTerm: string,
 ): Promise<EmployeeRecord[]> {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [
         Query.or([
           Query.search("name", searchTerm),
@@ -152,7 +152,7 @@ export async function searchEmployees(
       ],
     });
 
-    return response.rows as EmployeeRecord[];
+    return response.documents as EmployeeRecord[];
   } catch (error) {
     console.error("Error searching employees:", error);
     throw error;
@@ -166,14 +166,14 @@ export async function fetchEmployeesByDesignation(
   designation: string,
 ): Promise<EmployeeRecord[]> {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [Query.equal("designation", designation)],
     });
 
-    return response.rows as EmployeeRecord[];
+    return response.documents as EmployeeRecord[];
   } catch (error) {
     console.error("Error fetching employees by designation:", error);
     throw error;
@@ -187,14 +187,14 @@ export async function fetchEmployeesByProcess(
   process: string,
 ): Promise<EmployeeRecord[]> {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [Query.equal("process", process)],
     });
 
-    return response.rows as EmployeeRecord[];
+    return response.documents as EmployeeRecord[];
   } catch (error) {
     console.error("Error fetching employees by process:", error);
     throw error;
@@ -206,10 +206,10 @@ export async function fetchEmployeesByProcess(
  */
 export async function getEmployeeCount(): Promise<number> {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [Query.limit(1)],
     });
 
@@ -225,14 +225,14 @@ export async function getEmployeeCount(): Promise<number> {
  */
 export async function fetchEmployeesWithSalary(): Promise<EmployeeRecord[]> {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [Query.isNotNull("netSalary")],
     });
 
-    return response.rows as EmployeeRecord[];
+    return response.documents as EmployeeRecord[];
   } catch (error) {
     console.error("Error fetching employees with salary:", error);
     throw error;
@@ -246,14 +246,14 @@ export async function fetchEmployeesWithAttendance(): Promise<
   EmployeeRecord[]
 > {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [Query.isNotNull("presentDays")],
     });
 
-    return response.rows as EmployeeRecord[];
+    return response.documents as EmployeeRecord[];
   } catch (error) {
     console.error("Error fetching employees with attendance:", error);
     throw error;
@@ -267,14 +267,14 @@ export async function fetchEmployeesWithDeductions(): Promise<
   EmployeeRecord[]
 > {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [Query.isNotNull("employeeContribution")],
     });
 
-    return response.rows as EmployeeRecord[];
+    return response.documents as EmployeeRecord[];
   } catch (error) {
     console.error("Error fetching employees with deductions:", error);
     throw error;
@@ -288,17 +288,17 @@ export async function fetchEmployeesWithCompleteDetails(): Promise<
   EmployeeRecord[]
 > {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [
         Query.isNotNull("grossSalary"),
         Query.isNotNull("employeeContribution"),
       ],
     });
 
-    return response.rows as EmployeeRecord[];
+    return response.documents as EmployeeRecord[];
   } catch (error) {
     console.error("Error fetching employees with complete details:", error);
     throw error;
@@ -384,14 +384,14 @@ export async function fetchEmployeesByAttendanceThreshold(
   threshold: number,
 ): Promise<EmployeeRecord[]> {
   try {
-    const tablesDB = createTablesDBWithAuth();
-    const response = await tablesDB.listRows({
+    const databases = createDatabasesWithAuth();
+    const response = await databases.listDocuments({
       databaseId: DB_CONFIG.DATABASE_ID,
-      tableId: DB_CONFIG.EMPLOYEES_TABLE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
       queries: [Query.isNotNull("presentDays")],
     });
 
-    const employees = response.rows as EmployeeRecord[];
+    const employees = response.documents as EmployeeRecord[];
     return employees.filter((emp) => {
       const summary = calculateAttendanceSummary(emp);
       return summary.attendancePercentage < threshold;

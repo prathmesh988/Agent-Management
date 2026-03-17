@@ -95,30 +95,50 @@ export function generateMockEmployees(count: number = 50): Employee[] {
 
     employees.push({
       id: generateEmployeeId(i),
-      serialNo: i + 1,
+      employeeId: generateEmployeeId(i),
+      sno: i + 1,
       name: `${firstName} ${lastName}`,
       email: generateEmail(firstName, lastName),
-      phone: `+1${Math.floor(Math.random() * 9000000000) + 1000000000}`,
       designation,
       department,
-      dateOfJoining: new Date(
+      dateOfJoining: parseInt(new Date(
         2020 + Math.floor(Math.random() * 4),
         Math.floor(Math.random() * 12),
         Math.floor(Math.random() * 28) + 1,
       )
         .toISOString()
-        .split("T")[0],
+        .split("T")[0].replace(/-/g, "")),
       status: getRandomElement(statuses),
       ctc: baseSalary,
       grossSalary: baseSalary,
       netSalary: Math.floor(baseSalary * 0.85), // After deductions
       attendanceAllowance: 500,
       shiftAllowance: 200,
-      tds: Math.floor(baseSalary * 0.1),
-      presentDays: Math.floor(Math.random() * 20) + 15,
       absentDays: Math.floor(Math.random() * 5),
+      leaveDays: 0,
+      halfDays: 0,
+      weekOffDays: 0,
+      holidayDays: 0,
+      cl: 0,
+      lc: 0,
+      trp: 0,
+      tra: 0,
+      trl: 0,
+      finalDays: 20,
+      arrear: 0,
+      advance: 0,
+      attendanceDeduction: 0,
+      employeeContribution: 0,
+      employeeEsic: 0,
+      employerContribution: 0,
+      employerEsic: 0,
+      tds5perc: Math.floor(baseSalary * 0.1),
+      penalty: 0,
+      paidAmount: baseSalary * 0.85,
       totalPresent: Math.floor(Math.random() * 20) + 15,
       paymentMode: getRandomElement(["Bank Transfer", "Check", "Cash"]),
+      "1Sun": "P",
+      "2Mon": "P",
     });
   }
 

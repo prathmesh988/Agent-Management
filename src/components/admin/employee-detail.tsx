@@ -75,13 +75,6 @@ export function EmployeeProfile({
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-600">Phone</p>
-                <p className="mt-1 text-lg text-slate-900">
-                  {employee.phone || "N/A"}
-                </p>
-              </div>
-
-              <div>
                 <p className="text-sm font-medium text-slate-600">Department</p>
                 <p className="mt-1 text-lg text-slate-900">
                   {employee.department || "N/A"}
@@ -300,11 +293,11 @@ export function EmployeeProfile({
               </p>
             </div>
           )}
-          {employee.casualLeave !== undefined && (
+          {employee.cl !== undefined && (
             <div>
               <p className="text-sm font-medium text-slate-600">Casual Leave</p>
               <p className="mt-1 text-lg text-slate-900">
-                {employee.casualLeave}
+                {employee.cl}
               </p>
             </div>
           )}
@@ -333,11 +326,11 @@ export function EmployeeProfile({
           Deductions & Contributions
         </h2>
         <div className="grid gap-8 md:grid-cols-3">
-          {employee.tds && (
+          {employee.tds5perc && (
             <div>
               <p className="text-sm font-medium text-slate-600">TDS</p>
               <p className="mt-1 text-lg font-semibold text-red-600">
-                ₹{employee.tds.toLocaleString()}
+                ₹{employee.tds5perc.toLocaleString()}
               </p>
             </div>
           )}

@@ -49,8 +49,9 @@ export function EditEmployeeModal({
       email: "",
       designation: "",
       department: "",
+      employeeId: "",
       status: "active",
-      dateOfJoining: "",
+      dateOfJoining: 0,
     },
   );
 
@@ -88,9 +89,9 @@ export function EditEmployeeModal({
       !formData.name ||
       !formData.email ||
       !formData.department ||
-      !formData.role ||
+      !formData.designation ||
       !formData.status ||
-      !formData.joinDate
+      !formData.dateOfJoining
     ) {
       alert("Please fill in all required fields");
       return;
@@ -175,8 +176,8 @@ export function EditEmployeeModal({
                 Role
               </label>
               <Select
-                value={formData.role}
-                onValueChange={(value) => handleSelectChange("role", value)}
+                value={formData.designation}
+                onValueChange={(value) => handleSelectChange("designation", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
@@ -225,24 +226,10 @@ export function EditEmployeeModal({
               </label>
               <Input
                 type="date"
-                name="joinDate"
-                value={formData.joinDate}
+                name="dateOfJoining"
+                value={formData.dateOfJoining}
                 onChange={handleChange}
                 required
-              />
-            </div>
-
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Phone
-              </label>
-              <Input
-                type="tel"
-                name="phone"
-                value={formData.phone || ""}
-                onChange={handleChange}
-                placeholder="+1234567890"
               />
             </div>
 
@@ -253,8 +240,8 @@ export function EditEmployeeModal({
               </label>
               <Input
                 type="number"
-                name="salary"
-                value={formData.salary || ""}
+                name="ctc"
+                value={formData.ctc || ""}
                 onChange={handleChange}
                 placeholder="50000"
               />

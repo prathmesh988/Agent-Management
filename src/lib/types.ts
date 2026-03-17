@@ -1,75 +1,76 @@
 export interface Employee {
-  // Identifiers
   id: string;
-  serialNo?: number;
-
-  // Personal Information
-  name: string;
-  email: string;
-  phone?: string;
-
-  // Employment Information
-  designation: string;
-  department?: string;
-  process?: string;
-  dateOfJoining: string;
-  paymentMode?: string;
-
-  // Financial Information
-  ctc?: number;
-  grossSalary?: number;
-  netSalary?: number;
   status?: "active" | "inactive" | "on-leave";
-
-  // Allowances
+  email: string;
+  department?: string;
+  sno?: number;
+  employeeId: string;
+  name: string;
+  ctc?: number;
   attendanceAllowance?: number;
-  shiftAllowance?: number;
-  advance?: number;
-  arrear?: number;
-
-  // Deductions
-  tds?: number;
-  penalty?: number;
-  paidAmount?: number;
-
-  // Bank Details
+  process?: string;
+  designation?: string;
+  dateOfJoining?: number;
+  uanNumber?: string;
   accountNumber?: string;
   ifscCode?: string;
   bankName?: string;
-
-  // Government IDs
-  uanNumber?: string;
-
-  // Attendance Tracking
+  paymentMode?: string;
+  "1Sun"?: string;
+  "2Mon"?: string;
+  "3Tue"?: string;
+  "4Wed"?: string;
+  "5Thu"?: string;
+  "6Fri"?: string;
+  "7Sat"?: string;
+  "8Sun"?: string;
+  "9Mon"?: string;
+  "10Tue"?: string;
+  "11Wed"?: string;
+  "12Thu"?: string;
+  "13Fri"?: string;
+  "14Sat"?: string;
+  "15Sun"?: string;
+  "16Mon"?: string;
+  "17Tue"?: string;
+  "18Wed"?: string;
+  "19Thu"?: string;
+  "20Fri"?: string;
+  "21Sat"?: string;
+  "22Sun"?: string;
+  "23Mon"?: string;
+  "24Tue"?: string;
+  "25Wed"?: string;
+  "26Thu"?: string;
+  "27Fri"?: string;
+  "28Sat"?: string;
   presentDays?: number;
   absentDays?: number;
   leaveDays?: number;
   halfDays?: number;
   weekOffDays?: number;
   holidayDays?: number;
-  casualLeave?: number;
-  limitedConsent?: number;
-  trainingPresent?: number;
-  trainingAbsent?: number;
-  trainingLeave?: number;
+  cl?: number;
+  lc?: number;
+  trp?: number;
+  tra?: number;
+  trl?: number;
   totalPresent?: number;
   overtime?: number;
   finalDays?: number;
+  arrear?: number;
+  advance?: number;
+  shiftAllowance?: number;
+  grossSalary?: number;
   attendanceDeduction?: number;
-  attendancePercentage?: number;
-
-  // Contributions
   employeeContribution?: number;
   employeeEsic?: number;
   employerContribution?: number;
   employerEsic?: number;
-
-  // Daily Attendance (28 days)
-  dailyAttendance?: Array<{
-    day: number;
-    dayOfWeek: "SUN" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT";
-    status: string;
-  }>;
+  tds5perc?: number;
+  netSalary?: number;
+  penalty?: number;
+  paidAmount?: number;
 }
 
 export interface Certificate {

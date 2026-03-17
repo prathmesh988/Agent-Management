@@ -39,9 +39,9 @@ export function EmployeeForm({
     name: employee?.name || "",
     email: employee?.email || "",
     department: employee?.department || "",
-    role: employee?.role || "",
+    designation: employee?.designation || "",
     status: employee?.status || "active",
-    phone: employee?.phone || "",
+    employeeId: employee?.employeeId || "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -111,8 +111,8 @@ export function EmployeeForm({
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Role</label>
             <Select
-              value={formData.role || ""}
-              onValueChange={(value) => handleChange("role", value)}
+              value={formData.designation || ""}
+              onValueChange={(value) => handleChange("designation", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select role" />
@@ -128,11 +128,11 @@ export function EmployeeForm({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Phone</label>
+            <label className="text-sm font-medium text-slate-700">Employee ID</label>
             <Input
-              value={formData.phone || ""}
-              onChange={(e) => handleChange("phone", e.target.value)}
-              placeholder="+1 (555) 123-4567"
+              value={formData.employeeId || ""}
+              onChange={(e) => handleChange("employeeId", e.target.value)}
+              placeholder="EMP00001"
             />
           </div>
 

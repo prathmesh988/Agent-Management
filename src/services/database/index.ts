@@ -14,7 +14,7 @@
 // Client exports
 export {
   createAppwriteClient,
-  createTablesDBWithAuth,
+  createDatabasesWithAuth,
   DB_CONFIG,
 } from "./client";
 

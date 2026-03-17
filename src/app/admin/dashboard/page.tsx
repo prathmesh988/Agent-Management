@@ -32,7 +32,7 @@ export default function DashboardPage() {
   );
 
   const newEmployeesThisMonth = employees.filter((e) => {
-    const joinDate = new Date(e.dateOfJoining);
+    const joinDate = new Date(e.dateOfJoining || 0);
     const now = new Date();
     return (
       joinDate.getMonth() === now.getMonth() &&

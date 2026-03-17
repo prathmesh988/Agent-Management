@@ -6,7 +6,7 @@ import {
   searchEmployees as dbSearchEmployees,
   EmployeeRecord,
 } from "@/services/database";
-import { Employee } from "@/lib/data/mock-data";
+import { Employee } from "@/lib/types";
 
 /**
  * Transform EmployeeRecord from database to Employee interface for UI
@@ -14,14 +14,14 @@ import { Employee } from "@/lib/data/mock-data";
 function transformEmployeeRecord(record: EmployeeRecord): Employee {
   return {
     id: record.$id || record.employeeId || "",
+    employeeId: record.employeeId || "",
     name: record.name || "",
     email: `${record.employeeId}@company.com`, // Email not in database, generate from ID
     department: record.process || "",
-    role: record.designation || "",
-    status: "active" as const,
-    joinDate: record.dateOfJoining || new Date().toISOString().split("T")[0],
-    salary: record.netSalary,
-    phone: record.bankName || "",
+    designation: record.designation || "",
+    dateOfJoining: record.dateOfJoining ? parseInt((record.dateOfJoining as unknown as string).toString()) : 0,
+    ctc: record.netSalary || 0,
+    
   };
 }
 

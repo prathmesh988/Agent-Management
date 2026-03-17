@@ -1,4 +1,4 @@
-import { Client, TablesDB } from "node-appwrite";
+import { Client, Databases } from "node-appwrite";
 
 /**
  * Initialize and export Appwrite client instance
@@ -16,10 +16,10 @@ export const createAppwriteClient = () => {
 };
 
 /**
- * Create TablesDB instance for database operations
+ * Create Databases instance for database operations
  * Used only on server-side operations with API key
  */
-export const createTablesDBWithAuth = () => {
+export const createDatabasesWithAuth = () => {
   const client = new Client()
     .setEndpoint(
       process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ||
@@ -28,13 +28,13 @@ export const createTablesDBWithAuth = () => {
     .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || "")
     .setKey(process.env.APPWRITE_PROJECT_ID_API_SECRET || "");
 
-  return new TablesDB(client);
+  return new Databases(client);
 };
 
 // Database and table constants
 export const DB_CONFIG = {
   DATABASE_ID: process.env.APPWRITE_DATABASE_ID || "6784f57b0000a70f1b79",
-  EMPLOYEES_TABLE_ID: "emp_employees",
-  EMPLOYEES_TABLE_NAME: "employees",
+  EMPLOYEES_COLLECTION_ID: "orcus_extended",
+  EMPLOYEES_COLLECTION_NAME: "orcus_extended",
   // Certificates data comes from the same employees table
 };

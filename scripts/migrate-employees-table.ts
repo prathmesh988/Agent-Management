@@ -18,8 +18,8 @@
 import { Client, TablesDB } from "node-appwrite";
 
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "69b86fc300070678494b";
-const TABLE_ID = "emp_employees";
-const TABLE_NAME = "employees";
+const TABLE_ID = "orcus_extended";
+const TABLE_NAME = "orcus_extended";
 
 async function migrateTable() {
   const client = new Client()

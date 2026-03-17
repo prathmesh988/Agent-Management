@@ -1,133 +1,160 @@
-import { Client, TablesDB, ID } from 'node-appwrite';
+import { Client, Databases, ID } from "node-appwrite";
 
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || '6784f57b0000a70f1b79';
-const TABLE_NAME = 'employees';
-const TABLE_ID = 'emp_employees';
+const DATABASE_ID = process.env.APPWRITE_DATABASE_ID || "6784f57b0000a70f1b79";
+const COLLECTION_NAME = "orcus_extended";
+const COLLECTION_ID = "orcus_extended";
 
 /**
  * Initialize the employees table with all required columns
  * Run this script once to set up the database schema
  */
 export async function initializeEmployeesTable() {
-    const client = new Client()
-        .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-        .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '')
-        .setKey(process.env.APPWRITE_PROJECT_ID_API_SECRET || '');
+  const client = new Client()
+    .setEndpoint(
+      process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ||
+        "https://cloud.appwrite.io/v1",
+    )
+    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || "")
+    .setKey(process.env.APPWRITE_PROJECT_ID_API_SECRET || "");
 
-    const tablesDB = new TablesDB(client);
+  const databases = new Databases(client);
 
+  try {
+    // Check if table already exists
     try {
-        // Check if table already exists
-        try {
-            await tablesDB.getTable({
-                databaseId: DATABASE_ID,
-                tableId: TABLE_ID,
-            });
-            console.log('✓ Table already exists');
-            return { success: true, message: 'Table already initialized' };
-        } catch (err) {
-            // Table doesn't exist, create it
-            console.log('Creating new table...');
-        }
-
-        // Define columns with proper Appwrite format
-        const columns = [
-            // Basic Information
-            { key: 'serialNo', type: 'integer' as const, required: false },
-            { key: 'employeeId', type: 'string' as const, size: 50, required: true },
-            { key: 'name', type: 'string' as const, size: 255, required: true },
-
-            // Salary Information
-            { key: 'ctc', type: 'double' as const, required: false },
-            { key: 'attendanceAllowance', type: 'double' as const, required: false },
-
-            // Employment Details
-            { key: 'process', type: 'string' as const, size: 255, required: false },
-            { key: 'designation', type: 'string' as const, size: 255, required: false },
-            { key: 'dateOfJoining', type: 'string' as const, size: 50, required: false },
-
-            // Banking Information
-            { key: 'uanNumber', type: 'string' as const, size: 50, required: false },
-            { key: 'accountNumber', type: 'string' as const, size: 50, required: false },
-            { key: 'ifscCode', type: 'string' as const, size: 50, required: false },
-            { key: 'bankName', type: 'string' as const, size: 255, required: false },
-
-            // Payment Mode
-            { key: 'paymentMode', type: 'string' as const, size: 50, required: false },
-
-            // Attendance
-            { key: 'presentDays', type: 'double' as const, required: false },
-            { key: 'absentDays', type: 'double' as const, required: false },
-            { key: 'leaveDays', type: 'double' as const, required: false },
-            { key: 'halfDays', type: 'double' as const, required: false },
-            { key: 'weekOffDays', type: 'double' as const, required: false },
-            { key: 'holidayDays', type: 'double' as const, required: false },
-
-            // Leave Types
-            { key: 'cl', type: 'double' as const, required: false },
-            { key: 'lc', type: 'double' as const, required: false },
-
-            // Miscellaneous
-            { key: 'trp', type: 'double' as const, required: false },
-            { key: 'tra', type: 'double' as const, required: false },
-            { key: 'trl', type: 'double' as const, required: false },
-
-            // Attendance Summary
-            { key: 'totalPresent', type: 'double' as const, required: false },
-            { key: 'overtime', type: 'double' as const, required: false },
-            { key: 'finalDays', type: 'double' as const, required: false },
-
-            // Deductions and Advances
-            { key: 'arrear', type: 'double' as const, required: false },
-            { key: 'advance', type: 'double' as const, required: false },
-            { key: 'shiftAllowance', type: 'double' as const, required: false },
-
-            // Salary Calculation
-            { key: 'grossSalary', type: 'double' as const, required: false },
-            { key: 'attendanceDeduction', type: 'double' as const, required: false },
-            { key: 'employeeContribution', type: 'double' as const, required: false },
-            { key: 'employerContribution', type: 'double' as const, required: false },
-            { key: 'tds', type: 'double' as const, required: false },
-            { key: 'netSalary', type: 'double' as const, required: false },
-            { key: 'penalty', type: 'double' as const, required: false },
-            { key: 'paidAmount', type: 'double' as const, required: false },
-        ];
-
-        const table = await tablesDB.createTable({
-            databaseId: DATABASE_ID,
-            tableId: TABLE_ID,
-            name: TABLE_NAME,
-            columns: columns as any,
-        });
-
-        console.log('✓ Table created successfully with 38 columns');
-        return { success: true, message: 'Table initialized', table };
-    } catch (error) {
-        console.error('✗ Error initializing table:', error);
-        throw error;
+      await databases.getCollection(DATABASE_ID, COLLECTION_ID);
+      console.log("✓ Table already exists");
+      return { success: true, message: "Table already initialized" };
+    } catch (err) {
+      // Table doesn't exist, create it
+      console.log("Creating new table...");
     }
+
+    // Create the collection
+    const collection = await databases.createCollection(
+      DATABASE_ID,
+      COLLECTION_ID,
+      COLLECTION_NAME
+    );
+
+    // Define columns with proper Appwrite format
+    const columns: Array<{key: string, type: "string" | "double" | "integer", size?: number, required: boolean}> = [
+﻿      { key: "sno", type: "double" as const, required: false },
+      { key: "employeeId", type: "string" as const, required: true },
+      { key: "name", type: "string" as const, required: true },
+      { key: "ctc", type: "double" as const, required: false },
+      { key: "attendanceAllowance", type: "double" as const, required: false },
+      { key: "process", type: "string" as const, required: false },
+      { key: "designation", type: "string" as const, required: false },
+      { key: "dateOfJoining", type: "double" as const, required: false },
+      { key: "uanNumber", type: "string" as const, required: false },
+      { key: "accountNumber", type: "string" as const, required: false },
+      { key: "ifscCode", type: "string" as const, required: false },
+      { key: "bankName", type: "string" as const, required: false },
+      { key: "paymentMode", type: "string" as const, required: false },
+      { key: "1Sun", type: "string" as const, required: false },
+      { key: "2Mon", type: "string" as const, required: false },
+      { key: "3Tue", type: "string" as const, required: false },
+      { key: "4Wed", type: "string" as const, required: false },
+      { key: "5Thu", type: "string" as const, required: false },
+      { key: "6Fri", type: "string" as const, required: false },
+      { key: "7Sat", type: "string" as const, required: false },
+      { key: "8Sun", type: "string" as const, required: false },
+      { key: "9Mon", type: "string" as const, required: false },
+      { key: "10Tue", type: "string" as const, required: false },
+      { key: "11Wed", type: "string" as const, required: false },
+      { key: "12Thu", type: "string" as const, required: false },
+      { key: "13Fri", type: "string" as const, required: false },
+      { key: "14Sat", type: "string" as const, required: false },
+      { key: "15Sun", type: "string" as const, required: false },
+      { key: "16Mon", type: "string" as const, required: false },
+      { key: "17Tue", type: "string" as const, required: false },
+      { key: "18Wed", type: "string" as const, required: false },
+      { key: "19Thu", type: "string" as const, required: false },
+      { key: "20Fri", type: "string" as const, required: false },
+      { key: "21Sat", type: "string" as const, required: false },
+      { key: "22Sun", type: "string" as const, required: false },
+      { key: "23Mon", type: "string" as const, required: false },
+      { key: "24Tue", type: "string" as const, required: false },
+      { key: "25Wed", type: "string" as const, required: false },
+      { key: "26Thu", type: "string" as const, required: false },
+      { key: "27Fri", type: "string" as const, required: false },
+      { key: "28Sat", type: "string" as const, required: false },
+      { key: "presentDays", type: "double" as const, required: false },
+      { key: "absentDays", type: "double" as const, required: false },
+      { key: "leaveDays", type: "double" as const, required: false },
+      { key: "halfDays", type: "double" as const, required: false },
+      { key: "weekOffDays", type: "double" as const, required: false },
+      { key: "holidayDays", type: "double" as const, required: false },
+      { key: "cl", type: "double" as const, required: false },
+      { key: "lc", type: "double" as const, required: false },
+      { key: "trp", type: "double" as const, required: false },
+      { key: "tra", type: "double" as const, required: false },
+      { key: "trl", type: "double" as const, required: false },
+      { key: "totalPresent", type: "double" as const, required: false },
+      { key: "overtime", type: "double" as const, required: false },
+      { key: "finalDays", type: "double" as const, required: false },
+      { key: "arrear", type: "double" as const, required: false },
+      { key: "advance", type: "double" as const, required: false },
+      { key: "shiftAllowance", type: "double" as const, required: false },
+      { key: "grossSalary", type: "double" as const, required: false },
+      { key: "attendanceDeduction", type: "double" as const, required: false },
+      { key: "employeeContribution", type: "double" as const, required: false },
+      { key: "employeeEsic", type: "double" as const, required: false },
+      { key: "employerContribution", type: "double" as const, required: false },
+      { key: "employerEsic", type: "double" as const, required: false },
+      { key: "tds5perc", type: "double" as const, required: false },
+      { key: "netSalary", type: "double" as const, required: false },
+      { key: "penalty", type: "double" as const, required: false },
+      { key: "paidAmount", type: "double" as const, required: false },
+    ];
+
+    for (const col of columns) {
+      try {
+        if (col.type === "string") {
+          await databases.createStringAttribute(DATABASE_ID, COLLECTION_ID, col.key, col.size || 255, col.required);
+        } else if (col.type === ("integer" as any) || col.type === ("number" as any)) { // Fallback 
+          await databases.createIntegerAttribute(DATABASE_ID, COLLECTION_ID, col.key, col.required);
+        } else if (col.type === "double") {
+          await databases.createFloatAttribute(DATABASE_ID, COLLECTION_ID, col.key, col.required);
+        }
+      } catch (e: any) {
+        if (e.code !== 409) { // Ignore attribute already exists
+          console.error(`Error creating attribute ${col.key}:`, e);
+        }
+      }
+      // Wait slightly between schema updates
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
+    console.log("✓ Table created successfully with 38 columns");
+    return { success: true, message: "Table initialized", collection };
+  } catch (error) {
+    console.error("✗ Error initializing table:", error);
+    throw error;
+  }
 }
 
 /**
  * Check if the employees table exists
  */
 export async function tableExists(): Promise<boolean> {
-    const client = new Client()
-        .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
-        .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '')
-        .setKey(process.env.APPWRITE_PROJECT_ID_API_SECRET || '');
+  const client = new Client()
+    .setEndpoint(
+      process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ||
+        "https://cloud.appwrite.io/v1",
+    )
+    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || "")
+    .setKey(process.env.APPWRITE_PROJECT_ID_API_SECRET || "");
 
-    const tablesDB = new TablesDB(client);
+  const databases = new Databases(client);
 
-    try {
-        await tablesDB.getTable({
-            databaseId: DATABASE_ID,
-            tableId: TABLE_ID,
-        });
-        return true;
-    } catch (error) {
-        return false;
-    }
+  try {
+    await databases.getCollection(DATABASE_ID, COLLECTION_ID);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
-export { DATABASE_ID, TABLE_ID, TABLE_NAME };
+export { DATABASE_ID, COLLECTION_ID, COLLECTION_NAME };

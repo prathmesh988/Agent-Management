@@ -159,7 +159,7 @@ export function EmployeeTable({
 
   const departments = Array.from(
     new Set(employees.map((e) => e.department).filter(Boolean)),
-  );
+  ) as string[];
 
   const toggleSort = (field: keyof Employee) => {
     if (sortField === field) {
@@ -286,7 +286,7 @@ export function EmployeeTable({
                 </TableCell>
                 <TableCell>{employee.department}</TableCell>
                 <TableCell className="text-slate-600">
-                  {employee.role}
+                  {employee.designation}
                 </TableCell>
                 <TableCell>
                   <span
@@ -307,8 +307,8 @@ export function EmployeeTable({
                             : "bg-rose-600"
                       }`}
                     />
-                    {employee.status.charAt(0).toUpperCase() +
-                      employee.status.slice(1)}
+                    {(employee.status || "").charAt(0).toUpperCase() +
+                      (employee.status || "").slice(1)}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">

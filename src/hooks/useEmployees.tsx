@@ -50,7 +50,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     const sanitized: Employee = {
       ...updatedEmployee,
       department: updatedEmployee.department || "Engineering",
-      role: updatedEmployee.role || "Junior",
+      designation: updatedEmployee.designation || "Junior",
       status: updatedEmployee.status || "active",
     };
 
