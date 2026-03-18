@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "init-db": "node scripts/init-collection.js",
+    "dev": "node scripts/init-collection.js && next dev",
+    "build": "node scripts/init-collection.js && next build",
+    "start": "node scripts/init-collection.js && next start",
     "lint": "eslint"
   },
   "dependencies": {
