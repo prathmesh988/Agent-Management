@@ -123,7 +123,7 @@ export async function updateCertificateAction(
       'cl', 'lc', 'trp', 'tra', 'trl', 'totalPresent', 'overtime', 'finalDays',
       'arrear', 'advance', 'shiftAllowance', 'grossSalary', 'attendanceDeduction',
       'employeeContribution', 'employeeEsic', 'employerContribution', 'employerEsic',
-      'tds', 'netSalary', 'penalty', 'paidAmount'
+      'tds5perc', 'netSalary', 'penalty', 'paidAmount'
     ]);
 
     const dbFieldMapping: Record<string, string | null> = {

@@ -1,12 +1,10 @@
 "use client";
 
-import { EmployeeProfile } from "@/components/admin/employee-detail";
-import { EditEmployeeModal } from "@/components/admin/edit-employee-modal";
 import { Employee } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, use } from "react";
 import { getEmployee } from "@/app/(actions)/employees";
-import { useEmployees } from "@/hooks/useEmployees";
+import { EmployeeDetailPanel } from "@/components/admin/employee-detail-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +14,8 @@ export default function EmployeeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
-  const { updateEmployee } = useEmployees();
   const resolvedParams = use(params);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -27,7 +23,6 @@ export default function EmployeeDetailPage({
     const loadEmployeeDetails = async () => {
       try {
         console.log("Loading employee with ID:", resolvedParams.id);
-        // Fetch employee from server action which handles database service
         const employee = await getEmployee(resolvedParams.id);
 
         console.log("Fetched employee:", employee);
@@ -38,7 +33,6 @@ export default function EmployeeDetailPage({
           return;
         }
 
-        // Employee is already properly typed from server action
         setCurrentEmployee(employee);
       } catch (error) {
         console.error("Error loading employee details:", error);
@@ -51,33 +45,11 @@ export default function EmployeeDetailPage({
     loadEmployeeDetails();
   }, [resolvedParams.id]);
 
-  const handleEdit = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleSaveEdit = async (updatedEmployee: Employee) => {
-    try {
-      await updateEmployee(updatedEmployee);
-      setCurrentEmployee(updatedEmployee);
-      setIsModalOpen(false);
-      alert("Employee updated successfully!");
-    } catch (error) {
-      console.error("Error saving employee:", error);
-      alert("Failed to update employee. Please try again.");
-    }
-  };
-
-  const handleDelete = () => {
-    if (confirm(`Are you sure you want to delete ${currentEmployee?.name}?`)) {
-      router.push("/admin/employees");
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Employee Detail</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Employee Details</h1>
         </div>
         <div className="flex items-center justify-center h-96">
           <p className="text-slate-600">Loading...</p>
@@ -90,7 +62,7 @@ export default function EmployeeDetailPage({
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Employee Detail</h1>
+          <h1 className="text-3xl font-bold text-slate-900">Employee Details</h1>
         </div>
         <div className="flex flex-col items-center justify-center h-96 gap-4">
           <p className="text-red-600 font-medium">Employee not found</p>
@@ -107,27 +79,27 @@ export default function EmployeeDetailPage({
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Employee Detail</h1>
+    <div className="space-y-6 pb-12">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Employee Details</h1>
+          <p className="text-slate-600 mt-2">
+            {currentEmployee.name} • ID: {currentEmployee.employeeId}
+          </p>
+        </div>
+        <button
+          onClick={() => router.push("/admin/employees")}
+          className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+        >
+          ← Back to Employees
+        </button>
       </div>
 
       {currentEmployee && (
-        <>
-          <EmployeeProfile
-            employee={currentEmployee}
-            employeeId={resolvedParams.id}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-
-          <EditEmployeeModal
-            employee={currentEmployee}
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onSave={handleSaveEdit}
-          />
-        </>
+        <EmployeeDetailPanel
+          employee={currentEmployee}
+          employeeId={resolvedParams.id}
+        />
       )}
     </div>
   );

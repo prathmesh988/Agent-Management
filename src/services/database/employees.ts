@@ -21,34 +21,35 @@ export interface EmployeeRecord {
   ifscCode?: string;
   bankName?: string;
   paymentMode?: string;
-  // Day columns (1-27)
-  day1?: string;
-  day2?: string;
-  day3?: string;
-  day4?: string;
-  day5?: string;
-  day6?: string;
-  day7?: string;
-  day8?: string;
-  day9?: string;
-  day10?: string;
-  day11?: string;
-  day12?: string;
-  day13?: string;
-  day14?: string;
-  day15?: string;
-  day16?: string;
-  day17?: string;
-  day18?: string;
-  day19?: string;
-  day20?: string;
-  day21?: string;
-  day22?: string;
-  day23?: string;
-  day24?: string;
-  day25?: string;
-  day26?: string;
-  day27?: string;
+  // Daily attendance fields (matching database schema: 1Sun-28Sat)
+  "1Sun"?: string;
+  "2Mon"?: string;
+  "3Tue"?: string;
+  "4Wed"?: string;
+  "5Thu"?: string;
+  "6Fri"?: string;
+  "7Sat"?: string;
+  "8Sun"?: string;
+  "9Mon"?: string;
+  "10Tue"?: string;
+  "11Wed"?: string;
+  "12Thu"?: string;
+  "13Fri"?: string;
+  "14Sat"?: string;
+  "15Sun"?: string;
+  "16Mon"?: string;
+  "17Tue"?: string;
+  "18Wed"?: string;
+  "19Thu"?: string;
+  "20Fri"?: string;
+  "21Sat"?: string;
+  "22Sun"?: string;
+  "23Mon"?: string;
+  "24Tue"?: string;
+  "25Wed"?: string;
+  "26Thu"?: string;
+  "27Fri"?: string;
+  "28Sat"?: string;
   presentDays?: number;
   absentDays?: number;
   leaveDays?: number;
@@ -72,7 +73,7 @@ export interface EmployeeRecord {
   employeeEsic?: number;
   employerContribution?: number;
   employerEsic?: number;
-  tds?: number;
+  tds5perc?: number;
   netSalary?: number;
   penalty?: number;
   paidAmount?: number;
@@ -445,7 +446,7 @@ export function calculateSalaryBreakdown(employee: EmployeeRecord): {
     employeeESIC?: number;
     employerPF?: number;
     employerESIC?: number;
-    tds?: number;
+    tds5perc?: number;
     attendance?: number;
     penalty?: number;
   };
@@ -455,12 +456,12 @@ export function calculateSalaryBreakdown(employee: EmployeeRecord): {
   const employeeESIC = employee.employeeEsic || 0;
   const employerPF = employee.employerContribution || 0;
   const employerESIC = employee.employerEsic || 0;
-  const tds = employee.tds || 0;
+  const tds5perc = employee.tds5perc || 0;
   const attendanceDeduction = employee.attendanceDeduction || 0;
   const penalty = employee.penalty || 0;
 
   const totalDeductions =
-    employeePF + employeeESIC + tds + attendanceDeduction + penalty;
+    employeePF + employeeESIC + tds5perc + attendanceDeduction + penalty;
   const net = employee.netSalary || gross - totalDeductions;
 
   return {
@@ -472,7 +473,7 @@ export function calculateSalaryBreakdown(employee: EmployeeRecord): {
       employeeESIC: employeeESIC || undefined,
       employerPF: employerPF || undefined,
       employerESIC: employerESIC || undefined,
-      tds: tds || undefined,
+      tds5perc: tds5perc || undefined,
       attendance: attendanceDeduction || undefined,
       penalty: penalty || undefined,
     },

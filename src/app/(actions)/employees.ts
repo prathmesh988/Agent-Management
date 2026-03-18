@@ -53,11 +53,40 @@ function transformEmployeeRecord(record: EmployeeRecord): Employee {
     employeeEsic: record.employeeEsic,
     employerContribution: record.employerContribution,
     employerEsic: record.employerEsic,
-    tds5perc: record.tds,
+    tds5perc: record.tds5perc,
     netSalary: record.netSalary,
     penalty: record.penalty,
     paidAmount: record.paidAmount,
-    status: "active",
+    status: "active", // Status not in database, default to active for UI
+    // Daily attendance fields (1Sun-28Sat)
+    "1Sun": record["1Sun"],
+    "2Mon": record["2Mon"],
+    "3Tue": record["3Tue"],
+    "4Wed": record["4Wed"],
+    "5Thu": record["5Thu"],
+    "6Fri": record["6Fri"],
+    "7Sat": record["7Sat"],
+    "8Sun": record["8Sun"],
+    "9Mon": record["9Mon"],
+    "10Tue": record["10Tue"],
+    "11Wed": record["11Wed"],
+    "12Thu": record["12Thu"],
+    "13Fri": record["13Fri"],
+    "14Sat": record["14Sat"],
+    "15Sun": record["15Sun"],
+    "16Mon": record["16Mon"],
+    "17Tue": record["17Tue"],
+    "18Wed": record["18Wed"],
+    "19Thu": record["19Thu"],
+    "20Fri": record["20Fri"],
+    "21Sat": record["21Sat"],
+    "22Sun": record["22Sun"],
+    "23Mon": record["23Mon"],
+    "24Tue": record["24Tue"],
+    "25Wed": record["25Wed"],
+    "26Thu": record["26Thu"],
+    "27Fri": record["27Fri"],
+    "28Sat": record["28Sat"],
   };
 }
 
@@ -128,7 +157,7 @@ export async function updateEmployeeAction(
       'cl', 'lc', 'trp', 'tra', 'trl', 'totalPresent', 'overtime', 'finalDays',
       'arrear', 'advance', 'shiftAllowance', 'grossSalary', 'attendanceDeduction',
       'employeeContribution', 'employeeEsic', 'employerContribution', 'employerEsic',
-      'tds', 'netSalary', 'penalty', 'paidAmount', 'serialNo'
+      'tds5perc', 'netSalary', 'penalty', 'paidAmount', 'serialNo'
     ]);
 
     // Convert Employee interface back to EmployeeRecord for database
@@ -176,7 +205,7 @@ export async function updateEmployeeAction(
       employeeEsic: convertToNumber(updates.employeeEsic, 'employeeEsic'),
       employerContribution: convertToNumber(updates.employerContribution, 'employerContribution'),
       employerEsic: convertToNumber(updates.employerEsic, 'employerEsic'),
-      tds: convertToNumber(updates.tds5perc, 'tds'),
+      tds5perc: convertToNumber(updates.tds5perc, 'tds5perc'),
       
       // Special Cases
       overtime: convertToNumber(updates.overtime, 'overtime'),
@@ -184,6 +213,36 @@ export async function updateEmployeeAction(
       advance: convertToNumber(updates.advance, 'advance'),
       penalty: convertToNumber(updates.penalty, 'penalty'),
       paidAmount: convertToNumber(updates.paidAmount, 'paidAmount'),
+      
+      // Daily Attendance Fields (1Sun-28Sat - maps directly to database)
+      "1Sun": updates['1Sun'],
+      "2Mon": updates['2Mon'],
+      "3Tue": updates['3Tue'],
+      "4Wed": updates['4Wed'],
+      "5Thu": updates['5Thu'],
+      "6Fri": updates['6Fri'],
+      "7Sat": updates['7Sat'],
+      "8Sun": updates['8Sun'],
+      "9Mon": updates['9Mon'],
+      "10Tue": updates['10Tue'],
+      "11Wed": updates['11Wed'],
+      "12Thu": updates['12Thu'],
+      "13Fri": updates['13Fri'],
+      "14Sat": updates['14Sat'],
+      "15Sun": updates['15Sun'],
+      "16Mon": updates['16Mon'],
+      "17Tue": updates['17Tue'],
+      "18Wed": updates['18Wed'],
+      "19Thu": updates['19Thu'],
+      "20Fri": updates['20Fri'],
+      "21Sat": updates['21Sat'],
+      "22Sun": updates['22Sun'],
+      "23Mon": updates['23Mon'],
+      "24Tue": updates['24Tue'],
+      "25Wed": updates['25Wed'],
+      "26Thu": updates['26Thu'],
+      "27Fri": updates['27Fri'],
+      "28Sat": updates['28Sat'],
       
       // Only include dateOfJoining if it's a valid positive number
       ...(updates.dateOfJoining && updates.dateOfJoining > 0 ? { dateOfJoining: updates.dateOfJoining } : {}),
@@ -194,10 +253,12 @@ export async function updateEmployeeAction(
       Object.entries(dbUpdates).filter(([_, value]) => value !== undefined)
     ) as Partial<EmployeeRecord>;
 
+    console.log("📦 Updating employee with cleaned updates:", cleanedUpdates);
     const updated = await dbUpdateEmployee(employeeId, cleanedUpdates);
+    console.log("✅ Employee updated successfully:", updated);
     return transformEmployeeRecord(updated);
   } catch (error) {
-    console.error("Error updating employee:", error);
+    console.error("❌ Error updating employee:", error);
     throw error;
   }
 }
