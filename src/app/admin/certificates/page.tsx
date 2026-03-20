@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Employee } from "@/lib/types";
@@ -15,7 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, FileText, Trash2 } from "lucide-react";
+import { Download, FileText, Trash2, Mail, Loader2 } from "lucide-react";
+import { sendCertificatesToMultiple, checkCertificatesInBucketAction } from "@/app/(actions)/send-certificate";
 
 // Helper function to get initials
 function getInitials(name: string) {
@@ -45,6 +46,54 @@ export default function CertificatesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSendingEmails, setIsSendingEmails] = useState(false);
+  const [isLoadingPdfs, setIsLoadingPdfs] = useState(true);
+  const [certificatesInBucket, setCertificatesInBucket] = useState<Record<string, boolean>>({});
+
+  // Fetch certificate status from bucket when page loads or employees change
+  useEffect(() => {
+    const fetchCertificateStatus = async () => {
+      setIsLoadingPdfs(true);
+      
+      if (employees.length === 0) {
+        console.log("No employees yet, skipping certificate check");
+        setIsLoadingPdfs(false);
+        return;
+      }
+
+      try {
+        // Get employeeIds of all available employees
+        const employeeIds = employees
+          .map((emp) => emp.employeeId)
+          .filter((id) => id != null);
+
+        console.log("Fetching certificate status for employeeIds:", employeeIds);
+
+        if (employeeIds.length === 0) {
+          console.log("No employeeIds found");
+          setIsLoadingPdfs(false);
+          return;
+        }
+
+        // Check which certificates exist in bucket
+        const result = await checkCertificatesInBucketAction(employeeIds);
+        console.log("Certificate check result:", result);
+        
+        if (result.success && result.status) {
+          setCertificatesInBucket(result.status);
+          console.log("✓ Loaded certificate status from bucket:", result.status);
+        } else {
+          console.warn("Certificate check failed or returned empty status");
+        }
+      } catch (error) {
+        console.error("✗ Error fetching certificate status:", error);
+      } finally {
+        setIsLoadingPdfs(false);
+      }
+    };
+
+    fetchCertificateStatus();
+  }, [employees]);
 
   // Filter employees
   const filteredEmployees = employees.filter(
@@ -360,8 +409,15 @@ export default function CertificatesPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
+      // After successful generation, check which certificates are in bucket
+      // Use employeeId as the lookup key (new naming: {employeeId}.pdf)
+      const employeeIds = certificatesData.map((c) => c.employeeId);
+      const bucketCheckResult = await checkCertificatesInBucketAction(employeeIds);
+      if (bucketCheckResult.success && bucketCheckResult.status) {
+        setCertificatesInBucket((prev) => ({ ...prev, ...bucketCheckResult.status }));
+      }
+
       console.log(`Successfully downloaded ZIP with ${selectedEmps.length} certificates`);
-      setSelectedIds(new Set());
     } catch (error) {
       console.error("Error generating certificates:", error);
       alert(
@@ -370,6 +426,101 @@ export default function CertificatesPage() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleSendToMail = async () => {
+    try {
+      if (selectedIds.size === 0) {
+        alert("Please select at least one employee");
+        return;
+      }
+
+      const selectedEmps = employees.filter(
+        (e) => e.id && selectedIds.has(e.id),
+      );
+
+      // Check if all selected employees have certificates in bucket
+      // Now using employeeId directly (new naming: {employeeId}.pdf)
+      const employeeIds = selectedEmps.map((e) => e.employeeId);
+      const missingCerts = employeeIds.filter((id) => !certificatesInBucket[id]);
+
+      if (missingCerts.length > 0) {
+        alert(
+          `Certificates not found in bucket for some employees. Please generate them first.`
+        );
+        return;
+      }
+
+      // Validate emails
+      const invalidEmails = selectedEmps.filter(
+        (e) => !e.email || !e.email.includes("@")
+      );
+      if (invalidEmails.length > 0) {
+        alert(
+          `Invalid email addresses for: ${invalidEmails.map((e) => e.name).join(", ")}`
+        );
+        return;
+      }
+
+      setIsSendingEmails(true);
+
+      // Prepare email data
+      const emailParams = selectedEmps.map((emp) => ({
+        employeeId: emp.employeeId,
+        employeeEmail: emp.email!,
+        employeeName: emp.name!,
+        certificateId: `CERT-${emp.employeeId}`, // Kept for compatibility but download uses employeeId
+      }));
+
+      // Call server action to send emails
+      const result = await sendCertificatesToMultiple(emailParams);
+
+      if (result.success) {
+        alert(
+          `✓ Emails sent successfully!\n${result.summary || "All emails sent."}`
+        );
+      } else if (result.results && Array.isArray(result.results)) {
+        const failedEmails = result.results
+          .filter((r) => !r.success)
+          .map((r) => r.email)
+          .join(", ");
+        alert(
+          `⚠ Some emails failed to send: ${failedEmails}\n\nSuccessful: ${result.successCount || 0}/${emailParams.length}`
+        );
+      } else {
+        alert(`⚠ Failed to send emails: ${result.error || "Unknown error"}`);
+      }
+
+      setSelectedIds(new Set());
+    } catch (error) {
+      console.error("Error sending emails:", error);
+      alert(
+        `Failed to send emails: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    } finally {
+      setIsSendingEmails(false);
+    }
+  };
+
+  const areAllSelectedInBucket = () => {
+    if (selectedIds.size === 0) return false;
+    
+    const selectedEmps = employees.filter((e) => e.id && selectedIds.has(e.id));
+    
+    // Debug logging
+    console.log("Selected employees:", selectedEmps.map(e => ({ name: e.name, employeeId: e.employeeId })));
+    console.log("Certificate bucket status:", certificatesInBucket);
+    console.log("Checking each:", selectedEmps.map(e => ({
+      name: e.name,
+      employeeId: e.employeeId,
+      inBucket: certificatesInBucket[e.employeeId!]
+    })));
+    
+    // Now using employeeId directly (new naming: {employeeId}.pdf)
+    const allInBucket = selectedEmps.every((e) => e.employeeId && certificatesInBucket[e.employeeId]);
+    console.log("All selected in bucket?", allInBucket);
+    
+    return allInBucket;
   };
 
   const handleDeleteEmployee = (employeeId: string, name: string) => {
@@ -430,20 +581,62 @@ export default function CertificatesPage() {
       {/* Certificates Table */}
       <Card className="border border-slate-200">
         <div className="p-6 border-b border-slate-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-600 text-slate-900">
-              Generate Certificates ({filteredEmployees.length})
-            </h2>
-            <Button
-              onClick={handleGenerateSelected}
-              className="gap-2 transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white font-500"
-              disabled={selectedIds.size === 0 || isGenerating}
-            >
-              <FileText className="h-4 w-4" />
-              {isGenerating
-                ? "Generating..."
-                : `Generate Selected (${selectedIds.size})`}
-            </Button>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-600 text-slate-900">
+                Generate Certificates ({filteredEmployees.length})
+              </h2>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleGenerateSelected}
+                  className="gap-2 transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white font-500"
+                  disabled={selectedIds.size === 0 || isGenerating}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4" />
+                  )}
+                  {isGenerating
+                    ? "Generating..."
+                    : `Generate Selected (${selectedIds.size})`}
+                </Button>
+                <Button
+                  onClick={handleSendToMail}
+                  className="gap-2 transition-all duration-200 bg-emerald-600 hover:bg-emerald-700 text-white font-500"
+                  disabled={
+                    !areAllSelectedInBucket() ||
+                    selectedIds.size === 0 ||
+                    isSendingEmails ||
+                    isLoadingPdfs
+                  }
+                  title={
+                    isLoadingPdfs
+                      ? "Loading certificate status..."
+                      : areAllSelectedInBucket()
+                        ? "Send certificates to selected employees"
+                        : "Generate certificates first before sending"
+                  }
+                >
+                  {isSendingEmails ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Mail className="h-4 w-4" />
+                  )}
+                  {isSendingEmails
+                    ? "Sending..."
+                    : `Send to Mail (${selectedIds.size})`}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Loading PDF status indicator */}
+            {isLoadingPdfs && (
+              <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-md">
+                <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                <span>Checking certificate storage...</span>
+              </div>
+            )}
           </div>
         </div>
 
