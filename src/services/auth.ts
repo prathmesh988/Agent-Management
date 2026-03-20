@@ -74,6 +74,44 @@ export const logIn = async (email: string, password: string) => {
 };
 
 /**
+ * Send Magic Link (Passwordless Login / Signup)
+ */
+export const sendMagicLink = async (email: string, redirectUrl: string) => {
+  try {
+    try {
+      await account.deleteSession('current');
+    } catch (err) {
+      // Ignore
+    }
+    return await account.createMagicURLToken(ID.unique(), email, redirectUrl);
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Verify Magic Link
+ */
+export const verifyMagicLink = async (userId: string, secret: string) => {
+  try {
+    try {
+      await account.deleteSession('current');
+    } catch (err) {
+      // Ignore
+    }
+    const session = await account.updateMagicURLSession(userId, secret);
+    
+    // Set auth cookie for middleware validation
+    if (typeof window !== 'undefined') {
+      document.cookie = 'auth_session=true; path=/; SameSite=Lax';
+    }
+    return session;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
  * Get current authenticated user
  */
 export const getCurrentUser = async () => {
@@ -89,13 +127,29 @@ export const getCurrentUser = async () => {
  */
 export const logOut = async () => {
   try {
-    await account.deleteSession('current');
+    // Delete the current session
+    try {
+      await account.deleteSession('current');
+    } catch (error: any) {
+      // If session is already deleted or doesn't exist, continue
+      if (error?.code !== 401 && !error?.message?.includes('not found')) {
+        throw error;
+      }
+    }
     
-    // Clear auth cookie
+    // Clear auth session cookies
     if (typeof window !== 'undefined') {
       document.cookie = 'auth_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+      document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    }
+    
+    // Clear localStorage if using it
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_session');
     }
   } catch (error) {
+    console.error('Logout error:', error);
     throw error;
   }
 };
@@ -113,7 +167,7 @@ export const isAuthenticated = async (): Promise<boolean> => {
 };
 
 /**
- * Update user profile
+ * Update user profile (Name and password-verified email)
  */
 export const updateProfile = async (name: string, email: string) => {
   try {
@@ -126,6 +180,29 @@ export const updateProfile = async (name: string, email: string) => {
     throw error;
   }
 };
+
+/**
+ * Update user's name only
+ */
+export const updateName = async (name: string) => {
+  try {
+    return await account.updateName(name);
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Update user preferences (allows storing custom key-value pairs like phone, title, etc)
+ */
+export const updatePreferences = async (prefs: Record<string, any>) => {
+  try {
+    return await account.updatePrefs(prefs);
+  } catch (error) {
+    throw error;
+  }
+};
+
 
 /**
  * Change user password

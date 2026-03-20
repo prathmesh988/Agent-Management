@@ -3,11 +3,169 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ChevronRight } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react';
+import { User, Mail, Phone, Briefcase, FileText } from 'lucide-react';
 
 export default function SettingsPage() {
+  const { user, updateProfileName, updateUserPreferences } = useAuth();
+  
+  // Personal Info form state
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [bio, setBio] = useState('');
+  
+  // Manage loading/success states
+  const [isSavingPersonal, setIsSavingPersonal] = useState(false);
+  const [personalSaveSuccess, setPersonalSaveSuccess] = useState(false);
+  const [personalSaveError, setPersonalSaveError] = useState<string | null>(null);
+
+  // Pre-populate when user is loaded
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      // Appwrite prefs are a key-value store typed as Models.Preferences
+      const prefs = user.prefs as Record<string, string>;
+      setPhone(prefs?.phone || '');
+      setJobTitle(prefs?.jobTitle || '');
+      setBio(prefs?.bio || '');
+    }
+  }, [user]);
+
+  const handleSavePersonal = async () => {
+    setIsSavingPersonal(true);
+    setPersonalSaveError(null);
+    setPersonalSaveSuccess(false);
+
+    try {
+      // 1. Update name
+      if (name !== user?.name) {
+        await updateProfileName(name);
+      }
+      
+      // 2. Update preferences
+      const existingPrefs = user?.prefs || {};
+      const newPrefs = {
+        ...existingPrefs,
+        phone,
+        jobTitle,
+        bio,
+      };
+      await updateUserPreferences(newPrefs);
+      
+      setPersonalSaveSuccess(true);
+      setTimeout(() => setPersonalSaveSuccess(false), 3000); // clear success msg after 3s
+    } catch (error: any) {
+      setPersonalSaveError(error.message || 'Failed to update personal information');
+    } finally {
+      setIsSavingPersonal(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {/* Personal Information Setup */}
+      <Card>
+        <div className="p-6 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900">Personal Information</h2>
+          <p className="text-sm text-slate-500 mt-1">Manage your public profile and login details.</p>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {personalSaveError && (
+            <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md border border-red-200">
+              {personalSaveError}
+            </div>
+          )}
+          {personalSaveSuccess && (
+            <div className="p-3 bg-emerald-50 text-emerald-700 text-sm rounded-md border border-emerald-200">
+              Personal information updated successfully.
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                <User className="h-4 w-4 text-slate-400" />
+                Full Name
+              </label>
+              <Input
+                type="text"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="transition-colors focus-visible:ring-blue-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                <Mail className="h-4 w-4 text-slate-400" />
+                Email Address
+              </label>
+              <Input
+                type="email"
+                value={user?.email || ''}
+                disabled
+                className="bg-slate-50 text-slate-500 cursor-not-allowed"
+                title="Email updates are disabled for now."
+              />
+              <p className="text-xs text-slate-400">Email cannot be changed currently.</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                <Briefcase className="h-4 w-4 text-slate-400" />
+                Job Title
+              </label>
+              <Input
+                type="text"
+                placeholder="Product Manager"
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+                className="transition-colors focus-visible:ring-blue-500"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                <Phone className="h-4 w-4 text-slate-400" />
+                Phone Number
+              </label>
+              <Input
+                type="tel"
+                placeholder="+1 (555) 000-0000"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="transition-colors focus-visible:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-slate-400" />
+              Bio
+            </label>
+            <textarea
+              placeholder="Tell us a little bit about yourself..."
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              className="w-full min-h-[100px] p-3 rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+            />
+          </div>
+
+          <Button 
+            onClick={handleSavePersonal}
+            disabled={isSavingPersonal}
+            className="transition-all duration-200 hover:shadow-md hover:scale-105"
+          >
+            {isSavingPersonal ? 'Saving...' : 'Save Profile'}
+          </Button>
+        </div>
+      </Card>
+
       {/* General Settings */}
       <Card>
         <div className="p-6 border-b border-slate-200">

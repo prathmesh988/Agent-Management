@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import puppeteer from "puppeteer";
 import archiver from "archiver";
 import { Readable } from "stream";
+import { uploadCertificateToBucket, checkIfCertificateExists, getPdfFromBucket } from "@/lib/appwrite-storage";
 
 interface CertificateData {
   id: string;
@@ -63,6 +64,8 @@ export async function POST(request: NextRequest) {
 
     // Generate PDFs concurrently with limited concurrency (max 3)
     const concurrencyLimit = 3;
+    const uploadResults: Array<{ employeeId: string; employeeName: string; generated: boolean; reused: boolean; fileId?: string; error?: string }> = [];
+    
     for (let i = 0; i < certificates.length; i += concurrencyLimit) {
       const batch = certificates.slice(i, i + concurrencyLimit);
 
@@ -70,6 +73,27 @@ export async function POST(request: NextRequest) {
         batch.map(async (cert) => {
           let page = null;
           try {
+            // Check if PDF already exists in bucket
+            const certificateExists = await checkIfCertificateExists(cert.employeeId);
+            
+            if (certificateExists) {
+              // Reuse existing PDF from bucket
+              const existingPdf = await getPdfFromBucket(cert.employeeId);
+              if (existingPdf) {
+                const filename = `Certificate_${cert.employeeId}_${cert.employeeName.replace(/\s+/g, "_")}.pdf`;
+                archive.append(existingPdf, { name: filename });
+                uploadResults.push({
+                  employeeId: cert.employeeId,
+                  employeeName: cert.employeeName,
+                  generated: false,
+                  reused: true,
+                });
+                console.log(`↻ Reused existing certificate for ${cert.employeeName}`);
+                return;
+              }
+            }
+
+            // Generate new PDF if it doesn't exist or reuse failed
             page = await browser.newPage();
 
             // Set viewport for consistent PDF rendering
@@ -93,14 +117,48 @@ export async function POST(request: NextRequest) {
               printBackground: true,
             });
 
-            // Add PDF to archive (convert to Buffer if needed)
+            // Convert to Buffer
             const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
             const filename = `Certificate_${cert.employeeId}_${cert.employeeName.replace(/\s+/g, "_")}.pdf`;
+            
+            // Add PDF to archive
             archive.append(pdfBuffer, { name: filename });
+
+            // Upload to Appwrite bucket (will overwrite if exists)
+            try {
+              const uploadResult = await uploadCertificateToBucket(
+                pdfBuffer,
+                cert.employeeId
+              );
+              uploadResults.push({
+                employeeId: cert.employeeId,
+                employeeName: cert.employeeName,
+                generated: true,
+                reused: false,
+                fileId: uploadResult.fileName,
+              });
+              console.log(`✓ Generated and uploaded certificate for ${cert.employeeName} to bucket`);
+            } catch (uploadError) {
+              console.error(`✗ Failed to upload certificate for ${cert.employeeName}:`, uploadError);
+              uploadResults.push({
+                employeeId: cert.employeeId,
+                employeeName: cert.employeeName,
+                generated: true,
+                reused: false,
+                error: uploadError instanceof Error ? uploadError.message : "Upload failed",
+              });
+            }
 
             console.log(`Generated PDF for ${cert.employeeName}`);
           } catch (error) {
             console.error(`Error generating PDF for ${cert.employeeName}:`, error);
+            uploadResults.push({
+              employeeId: cert.employeeId,
+              employeeName: cert.employeeName,
+              generated: false,
+              reused: false,
+              error: "PDF generation failed",
+            });
             // Continue with other certificates on error
           } finally {
             if (page) {
@@ -120,12 +178,20 @@ export async function POST(request: NextRequest) {
     // Wait for archive to complete
     const zipBuffer = await archivePromise;
 
-    // Return ZIP file as response
+    // Log upload results
+    const successCount = uploadResults.filter((r) => (r.generated || r.reused) && !r.error).length;
+    console.log(
+      `Certificate generation complete: ${successCount}/${certificates.length} processed (generated or reused)`
+    );
+
+    // Return ZIP file as response with metadata
     return new NextResponse(new Uint8Array(zipBuffer), {
       headers: {
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="Certificates_${new Date().getTime()}.zip"`,
         "Content-Length": zipBuffer.length.toString(),
+        "X-Success-Count": successCount.toString(),
+        "X-Total-Count": certificates.length.toString(),
       },
     });
   } catch (error) {
