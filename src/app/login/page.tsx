@@ -13,22 +13,11 @@ export const dynamic = 'force-dynamic';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading } = useAuth();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const { sendMagicLink, isLoading } = useAuth();
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setError('');
-  };
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,22 +26,23 @@ export default function LoginPage() {
 
     try {
       // Validate form
-      if (!formData.email || !formData.password) {
-        setError('Please fill in all fields');
+      if (!email) {
+        setError('Please enter your email address');
         setIsSubmitting(false);
         return;
       }
 
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        setError('Please enter a valid email address');
+      // Allowed domains check for security (restrict to company emails)
+      const allowedDomain = 'gmail.com';
+      if (!email.toLowerCase().endsWith(allowedDomain)) {
+        setError(`Please use your ${allowedDomain} email address.`);
         setIsSubmitting(false);
         return;
       }
 
-      await login(formData.email, formData.password);
-      router.push('/admin/admins');
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+      await sendMagicLink(email, redirectUrl);
+      setIsSubmitted(true);
     } catch (err: any) {
       console.error('Login error:', err);
       const errorMessage = err.message || 'Login failed. Please try again.';
@@ -90,64 +80,83 @@ export default function LoginPage() {
             <p className="text-slate-600">Sign in to your account</p>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
+          {/* Conditional Rendering for Success Screen */}
+          {isSubmitted ? (
+            <div className="text-center space-y-6 py-4">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-emerald-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900">Check your email</h2>
+              <p className="text-slate-600">
+                We've sent a secure login link to <br />
+                <span className="font-semibold text-slate-900">{email}</span>
+              </p>
+              <p className="text-sm text-slate-500">
+                Click the link in the email to sign in instantly. The link will expire shortly.
+              </p>
 
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Email Address
-              </label>
-              <Input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="admin@company.com"
-                disabled={isSubmitting || isLoading}
-                className="transition-all duration-200"
-              />
+              <Button
+                variant="outline"
+                className="w-full mt-6"
+                onClick={() => setIsSubmitted(false)}
+              >
+                Back to login
+              </Button>
             </div>
-
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Password
-              </label>
-              <Input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                disabled={isSubmitting || isLoading}
-                className="transition-all duration-200"
-              />
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={isSubmitting || isLoading}
-              className="w-full mt-6 transition-all duration-200 hover:shadow-lg hover:scale-105"
-            >
-              {isSubmitting || isLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader className="h-4 w-4 animate-spin" />
-                  Signing in...
+          ) : (
+            <>
+              {/* Error Message */}
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-800">{error}</p>
                 </div>
-              ) : (
-                'Sign In'
               )}
-            </Button>
-          </form>
+
+              {/* Login Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Email Field */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Company Email
+                  </label>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                    placeholder="admin@company.com"
+                    disabled={isSubmitting || isLoading}
+                    className="transition-all duration-200"
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || isLoading}
+                  className="w-full mt-6 transition-all duration-200 hover:shadow-lg hover:scale-105"
+                >
+                  {isSubmitting || isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <Loader className="h-4 w-4 animate-spin" />
+                      Sending Link...
+                    </div>
+                  ) : (
+                    'Send Login Link'
+                  )}
+                </Button>
+              </form>
+            </>
+          )}
 
           {/* Divider */}
           <div className="my-6 flex items-center gap-3">
@@ -157,28 +166,12 @@ export default function LoginPage() {
           </div>
 
           {/* Demo Credentials */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-6">
-            <p className="text-xs font-medium text-blue-900 mb-2">Demo Credentials:</p>
-            <p className="text-xs text-blue-700">Email: demo@company.com</p>
-            <p className="text-xs text-blue-700">Password: Demo@12345</p>
-          </div>
-
-          {/* Links */}
-          <div className="text-center space-y-2">
-            <Link href="/forgot-password">
-              <p className="text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200">
-                Forgot your password?
-              </p>
-            </Link>
-            <p className="text-sm text-slate-600">
-              Don't have an account?{' '}
-              <Link href="/signup">
-                <span className="text-blue-600 hover:text-blue-700 transition-colors duration-200 font-medium">
-                  Sign up
-                </span>
-              </Link>
-            </p>
-          </div>
+          {!isSubmitted && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mt-6">
+              <p className="text-xs font-medium text-blue-900 mb-2">Passwordless Login</p>
+              <p className="text-xs text-blue-700">No passwords needed. Just enter your company email to receive a secure sign-in link.</p>
+            </div>
+          )}
         </div>
       </Card>
     </div>

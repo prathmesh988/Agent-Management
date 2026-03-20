@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Employee } from "@/lib/types";
@@ -15,7 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Download, FileText, Trash2, Mail, Loader2 } from "lucide-react";
+import { Download, FileText, Trash2, ChevronLeft, ChevronRight, Mail, Loader2 } from "lucide-react";
+
+const ITEMS_PER_PAGE = 10;
 import { sendCertificatesToMultiple, checkCertificatesInBucketAction } from "@/app/(actions)/send-certificate";
 
 // Helper function to get initials
@@ -41,9 +43,10 @@ function getAvatarColor(index: number) {
 
 export default function CertificatesPage() {
   const router = useRouter();
-  const { employees, updateEmployee, deleteEmployee, isLoading } =
+  const { employees, updateEmployee, deleteEmployee, searchEmployees, isLoading } =
     useEmployees();
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSendingEmails, setIsSendingEmails] = useState(false);
@@ -94,15 +97,48 @@ export default function CertificatesPage() {
 
     fetchCertificateStatus();
   }, [employees]);
+  const [searchResults, setSearchResults] = useState<Employee[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Filter employees
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      (emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-      (emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-      (emp.id?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false),
+  // Debounced server-side search
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (!searchTerm.trim()) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const results = await searchEmployees(searchTerm.trim());
+        setSearchResults(results);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults(null);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchTerm, searchEmployees]);
+
+  // Use server results when available, otherwise show all employees
+  const filteredEmployees = searchResults ?? employees;
+
+  // Paginate
+  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedEmployees = filteredEmployees.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE,
   );
-  console.log("Filtered Employees:", filteredEmployees);
 
   const generateCertificateHTML = (certData: any) => `
     <!DOCTYPE html>
@@ -554,42 +590,48 @@ export default function CertificatesPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col h-full w-full overflow-hidden gap-4 pb-4">
       {/* Search and Filter - Aligned */}
       <div className="flex gap-4 items-end">
         <div className="space-y-2">
-          <label className="text-sm font-500 text-slate-700">Search</label>
+          <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Search</label>
           <Input
-            placeholder="Search by name or email..."
+            placeholder="Search by name, email, or ID..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-72 transition-all duration-200"
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full sm:w-72 bg-white transition-all duration-200 focus-visible:ring-blue-500"
           />
         </div>
         {searchTerm && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setSearchTerm("")}
-            className="transition-all duration-200"
+            onClick={() => {
+              setSearchTerm("");
+              setCurrentPage(1);
+            }}
+            className="transition-all duration-200 h-10 shrink-0"
           >
             Clear
           </Button>
         )}
       </div>
 
-      {/* Certificates Table */}
-      <Card className="border border-slate-200">
-        <div className="p-6 border-b border-slate-200">
+      {/* Certificates Table Card */}
+      <Card className="flex flex-col flex-1 min-h-0 border-0 shadow-sm sm:border sm:shadow">
+        <div className="p-4 sm:p-6 border-b border-slate-200 shrink-0 bg-slate-50/50">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
               <h2 className="text-lg font-600 text-slate-900">
                 Generate Certificates ({filteredEmployees.length})
               </h2>
               <div className="flex gap-2">
                 <Button
                   onClick={handleGenerateSelected}
-                  className="gap-2 transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white font-500"
+                  className="w-full sm:w-auto gap-2 transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white font-500"
                   disabled={selectedIds.size === 0 || isGenerating}
                 >
                   {isGenerating ? (
@@ -641,11 +683,11 @@ export default function CertificatesPage() {
         </div>
 
         {isLoading ? (
-          <div className="p-12 text-center">
+          <div className="p-12 text-center flex-1">
             <p className="text-slate-600">Loading employees...</p>
           </div>
         ) : filteredEmployees.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="p-12 flex-1 flex flex-col items-center justify-center">
             <FileText className="h-12 w-12 mx-auto mb-3 text-slate-300" />
             <p className="text-slate-700 font-500">No employees found</p>
             <p className="text-sm text-slate-500 mt-1">
@@ -655,11 +697,12 @@ export default function CertificatesPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-slate-200 bg-slate-50">
-                  <TableHead className="w-12 py-4 px-6 text-left">
+          <div className="flex-1 min-h-0 relative bg-white">
+            <div className="absolute inset-0 overflow-auto">
+              <Table className="w-full relative">
+                <TableHeader className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+                  <TableRow className="border-b border-slate-200">
+                    <TableHead className="w-12 py-3 px-4 sm:px-6 text-left">
                     <input
                       type="checkbox"
                       checked={
@@ -685,19 +728,19 @@ export default function CertificatesPage() {
                   <TableHead className="py-4 px-6 text-left font-500 text-slate-700 text-sm">
                     Salary
                   </TableHead>
-                  <TableHead className="py-4 px-6 text-right font-500 text-slate-700 text-sm">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEmployees.map((emp, idx) => (
-                  <TableRow
-                    key={emp.id}
-                    onClick={() => router.push(`/admin/certificates/${emp.id}`)}
-                    className="border-b border-slate-100 transition-colors duration-200 hover:bg-slate-50 cursor-pointer"
-                  >
-                    <TableCell className="py-4 px-6 text-left">
+                    <TableHead className="py-3 px-4 sm:px-6 text-right font-semibold text-slate-700 text-xs tracking-wider uppercase">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-slate-100">
+                  {paginatedEmployees.map((emp, idx) => (
+                    <TableRow
+                      key={emp.id}
+                      onClick={() => router.push(`/admin/certificates/${emp.id}`)}
+                      className="transition-colors duration-200 hover:bg-slate-50 cursor-pointer"
+                    >
+                      <TableCell className="py-4 px-4 sm:px-6 text-left w-12 shrink-0">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(emp.id)}
@@ -708,24 +751,24 @@ export default function CertificatesPage() {
                         className="rounded border-slate-300 cursor-pointer"
                       />
                     </TableCell>
-                    <TableCell className="py-4 px-6 text-left">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`shrink-0 h-10 w-10 rounded-full ${getAvatarColor(idx)} flex items-center justify-center text-white text-sm font-700`}
-                        >
-                          {getInitials(emp.name || "")}
+                      <TableCell className="py-4 px-4 sm:px-6 text-left min-w-0">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`shrink-0 h-10 w-10 rounded-full ${getAvatarColor(idx)} flex items-center justify-center text-white text-sm font-semibold shadow-sm`}
+                          >
+                            {getInitials(emp.name || "")}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-slate-900 text-sm leading-tight truncate">
+                              {emp.name}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5 truncate">
+                              {emp.email}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-600 text-slate-900 text-sm leading-tight">
-                            {emp.name}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-1">
-                            {emp.email}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4 px-6 text-left text-sm text-slate-700">
+                      </TableCell>
+                      <TableCell className="py-4 px-4 sm:px-6 text-left text-sm text-slate-700">
                       {emp.department || "N/A"}
                     </TableCell>
                     <TableCell className="py-4 px-6 text-left text-sm text-slate-700">
@@ -741,7 +784,7 @@ export default function CertificatesPage() {
                         : 0}
                       K
                     </TableCell>
-                    <TableCell className="py-4 px-6 text-right">
+                      <TableCell className="py-4 px-4 sm:px-6 text-right">
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button
                           variant="ghost"
@@ -772,10 +815,82 @@ export default function CertificatesPage() {
                         </Button>
                       </div>
                     </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+        
+        {/* Pagination Footer - Added inside Card, below table */}
+        {(filteredEmployees.length > 0 && !isLoading) && (
+          <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-slate-200 shrink-0 bg-white gap-3 sm:gap-0 mt-auto">
+            <p className="text-xs sm:text-sm text-slate-600 shrink-0">
+              Showing <span className="font-medium text-slate-900">{startIndex + 1}</span> to{" "}
+              <span className="font-medium text-slate-900">{Math.min(startIndex + ITEMS_PER_PAGE, filteredEmployees.length)}</span> of{" "}
+              <span className="font-medium text-slate-900">{filteredEmployees.length}</span> employees
+            </p>
+            <div className="flex gap-1 items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                className="transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              {(() => {
+                // Mobile: extremely simplified pagination to avoid squishing
+                const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+                
+                const pages: (number | "ellipsis")[] = [];
+                const maxVisiblePages = isMobile ? 3 : 5;
+                
+                if (totalPages <= maxVisiblePages) {
+                  for (let i = 1; i <= totalPages; i++) pages.push(i);
+                } else {
+                  pages.push(1);
+                  if (currentPage > (isMobile ? 2 : 3)) pages.push("ellipsis");
+                  
+                  const start = Math.max(2, currentPage - 1);
+                  const end = Math.min(totalPages - 1, currentPage + (isMobile ? 0 : 1));
+                  
+                  for (let i = start; i <= end; i++) pages.push(i);
+                  
+                  if (currentPage < totalPages - (isMobile ? 1 : 2)) pages.push("ellipsis");
+                  pages.push(totalPages);
+                }
+                
+                return pages.map((page, idx) =>
+                  page === "ellipsis" ? (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 text-sm">…</span>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className="transition-all duration-200 hover:scale-105 min-w-[2rem]"
+                    >
+                      {page}
+                    </Button>
+                  )
+                );
+              })()}
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
+                className="transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
       </Card>

@@ -7,7 +7,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { useState } from "react";
 
 export default function EmployeesPage() {
-  const { employees, updateEmployee, deleteEmployee } = useEmployees();
+  const { employees, updateEmployee, deleteEmployee, searchEmployees } = useEmployees();
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -35,11 +35,12 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full w-full overflow-hidden">
       <EmployeeTable
         employees={employees}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onSearch={searchEmployees}
       />
 
       <EditEmployeeModal

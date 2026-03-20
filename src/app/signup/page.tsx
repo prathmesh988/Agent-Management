@@ -13,24 +13,11 @@ export const dynamic = 'force-dynamic';
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signup, isLoading } = useAuth();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
+  const { sendMagicLink, isLoading } = useAuth();
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    setError('');
-  };
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,36 +26,23 @@ export default function SignupPage() {
 
     try {
       // Validate form
-      if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-        setError('Please fill in all fields');
+      if (!email) {
+        setError('Please enter your email address');
         setIsSubmitting(false);
         return;
       }
 
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        setError('Please enter a valid email address');
+      // Email validation (restrict to company emails)
+      const allowedDomain = '@company.com';
+      if (!email.toLowerCase().endsWith(allowedDomain)) {
+        setError(`Please use your ${allowedDomain} email address.`);
         setIsSubmitting(false);
         return;
       }
 
-      // Password validation
-      if (formData.password.length < 8) {
-        setError('Password must be at least 8 characters long');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Password match validation
-      if (formData.password !== formData.confirmPassword) {
-        setError('Passwords do not match');
-        setIsSubmitting(false);
-        return;
-      }
-
-      await signup(formData.email, formData.password, formData.name);
-      router.push('/admin/dashboard');
+      const redirectUrl = `${window.location.origin}/auth/callback`;
+      await sendMagicLink(email, redirectUrl);
+      setIsSubmitted(true);
     } catch (err: any) {
       console.error('Signup error:', err);
       const errorMessage = err.message || 'Signup failed. Please try again.';
@@ -106,99 +80,86 @@ export default function SignupPage() {
             <p className="text-slate-600">Sign up for admin access</p>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-
-          {/* Signup Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Full Name
-              </label>
-              <Input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="John Doe"
-                disabled={isSubmitting || isLoading}
-                className="transition-all duration-200"
-              />
-            </div>
-
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Email Address
-              </label>
-              <Input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="john@company.com"
-                disabled={isSubmitting || isLoading}
-                className="transition-all duration-200"
-              />
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Password
-              </label>
-              <Input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                disabled={isSubmitting || isLoading}
-                className="transition-all duration-200"
-              />
-              <p className="text-xs text-slate-500">
-                Must be at least 8 characters long
+          {/* Conditional Rendering for Success Screen */}
+          {isSubmitted ? (
+            <div className="text-center space-y-6 py-4">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-8 w-8 text-emerald-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900">Check your email</h2>
+              <p className="text-slate-600">
+                We've sent a secure signup link to <br/>
+                <span className="font-semibold text-slate-900">{email}</span>
               </p>
+              <p className="text-sm text-slate-500">
+                Click the link in the email to create your account instantly. The link will expire shortly.
+              </p>
+              
+              <Button
+                variant="outline"
+                className="w-full mt-6"
+                onClick={() => setIsSubmitted(false)}
+              >
+                Back to signup
+              </Button>
             </div>
-
-            {/* Confirm Password Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Confirm Password
-              </label>
-              <Input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="••••••••"
-                disabled={isSubmitting || isLoading}
-                className="transition-all duration-200"
-              />
-            </div>
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              disabled={isSubmitting || isLoading}
-              className="w-full mt-6 transition-all duration-200 hover:shadow-lg hover:scale-105"
-            >
-              {isSubmitting || isLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader className="h-4 w-4 animate-spin" />
-                  Creating account...
+          ) : (
+            <>
+              {/* Error Message */}
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-800">{error}</p>
                 </div>
-              ) : (
-                'Create Account'
               )}
-            </Button>
-          </form>
+
+              {/* Signup Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Email Field */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Company Email
+                  </label>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                    placeholder="admin@company.com"
+                    disabled={isSubmitting || isLoading}
+                    className="transition-all duration-200"
+                  />
+                  <p className="text-xs text-slate-500">
+                    No passwords needed. We'll email you a secure link.
+                  </p>
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || isLoading}
+                  className="w-full mt-6 transition-all duration-200 hover:shadow-lg hover:scale-105"
+                >
+                  {isSubmitting || isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <Loader className="h-4 w-4 animate-spin" />
+                      Sending Link...
+                    </div>
+                  ) : (
+                    'Send Signup Link'
+                  )}
+                </Button>
+              </form>
+            </>
+          )}
 
           {/* Terms */}
           <p className="text-xs text-slate-500 text-center mt-4">
