@@ -33,7 +33,7 @@ export default function LoginPage() {
       }
 
       // Allowed domains check for security (restrict to company emails)
-      const allowedDomain = '@company.com';
+      const allowedDomain = 'gmail.com';
       if (!email.toLowerCase().endsWith(allowedDomain)) {
         setError(`Please use your ${allowedDomain} email address.`);
         setIsSubmitting(false);
@@ -96,13 +96,13 @@ export default function LoginPage() {
               </div>
               <h2 className="text-2xl font-bold text-slate-900">Check your email</h2>
               <p className="text-slate-600">
-                We've sent a secure login link to <br/>
+                We've sent a secure login link to <br />
                 <span className="font-semibold text-slate-900">{email}</span>
               </p>
               <p className="text-sm text-slate-500">
                 Click the link in the email to sign in instantly. The link will expire shortly.
               </p>
-              
+
               <Button
                 variant="outline"
                 className="w-full mt-6"
