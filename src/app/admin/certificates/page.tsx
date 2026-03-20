@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Employee } from "@/lib/types";
@@ -40,20 +40,45 @@ function getAvatarColor(index: number) {
 
 export default function CertificatesPage() {
   const router = useRouter();
-  const { employees, updateEmployee, deleteEmployee, isLoading } =
+  const { employees, updateEmployee, deleteEmployee, searchEmployees, isLoading } =
     useEmployees();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isGenerating, setIsGenerating] = useState(false);
+  const [searchResults, setSearchResults] = useState<Employee[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Filter employees
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      (emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-      (emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-      (emp.id?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false),
-  );
-  console.log("Filtered Employees:", filteredEmployees);
+  // Debounced server-side search
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (!searchTerm.trim()) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const results = await searchEmployees(searchTerm.trim());
+        setSearchResults(results);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults(null);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchTerm, searchEmployees]);
+
+  // Use server results when available, otherwise show all employees
+  const filteredEmployees = searchResults ?? employees;
 
   const generateCertificateHTML = (certData: any) => `
     <!DOCTYPE html>
@@ -409,7 +434,7 @@ export default function CertificatesPage() {
         <div className="space-y-2">
           <label className="text-sm font-500 text-slate-700">Search</label>
           <Input
-            placeholder="Search by name or email..."
+            placeholder="Search by name, email, or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-72 transition-all duration-200"

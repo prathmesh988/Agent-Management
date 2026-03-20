@@ -6,8 +6,9 @@ import {
   useState,
   ReactNode,
   useEffect,
+  useCallback,
 } from "react";
-import { getEmployees, updateEmployeeAction } from "@/app/(actions)/employees";
+import { getEmployees, searchEmployeesAction } from "@/app/(actions)/employees";
 import { Employee } from "@/lib/types";
 
 interface EmployeeContextType {
@@ -15,6 +16,8 @@ interface EmployeeContextType {
   getEmployee: (id: string) => Employee | undefined;
   updateEmployee: (employee: Employee) => void;
   deleteEmployee: (id: string) => void;
+  searchEmployees: (term: string) => Promise<Employee[]>;
+  refreshEmployees: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -26,21 +29,23 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchAllEmployees = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const { employees: fetchedEmployees } = await getEmployees();
+      console.log(`Fetched ${fetchedEmployees.length} employees total`);
+      setEmployees(fetchedEmployees);
+    } catch (error) {
+      console.error("Failed to fetch employees:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Fetch employees from database on mount
   useEffect(() => {
-    const fetchEmployees = async () => {
-      try {
-        const { employees: fetchedEmployees } = await getEmployees();
-        console.log("Fetched Employees:", fetchedEmployees);
-        setEmployees(fetchedEmployees);
-      } catch (error) {
-        console.error("Failed to fetch employees:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchEmployees();
-  }, []);
+    fetchAllEmployees();
+  }, [fetchAllEmployees]);
 
   const getEmployee = (id: string): Employee | undefined => {
     return employees.find((e) => e.id === id);
@@ -48,7 +53,7 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
 
   const updateEmployee = async (updatedEmployee: Employee) => {
     try {
-      // Update in database via server action
+      const { updateEmployeeAction } = await import("@/app/(actions)/employees");
       await updateEmployeeAction(updatedEmployee.id, updatedEmployee);
       
       // Update local state
@@ -65,6 +70,31 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     setEmployees((prev) => prev.filter((e) => e.id !== id));
   };
 
+  /**
+   * Search employees server-side from Appwrite
+   * Returns matching employees directly from the database
+   */
+  const searchEmployees = useCallback(async (term: string): Promise<Employee[]> => {
+    try {
+      if (!term || term.trim().length === 0) {
+        return employees;
+      }
+      const results = await searchEmployeesAction(term);
+      return results;
+    } catch (error) {
+      console.error("Error searching employees:", error);
+      // Fallback to local filter
+      const lowerTerm = term.toLowerCase();
+      return employees.filter(
+        (emp) =>
+          emp.name.toLowerCase().includes(lowerTerm) ||
+          emp.employeeId?.toLowerCase().includes(lowerTerm) ||
+          emp.email?.toLowerCase().includes(lowerTerm) ||
+          emp.id?.toLowerCase().includes(lowerTerm),
+      );
+    }
+  }, [employees]);
+
   return (
     <EmployeeContext.Provider
       value={{
@@ -72,6 +102,8 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
         getEmployee,
         updateEmployee,
         deleteEmployee,
+        searchEmployees,
+        refreshEmployees: fetchAllEmployees,
         isLoading,
       }}
     >

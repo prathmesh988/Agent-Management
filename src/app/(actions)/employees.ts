@@ -2,12 +2,15 @@
 
 import {
   fetchAllEmployees as dbFetchAllEmployees,
+  fetchAllEmployeesPaginated as dbFetchAllEmployeesPaginated,
   fetchEmployee as dbFetchEmployee,
   searchEmployees as dbSearchEmployees,
   updateEmployee as dbUpdateEmployee,
   EmployeeRecord,
 } from "@/services/database";
 import { Employee } from "@/lib/types";
+import { Query } from "node-appwrite";
+import { createDatabasesWithAuth, DB_CONFIG } from "@/services/database/client";
 
 /**
  * Transform EmployeeRecord from database to Employee interface for UI
@@ -92,17 +95,15 @@ function transformEmployeeRecord(record: EmployeeRecord): Employee {
 
 /**
  * Server action: Fetch all employees from database
- * Default limit increased to 5000 to support large datasets
+ * Uses paginated fetch to get ALL employees (beyond Appwrite's 100/request limit)
  */
-export async function getEmployees(
-  limit: number = 5000,
-  offset: number = 0,
-): Promise<{ employees: Employee[]; total: number }> {
+export async function getEmployees(): Promise<{ employees: Employee[]; total: number }> {
   try {
-    const { employees, total } = await dbFetchAllEmployees(limit, offset);
+    const allRecords = await dbFetchAllEmployeesPaginated();
+    const employees = allRecords.map(transformEmployeeRecord);
     return {
-      employees: employees.map(transformEmployeeRecord),
-      total,
+      employees,
+      total: employees.length,
     };
   } catch (error) {
     console.error("Error fetching employees from database:", error);
@@ -127,17 +128,55 @@ export async function getEmployee(
 }
 
 /**
- * Server action: Search employees
+ * Server action: Search employees by name, email, or employeeId
+ * Searches directly from Appwrite to handle large datasets
  */
 export async function searchEmployeesAction(
   searchTerm: string,
 ): Promise<Employee[]> {
   try {
-    const records = await dbSearchEmployees(searchTerm);
-    return records.map(transformEmployeeRecord);
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      const { employees } = await getEmployees();
+      return employees;
+    }
+
+    const databases = createDatabasesWithAuth();
+    const term = searchTerm.trim();
+
+    // Try search with Query.contains for partial matching on name and employeeId
+    // Appwrite supports Query.contains for string attributes
+    const queries = [
+      Query.or([
+        Query.contains("name", term),
+        Query.contains("employeeId", term),
+      ]),
+      Query.limit(100),
+    ];
+
+    const response = await databases.listDocuments({
+      databaseId: DB_CONFIG.DATABASE_ID,
+      collectionId: DB_CONFIG.EMPLOYEES_COLLECTION_ID,
+      queries,
+    });
+
+    return (response.documents as EmployeeRecord[]).map(transformEmployeeRecord);
   } catch (error) {
     console.error("Error searching employees:", error);
-    throw error;
+    // Fallback: fetch all and filter client-side if Appwrite query fails
+    try {
+      const { employees } = await getEmployees();
+      const term = searchTerm.toLowerCase();
+      return employees.filter(
+        (emp) =>
+          emp.name.toLowerCase().includes(term) ||
+          emp.employeeId?.toLowerCase().includes(term) ||
+          emp.email?.toLowerCase().includes(term) ||
+          emp.id?.toLowerCase().includes(term),
+      );
+    } catch (fallbackError) {
+      console.error("Fallback search also failed:", fallbackError);
+      throw fallbackError;
+    }
   }
 }
 

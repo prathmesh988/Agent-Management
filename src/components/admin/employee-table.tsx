@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Employee } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ interface EmployeeTableProps {
   onView?: (employee: Employee) => void;
   onEdit?: (employee: Employee) => void;
   onDelete?: (employee: Employee) => void;
+  onSearch?: (term: string) => Promise<Employee[]>;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -121,6 +122,7 @@ export function EmployeeTable({
   onView,
   onEdit,
   onDelete,
+  onSearch,
 }: EmployeeTableProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
@@ -128,13 +130,58 @@ export function EmployeeTable({
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<keyof Employee>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [searchResults, setSearchResults] = useState<Employee[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced server-side search
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    if (!searchTerm.trim() || !onSearch) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const results = await onSearch(searchTerm.trim());
+        setSearchResults(results);
+      } catch (error) {
+        console.error("Search error:", error);
+        setSearchResults(null);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchTerm, onSearch]);
+
+  // Use server results when available, otherwise filter locally
+  const sourceEmployees = searchResults ?? employees;
 
   // Filter and search
-  let filtered = employees.filter((employee) => {
+  let filtered = sourceEmployees.filter((employee) => {
+    // If server search returned results, only apply department filter
+    if (searchResults) {
+      const matchesDept =
+        departmentFilter === "all" || employee.department === departmentFilter;
+      return matchesDept;
+    }
+
+    // Local filtering fallback
+    const term = searchTerm.toLowerCase();
     const matchesSearch =
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.id.toLowerCase().includes(searchTerm.toLowerCase());
+      !searchTerm ||
+      employee.name.toLowerCase().includes(term) ||
+      employee.email.toLowerCase().includes(term) ||
+      employee.id.toLowerCase().includes(term) ||
+      (employee.employeeId?.toLowerCase().includes(term) ?? false);
 
     const matchesDept =
       departmentFilter === "all" || employee.department === departmentFilter;
@@ -178,20 +225,20 @@ export function EmployeeTable({
   };
 
   return (
-    <Card>
-      <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+    <Card className="flex flex-col h-[calc(100vh-8rem)] overflow-hidden">
+      <div className="p-4 border-b border-slate-200 flex items-center justify-between shrink-0">
         <h2 className="text-lg font-semibold text-slate-900">Employees</h2>
         <Link href="/admin/employees/upload">
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white text-sm">
             + Add New Employee
           </Button>
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="p-6 space-y-4 border-b border-slate-200">
-        <div className="grid gap-4 md:grid-cols-3 items-end">
-          <div className="space-y-2">
+      <div className="p-4 border-b border-slate-200 shrink-0">
+        <div className="flex gap-3 items-end">
+          <div className="flex-1 min-w-0 space-y-1">
             <label className="text-sm font-medium text-slate-700">Search</label>
             <Input
               placeholder="Search by name, email, or ID..."
@@ -204,7 +251,7 @@ export function EmployeeTable({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="w-48 shrink-0 space-y-1">
             <label className="text-sm font-medium text-slate-700">
               Department
             </label>
@@ -229,30 +276,29 @@ export function EmployeeTable({
             </Select>
           </div>
 
-          <div>
-            {(searchTerm || departmentFilter !== "all") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSearchTerm("");
-                  setDepartmentFilter("all");
-                  setCurrentPage(1);
-                }}
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
+          {(searchTerm || departmentFilter !== "all") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                setSearchTerm("");
+                setDepartmentFilter("all");
+                setCurrentPage(1);
+              }}
+            >
+              Clear Filters
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
+      <div className="flex-1 min-h-0 overflow-x-hidden">
+        <Table className="table-fixed w-full">
+          <TableHeader className="sticky top-0 bg-white z-[1]">
             <TableRow>
-              <TableHead>
+              <TableHead className="w-[35%]">
                 <button
                   onClick={() => toggleSort("name")}
                   className="font-semibold hover:text-slate-900 transition-colors duration-200 cursor-pointer"
@@ -260,7 +306,7 @@ export function EmployeeTable({
                   Employee
                 </button>
               </TableHead>
-              <TableHead>
+              <TableHead className="w-[20%]">
                 <button
                   onClick={() => toggleSort("department")}
                   className="font-semibold hover:text-slate-900 transition-colors duration-200 cursor-pointer"
@@ -268,9 +314,9 @@ export function EmployeeTable({
                   Department
                 </button>
               </TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="w-[20%]">Role</TableHead>
+              <TableHead className="w-[15%]">Status</TableHead>
+              <TableHead className="w-[10%] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -280,43 +326,41 @@ export function EmployeeTable({
                 onClick={() => router.push(`/admin/employees/${employee.id}`)}
                 className="cursor-pointer hover:bg-slate-50 transition-colors duration-200"
               >
-                <TableCell>
-                  <div className="flex items-center gap-3">
+                <TableCell className="truncate">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`h-9 w-9 rounded-full ${getAvatarColor(idx)} flex items-center justify-center text-white text-xs font-700`}
+                      className={`h-8 w-8 shrink-0 rounded-full ${getAvatarColor(idx)} flex items-center justify-center text-white text-xs font-700`}
                     >
                       {getInitials(employee.name)}
                     </div>
-                    <div>
-                      <p className="font-medium text-slate-900">
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900 truncate">
                         {employee.name}
                       </p>
-                      <p className="text-xs text-slate-500">{employee.email}</p>
+                      <p className="text-xs text-slate-500 truncate">{employee.email}</p>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>{employee.department}</TableCell>
-                <TableCell className="text-slate-600">
+                <TableCell className="truncate">{employee.department}</TableCell>
+                <TableCell className="text-slate-600 truncate">
                   {employee.designation}
                 </TableCell>
                 <TableCell>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${
-                      employee.status === "active"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : employee.status === "on-leave"
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-rose-100 text-rose-700"
-                    }`}
+                    className={`px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 whitespace-nowrap ${employee.status === "active"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : employee.status === "on-leave"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-rose-100 text-rose-700"
+                      }`}
                   >
                     <span
-                      className={`h-2 w-2 rounded-full ${
-                        employee.status === "active"
-                          ? "bg-emerald-600"
-                          : employee.status === "on-leave"
-                            ? "bg-amber-600"
-                            : "bg-rose-600"
-                      }`}
+                      className={`h-2 w-2 rounded-full ${employee.status === "active"
+                        ? "bg-emerald-600"
+                        : employee.status === "on-leave"
+                          ? "bg-amber-600"
+                          : "bg-rose-600"
+                        }`}
                     />
                     {(employee.status || "").charAt(0).toUpperCase() +
                       (employee.status || "").slice(1)}
@@ -337,13 +381,13 @@ export function EmployeeTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between p-6 border-t border-slate-200">
+      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 shrink-0">
         <p className="text-sm text-slate-600">
           Showing {startIndex + 1} to{" "}
           {Math.min(startIndex + ITEMS_PER_PAGE, filtered.length)} of{" "}
           {filtered.length} employees
         </p>
-        <div className="flex gap-2">
+        <div className="flex gap-1 items-center">
           <Button
             variant="outline"
             size="sm"
@@ -353,21 +397,39 @@ export function EmployeeTable({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          {Array.from({ length: totalPages }).map((_, i) => (
-            <Button
-              key={i + 1}
-              variant={currentPage === i + 1 ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCurrentPage(i + 1)}
-              className="transition-all duration-200 hover:scale-105"
-            >
-              {i + 1}
-            </Button>
-          ))}
+          {(() => {
+            const pages: (number | "ellipsis")[] = [];
+            if (totalPages <= 5) {
+              for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else {
+              pages.push(1);
+              if (currentPage > 3) pages.push("ellipsis");
+              const start = Math.max(2, currentPage - 1);
+              const end = Math.min(totalPages - 1, currentPage + 1);
+              for (let i = start; i <= end; i++) pages.push(i);
+              if (currentPage < totalPages - 2) pages.push("ellipsis");
+              pages.push(totalPages);
+            }
+            return pages.map((page, idx) =>
+              page === "ellipsis" ? (
+                <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 text-sm">…</span>
+              ) : (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(page)}
+                  className="transition-all duration-200 hover:scale-105 min-w-[2rem]"
+                >
+                  {page}
+                </Button>
+              )
+            );
+          })()}
           <Button
             variant="outline"
             size="sm"
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || totalPages === 0}
             onClick={() =>
               setCurrentPage(Math.min(totalPages, currentPage + 1))
             }

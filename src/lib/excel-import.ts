@@ -1,11 +1,11 @@
 import * as XLSX from 'xlsx';
 
 export interface ExcelRow {
-  [key: string]: string;
+  [key: string]: any;
 }
 
 export interface TransformedEmployee {
-  [key: string]: string;
+  [key: string]: string | number | null | undefined;
 }
 
 /**
@@ -32,7 +32,26 @@ export function parseExcelBuffer(buffer: Buffer): ExcelRow[] {
     const workbook = XLSX.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(sheet) as ExcelRow[];
+    // Use raw array mode to detect and skip sub-header rows
+    const allRows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+    if (allRows.length < 2) return [];
+
+    // Row 0 = actual headers, Row 1 = sub-headers (SUN/MON day names) — skip it
+    const headers = allRows[0] as string[];
+    // Skip row 1 (index 1) which is the sub-header row; data starts at row 2 (index 2)
+    const dataRows = allRows.slice(2);
+
+    const rows: ExcelRow[] = dataRows
+      .filter((row) => row.some((cell) => cell !== null && cell !== undefined && cell !== ''))
+      .map((row) => {
+        const obj: ExcelRow = {};
+        headers.forEach((header, i) => {
+          if (header !== null && header !== undefined) {
+            obj[String(header)] = row[i];
+          }
+        });
+        return obj;
+      });
     return rows;
   } catch (error) {
     console.error('Error parsing Excel buffer:', error);
@@ -55,48 +74,53 @@ export function transformExcelRow(row: ExcelRow): TransformedEmployee {
   };
 
   // Map Excel columns to database fields with type conversion
+  // Day columns in Excel are raw numbers (1-28), with day names in row 2 (sub-header).
+  // We use the numeric keys as they appear after sheet_to_json parses row 1 as header.
   const columnMapping: Record<string, [string, (val: any) => any]> = {
-'S.No.': ['sno', (val: any) => parseNum(val)],
+    'S.No.': ['sno', (val: any) => parseNum(val)],
     'EmPl. ID': ['employeeId', (val: any) => String(val).trim()],
     'Name': ['name', (val: any) => String(val).trim()],
     'CTC': ['ctc', (val: any) => parseNum(val)],
     'Atten Allow': ['attendanceAllowance', (val: any) => parseNum(val)],
     'Process': ['process', (val: any) => String(val).trim()],
     'Designation': ['designation', (val: any) => String(val).trim()],
+    // DOJ may have a trailing space in the Excel header
     'DOJ': ['dateOfJoining', (val: any) => parseNum(val)],
+    'DOJ ': ['dateOfJoining', (val: any) => parseNum(val)],
     'UAN NO.': ['uanNumber', (val: any) => String(val).trim()],
     'ACCOUNT NUMBER': ['accountNumber', (val: any) => String(val).trim()],
     'IFSC CODE': ['ifscCode', (val: any) => String(val).trim()],
     'BANK NAME': ['bankName', (val: any) => String(val).trim()],
     'Mode': ['paymentMode', (val: any) => String(val).trim()],
-    '1-SUN': ['1Sun', (val: any) => String(val).trim()],
-    '2-MON': ['2Mon', (val: any) => String(val).trim()],
-    '3-TUE': ['3Tue', (val: any) => String(val).trim()],
-    '4-WED': ['4Wed', (val: any) => String(val).trim()],
-    '5-THU': ['5Thu', (val: any) => String(val).trim()],
-    '6-FRI': ['6Fri', (val: any) => String(val).trim()],
-    '7-SAT': ['7Sat', (val: any) => String(val).trim()],
-    '8-SUN': ['8Sun', (val: any) => String(val).trim()],
-    '9-MON': ['9Mon', (val: any) => String(val).trim()],
-    '10-TUE': ['10Tue', (val: any) => String(val).trim()],
-    '11-WED': ['11Wed', (val: any) => String(val).trim()],
-    '12-THU': ['12Thu', (val: any) => String(val).trim()],
-    '13-FRI': ['13Fri', (val: any) => String(val).trim()],
-    '14-SAT': ['14Sat', (val: any) => String(val).trim()],
-    '15-SUN': ['15Sun', (val: any) => String(val).trim()],
-    '16-MON': ['16Mon', (val: any) => String(val).trim()],
-    '17-TUE': ['17Tue', (val: any) => String(val).trim()],
-    '18-WED': ['18Wed', (val: any) => String(val).trim()],
-    '19-THU': ['19Thu', (val: any) => String(val).trim()],
-    '20-FRI': ['20Fri', (val: any) => String(val).trim()],
-    '21-SAT': ['21Sat', (val: any) => String(val).trim()],
-    '22-SUN': ['22Sun', (val: any) => String(val).trim()],
-    '23-MON': ['23Mon', (val: any) => String(val).trim()],
-    '24-TUE': ['24Tue', (val: any) => String(val).trim()],
-    '25-WED': ['25Wed', (val: any) => String(val).trim()],
-    '26-THU': ['26Thu', (val: any) => String(val).trim()],
-    '27-FRI': ['27Fri', (val: any) => String(val).trim()],
-    '28-SAT': ['28Sat', (val: any) => String(val).trim()],
+    // Day columns: Excel stores them as numbers 1-28 (row 1 is the header)
+    1: ['1Sun', (val: any) => String(val).trim()],
+    2: ['2Mon', (val: any) => String(val).trim()],
+    3: ['3Tue', (val: any) => String(val).trim()],
+    4: ['4Wed', (val: any) => String(val).trim()],
+    5: ['5Thu', (val: any) => String(val).trim()],
+    6: ['6Fri', (val: any) => String(val).trim()],
+    7: ['7Sat', (val: any) => String(val).trim()],
+    8: ['8Sun', (val: any) => String(val).trim()],
+    9: ['9Mon', (val: any) => String(val).trim()],
+    10: ['10Tue', (val: any) => String(val).trim()],
+    11: ['11Wed', (val: any) => String(val).trim()],
+    12: ['12Thu', (val: any) => String(val).trim()],
+    13: ['13Fri', (val: any) => String(val).trim()],
+    14: ['14Sat', (val: any) => String(val).trim()],
+    15: ['15Sun', (val: any) => String(val).trim()],
+    16: ['16Mon', (val: any) => String(val).trim()],
+    17: ['17Tue', (val: any) => String(val).trim()],
+    18: ['18Wed', (val: any) => String(val).trim()],
+    19: ['19Thu', (val: any) => String(val).trim()],
+    20: ['20Fri', (val: any) => String(val).trim()],
+    21: ['21Sat', (val: any) => String(val).trim()],
+    22: ['22Sun', (val: any) => String(val).trim()],
+    23: ['23Mon', (val: any) => String(val).trim()],
+    24: ['24Tue', (val: any) => String(val).trim()],
+    25: ['25Wed', (val: any) => String(val).trim()],
+    26: ['26Thu', (val: any) => String(val).trim()],
+    27: ['27Fri', (val: any) => String(val).trim()],
+    28: ['28Sat', (val: any) => String(val).trim()],
     'Present': ['presentDays', (val: any) => parseNum(val)],
     'Absent': ['absentDays', (val: any) => parseNum(val)],
     'LEAVE': ['leaveDays', (val: any) => parseNum(val)],
@@ -114,14 +138,18 @@ export function transformExcelRow(row: ExcelRow): TransformedEmployee {
     'Arrear': ['arrear', (val: any) => parseNum(val)],
     'Advance': ['advance', (val: any) => parseNum(val)],
     'Shift Allow': ['shiftAllowance', (val: any) => parseNum(val)],
-    'EMPLOYEE PF': ['employeeContribution', (val: any) => parseNum(val)],
-    'EMPLOYEE ESIC': ['employeeEsic', (val: any) => parseNum(val)],
-    'EMPLOYEER PF': ['employerContribution', (val: any) => parseNum(val)],
-    'EMPLOYEER ESIC': ['employerEsic', (val: any) => parseNum(val)],
-    'TDS 5%': ['tds5perc', (val: any) => parseNum(val)],
+    'Gross Salary': ['grossSalary', (val: any) => parseNum(val)],
+    // Merged-cell column names after XLSX parsing
+    'Atten Allow_1': ['attendanceDeduction', (val: any) => parseNum(val)],
+    'EMPLOYEE': ['employeeContribution', (val: any) => parseNum(val)],
+    '__EMPTY': ['employeeEsic', (val: any) => parseNum(val)],
+    'EMPLOYEER': ['employerContribution', (val: any) => parseNum(val)],
+    '__EMPTY_1': ['employerEsic', (val: any) => parseNum(val)],
+    'TDS': ['tds5perc', (val: any) => parseNum(val)],
     'Net Salary': ['netSalary', (val: any) => parseNum(val)],
     'Penalty': ['penalty', (val: any) => parseNum(val)],
     'Paid': ['paidAmount', (val: any) => parseNum(val)],
+    'Paid ': ['paidAmount', (val: any) => parseNum(val)],
   };
 
   // Apply column mapping with type conversion
