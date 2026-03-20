@@ -57,15 +57,15 @@ export function AdminHeader() {
   const pageInfo = getPageInfo();
 
   return (
-    <header className="sticky top-0 z-20 w-full border-b border-slate-200 bg-white shadow-sm">
-      <div className="flex w-full h-20 items-center justify-between px-6">
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-slate-900">{pageInfo.title}</h1>
+    <header className="sticky top-0 z-20 w-full shrink-0 border-b border-slate-200 bg-white shadow-sm">
+      <div className="flex w-full h-16 md:h-20 items-center justify-between px-4 md:px-6 gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900 truncate">{pageInfo.title}</h1>
           {pageInfo.subtitle && (
-            <p className="mt-1 text-sm text-slate-600">{pageInfo.subtitle}</p>
+            <p className="mt-0.5 md:mt-1 text-xs md:text-sm text-slate-600 truncate">{pageInfo.subtitle}</p>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0 ml-6">
+        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
           {/* Notifications */}
           <Button
             variant="ghost"

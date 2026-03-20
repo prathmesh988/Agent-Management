@@ -225,7 +225,7 @@ export function EmployeeTable({
   };
 
   return (
-    <Card className="flex flex-col h-[calc(100vh-8rem)] overflow-hidden">
+    <Card className="flex flex-col h-full w-full overflow-hidden border-0 shadow-sm sm:border sm:shadow">
       <div className="p-4 border-b border-slate-200 flex items-center justify-between shrink-0">
         <h2 className="text-lg font-semibold text-slate-900">Employees</h2>
         <Link href="/admin/employees/upload">
@@ -236,10 +236,10 @@ export function EmployeeTable({
       </div>
 
       {/* Filters */}
-      <div className="p-4 border-b border-slate-200 shrink-0">
-        <div className="flex gap-3 items-end">
-          <div className="flex-1 min-w-0 space-y-1">
-            <label className="text-sm font-medium text-slate-700">Search</label>
+      <div className="p-4 border-b border-slate-200 shrink-0 bg-slate-50/50">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end w-full">
+          <div className="flex-1 w-full min-w-0 space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Search</label>
             <Input
               placeholder="Search by name, email, or ID..."
               value={searchTerm}
@@ -247,12 +247,12 @@ export function EmployeeTable({
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full"
+              className="w-full bg-white transition-all duration-200 focus-visible:ring-blue-500"
             />
           </div>
 
-          <div className="w-48 shrink-0 space-y-1">
-            <label className="text-sm font-medium text-slate-700">
+          <div className="w-full sm:w-48 shrink-0 space-y-1.5">
+            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
               Department
             </label>
             <Select
@@ -262,7 +262,7 @@ export function EmployeeTable({
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full bg-white transition-all duration-200 focus-visible:ring-blue-500">
                 <SelectValue placeholder="All Departments" />
               </SelectTrigger>
               <SelectContent>
@@ -280,7 +280,7 @@ export function EmployeeTable({
             <Button
               variant="outline"
               size="sm"
-              className="shrink-0"
+              className="w-full sm:w-auto shrink-0 h-10 mt-1"
               onClick={() => {
                 setSearchTerm("");
                 setDepartmentFilter("all");
@@ -293,12 +293,13 @@ export function EmployeeTable({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 min-h-0 overflow-x-hidden">
-        <Table className="table-fixed w-full">
-          <TableHeader className="sticky top-0 bg-white z-[1]">
-            <TableRow>
-              <TableHead className="w-[35%]">
+      {/* Table Area */}
+      <div className="flex-1 min-h-0 relative bg-white">
+        <div className="absolute inset-0 overflow-auto">
+          <Table className="w-full">
+            <TableHeader className="sticky top-0 bg-slate-100 z-10 shadow-sm">
+              <TableRow className="border-b border-slate-200">
+                <TableHead className="w-[45%] sm:w-[35%] py-3">
                 <button
                   onClick={() => toggleSort("name")}
                   className="font-semibold hover:text-slate-900 transition-colors duration-200 cursor-pointer"
@@ -306,7 +307,7 @@ export function EmployeeTable({
                   Employee
                 </button>
               </TableHead>
-              <TableHead className="w-[20%]">
+              <TableHead className="w-[25%] sm:w-[20%] py-3">
                 <button
                   onClick={() => toggleSort("department")}
                   className="font-semibold hover:text-slate-900 transition-colors duration-200 cursor-pointer"
@@ -314,38 +315,42 @@ export function EmployeeTable({
                   Department
                 </button>
               </TableHead>
-              <TableHead className="w-[20%]">Role</TableHead>
-              <TableHead className="w-[15%]">Status</TableHead>
-              <TableHead className="w-[10%] text-right">Actions</TableHead>
+              <TableHead className="w-[20%] py-3 hidden sm:table-cell">Role</TableHead>
+              <TableHead className="w-[20%] py-3 hidden md:table-cell">Status</TableHead>
+              <TableHead className="w-[10%] text-right py-3 pr-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="divide-y divide-slate-100">
             {paginatedEmployees.map((employee, idx) => (
               <TableRow
                 key={employee.id}
                 onClick={() => router.push(`/admin/employees/${employee.id}`)}
                 className="cursor-pointer hover:bg-slate-50 transition-colors duration-200"
               >
-                <TableCell className="truncate">
-                  <div className="flex items-center gap-3 min-w-0">
+                <TableCell className="py-4 pl-4 min-w-0">
+                  <div className="flex items-center gap-3">
                     <div
-                      className={`h-8 w-8 shrink-0 rounded-full ${getAvatarColor(idx)} flex items-center justify-center text-white text-xs font-700`}
+                      className={`h-10 w-10 shrink-0 rounded-full ${getAvatarColor(idx)} flex items-center justify-center text-white text-sm font-semibold shadow-sm`}
                     >
                       {getInitials(employee.name)}
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-900 truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900 truncate">
                         {employee.name}
                       </p>
-                      <p className="text-xs text-slate-500 truncate">{employee.email}</p>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">{employee.email}</p>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="truncate">{employee.department}</TableCell>
-                <TableCell className="text-slate-600 truncate">
+                <TableCell className="py-4">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium truncate max-w-[120px]">
+                    {employee.department}
+                  </span>
+                </TableCell>
+                <TableCell className="py-4 text-slate-600 truncate text-sm hidden sm:table-cell">
                   {employee.designation}
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4 hidden md:table-cell">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 whitespace-nowrap ${employee.status === "active"
                       ? "bg-emerald-100 text-emerald-700"
@@ -366,7 +371,7 @@ export function EmployeeTable({
                       (employee.status || "").slice(1)}
                   </span>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="py-4 text-right pr-4">
                   <ActionDropdown
                     employee={employee}
                     onView={onView}
@@ -378,14 +383,15 @@ export function EmployeeTable({
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 shrink-0">
-        <p className="text-sm text-slate-600">
-          Showing {startIndex + 1} to{" "}
-          {Math.min(startIndex + ITEMS_PER_PAGE, filtered.length)} of{" "}
-          {filtered.length} employees
+      <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-slate-200 shrink-0 bg-white gap-3 sm:gap-0">
+        <p className="text-xs sm:text-sm text-slate-600 shrink-0">
+          Showing <span className="font-medium text-slate-900">{startIndex + 1}</span> to{" "}
+          <span className="font-medium text-slate-900">{Math.min(startIndex + ITEMS_PER_PAGE, filtered.length)}</span> of{" "}
+          <span className="font-medium text-slate-900">{filtered.length}</span> employees
         </p>
         <div className="flex gap-1 items-center">
           <Button
@@ -398,18 +404,27 @@ export function EmployeeTable({
             <ChevronLeft className="h-4 w-4" />
           </Button>
           {(() => {
+            // Mobile: extremely simplified pagination to avoid squishing
+            const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+            
             const pages: (number | "ellipsis")[] = [];
-            if (totalPages <= 5) {
+            const maxVisiblePages = isMobile ? 3 : 5;
+            
+            if (totalPages <= maxVisiblePages) {
               for (let i = 1; i <= totalPages; i++) pages.push(i);
             } else {
               pages.push(1);
-              if (currentPage > 3) pages.push("ellipsis");
+              if (currentPage > (isMobile ? 2 : 3)) pages.push("ellipsis");
+              
               const start = Math.max(2, currentPage - 1);
-              const end = Math.min(totalPages - 1, currentPage + 1);
+              const end = Math.min(totalPages - 1, currentPage + (isMobile ? 0 : 1));
+              
               for (let i = start; i <= end; i++) pages.push(i);
-              if (currentPage < totalPages - 2) pages.push("ellipsis");
+              
+              if (currentPage < totalPages - (isMobile ? 1 : 2)) pages.push("ellipsis");
               pages.push(totalPages);
             }
+            
             return pages.map((page, idx) =>
               page === "ellipsis" ? (
                 <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 text-sm">…</span>

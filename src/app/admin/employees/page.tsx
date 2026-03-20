@@ -35,7 +35,7 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="h-full">
+    <div className="flex flex-col h-full w-full overflow-hidden">
       <EmployeeTable
         employees={employees}
         onEdit={handleEdit}
