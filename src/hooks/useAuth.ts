@@ -10,6 +10,8 @@ import {
   isAuthenticated as checkIsAuthenticated,
   updateName,
   updatePreferences,
+  sendMagicLink as authSendMagicLink,
+  verifyMagicLink as authVerifyMagicLink,
 } from '@/services/auth';
 
 type AuthContextType = {
@@ -21,6 +23,8 @@ type AuthContextType = {
   logout: () => Promise<void>;
   updateProfileName: (name: string) => Promise<void>;
   updateUserPreferences: (prefs: Record<string, any>) => Promise<void>;
+  sendMagicLink: (email: string, redirectUrl: string) => Promise<void>;
+  verifyMagicLink: (userId: string, secret: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -124,6 +128,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const sendMagicLink = async (email: string, redirectUrl: string) => {
+    try {
+      setIsLoading(true);
+      await authSendMagicLink(email, redirectUrl);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyMagicLink = async (userId: string, secret: string) => {
+    try {
+      setIsLoading(true);
+      await authVerifyMagicLink(userId, secret);
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+      setIsAuthenticated(true);
+    } catch (error) {
+      setUser(null);
+      setIsAuthenticated(false);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const contextValue: AuthContextType = {
     user,
     isLoading,
@@ -133,6 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     updateProfileName,
     updateUserPreferences,
+    sendMagicLink,
+    verifyMagicLink,
   };
 
   return React.createElement(
