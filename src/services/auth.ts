@@ -113,7 +113,7 @@ export const isAuthenticated = async (): Promise<boolean> => {
 };
 
 /**
- * Update user profile
+ * Update user profile (Name and password-verified email)
  */
 export const updateProfile = async (name: string, email: string) => {
   try {
@@ -126,6 +126,29 @@ export const updateProfile = async (name: string, email: string) => {
     throw error;
   }
 };
+
+/**
+ * Update user's name only
+ */
+export const updateName = async (name: string) => {
+  try {
+    return await account.updateName(name);
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Update user preferences (allows storing custom key-value pairs like phone, title, etc)
+ */
+export const updatePreferences = async (prefs: Record<string, any>) => {
+  try {
+    return await account.updatePrefs(prefs);
+  } catch (error) {
+    throw error;
+  }
+};
+
 
 /**
  * Change user password

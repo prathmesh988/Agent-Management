@@ -8,6 +8,8 @@ import {
   logOut,
   signUp,
   isAuthenticated as checkIsAuthenticated,
+  updateName,
+  updatePreferences,
 } from '@/services/auth';
 
 type AuthContextType = {
@@ -17,6 +19,8 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfileName: (name: string) => Promise<void>;
+  updateUserPreferences: (prefs: Record<string, any>) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -92,6 +96,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateProfileName = async (name: string) => {
+    try {
+      setIsLoading(true);
+      await updateName(name);
+      // Fetch updated user to reflect changes in context
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateUserPreferences = async (prefs: Record<string, any>) => {
+    try {
+      setIsLoading(true);
+      await updatePreferences(prefs);
+      // Fetch updated user to reflect changes in context
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const contextValue: AuthContextType = {
     user,
     isLoading,
@@ -99,6 +131,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     signup,
     logout,
+    updateProfileName,
+    updateUserPreferences,
   };
 
   return React.createElement(
