@@ -13,12 +13,26 @@ export function useCurrentUser() {
     const fetchCurrentUser = async () => {
       try {
         setLoading(true);
+        setError(null);
         
         // Get current user session from Appwrite Account
-        const session = await account.get();
+        let session;
+        try {
+          session = await account.get();
+        } catch (sessionError: any) {
+          // Handle case where user is not authenticated
+          if (sessionError?.code === 401 || sessionError?.message?.includes('missing scopes') || sessionError?.message?.includes('not authenticated')) {
+            setCurrentUser(null);
+            setError(null); // No error, just not authenticated
+            setLoading(false);
+            return;
+          }
+          throw sessionError;
+        }
         
         if (!session || !session.$id) {
-          setError('User not authenticated');
+          setCurrentUser(null);
+          setError(null);
           setLoading(false);
           return;
         }
@@ -34,7 +48,8 @@ export function useCurrentUser() {
 
         if (!response.ok) {
           if (response.status === 401) {
-            setError('User not authenticated');
+            setCurrentUser(null);
+            setError(null);
           } else {
             throw new Error('Failed to fetch current user');
           }
@@ -47,7 +62,11 @@ export function useCurrentUser() {
         setError(null);
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        setError(errorMsg);
+        // Only set error if it's a real error, not just "not authenticated"
+        if (!errorMsg.includes('missing scopes') && !errorMsg.includes('not authenticated')) {
+          setError(errorMsg);
+        }
+        setCurrentUser(null);
         console.error('Error fetching current user:', err);
       } finally {
         setLoading(false);

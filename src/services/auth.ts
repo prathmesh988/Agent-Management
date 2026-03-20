@@ -127,13 +127,29 @@ export const getCurrentUser = async () => {
  */
 export const logOut = async () => {
   try {
-    await account.deleteSession('current');
+    // Delete the current session
+    try {
+      await account.deleteSession('current');
+    } catch (error: any) {
+      // If session is already deleted or doesn't exist, continue
+      if (error?.code !== 401 && !error?.message?.includes('not found')) {
+        throw error;
+      }
+    }
     
-    // Clear auth cookie
+    // Clear auth session cookies
     if (typeof window !== 'undefined') {
       document.cookie = 'auth_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+      document.cookie = 'session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    }
+    
+    // Clear localStorage if using it
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_session');
     }
   } catch (error) {
+    console.error('Logout error:', error);
     throw error;
   }
 };

@@ -60,13 +60,13 @@ export default function AdminsPage() {
         </Card>
       )}
 
-      {currentUserError && (
+      {currentUserError && currentUser === null && (
         <Card className="p-4 bg-red-50 border border-red-200">
           <div className="flex gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div>
               <h3 className="font-semibold text-red-900">Authentication Error</h3>
-              <p className="text-sm text-red-700">{currentUserError}</p>
+              <p className="text-sm text-red-700">Please log in again to access admin features.</p>
             </div>
           </div>
         </Card>
@@ -92,14 +92,42 @@ export default function AdminsPage() {
         </Card>
       )}
 
-      <AdminTable
-        admins={admins}
-        loading={loading || currentUserLoading}
-        currentUserRole={currentUser?.role}
-        onAddAdmin={handleAddAdmin}
-        onDeleteAdmin={handleDeleteAdmin}
-        onUpdateRole={handleUpdateRole}
-      />
+      {currentUserLoading && (
+        <Card className="p-4 bg-slate-50 border border-slate-200">
+          <p className="text-sm text-slate-700">Loading admin information...</p>
+        </Card>
+      )}
+
+      {!currentUserLoading && !currentUser && (
+        <Card className="p-4 bg-yellow-50 border border-yellow-200">
+          <div className="flex gap-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-yellow-900">Not Authenticated</h3>
+              <p className="text-sm text-yellow-700">Please log in to access admin features.</p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {currentUser && (
+        <AdminTable
+          admins={admins}
+          loading={loading || currentUserLoading}
+          currentUserRole={currentUser?.role}
+          onAddAdmin={handleAddAdmin}
+          onDeleteAdmin={handleDeleteAdmin}
+          onUpdateRole={handleUpdateRole}
+        />
+      )}
+
+      {!currentUserLoading && !currentUser && (
+        <Card className="p-8 text-center">
+          <AlertCircle className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+          <p className="text-slate-700 font-500">Admin access required</p>
+          <p className="text-sm text-slate-500 mt-1">Please log in with an admin account to manage admins.</p>
+        </Card>
+      )}
 
       {/* Permission Levels - Visual Cards */}
       <div className="space-y-4">

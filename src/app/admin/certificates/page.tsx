@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Employee } from "@/lib/types";
@@ -54,12 +54,12 @@ export default function CertificatesPage() {
   const [certificatesInBucket, setCertificatesInBucket] = useState<Record<string, boolean>>({});
 
   // Fetch certificate status from bucket when page loads or employees change
+  // Only fetches ONCE on page load, uses cached data for checkbox operations
   useEffect(() => {
     const fetchCertificateStatus = async () => {
       setIsLoadingPdfs(true);
       
       if (employees.length === 0) {
-        console.log("No employees yet, skipping certificate check");
         setIsLoadingPdfs(false);
         return;
       }
@@ -70,23 +70,17 @@ export default function CertificatesPage() {
           .map((emp) => emp.employeeId)
           .filter((id) => id != null);
 
-        console.log("Fetching certificate status for employeeIds:", employeeIds);
-
         if (employeeIds.length === 0) {
-          console.log("No employeeIds found");
           setIsLoadingPdfs(false);
           return;
         }
 
-        // Check which certificates exist in bucket
+        // Check which certificates exist in bucket (only on initial load)
         const result = await checkCertificatesInBucketAction(employeeIds);
-        console.log("Certificate check result:", result);
         
         if (result.success && result.status) {
           setCertificatesInBucket(result.status);
-          console.log("✓ Loaded certificate status from bucket:", result.status);
-        } else {
-          console.warn("Certificate check failed or returned empty status");
+          console.log("✓ Certificate status loaded:", Object.values(result.status).filter(v => v).length, "PDFs found");
         }
       } catch (error) {
         console.error("✗ Error fetching certificate status:", error);
@@ -538,26 +532,12 @@ export default function CertificatesPage() {
     }
   };
 
-  const areAllSelectedInBucket = () => {
+  const areAllSelectedInBucket = useMemo(() => {
     if (selectedIds.size === 0) return false;
     
     const selectedEmps = employees.filter((e) => e.id && selectedIds.has(e.id));
-    
-    // Debug logging
-    console.log("Selected employees:", selectedEmps.map(e => ({ name: e.name, employeeId: e.employeeId })));
-    console.log("Certificate bucket status:", certificatesInBucket);
-    console.log("Checking each:", selectedEmps.map(e => ({
-      name: e.name,
-      employeeId: e.employeeId,
-      inBucket: certificatesInBucket[e.employeeId!]
-    })));
-    
-    // Now using employeeId directly (new naming: {employeeId}.pdf)
-    const allInBucket = selectedEmps.every((e) => e.employeeId && certificatesInBucket[e.employeeId]);
-    console.log("All selected in bucket?", allInBucket);
-    
-    return allInBucket;
-  };
+    return selectedEmps.every((e) => e.employeeId && certificatesInBucket[e.employeeId]);
+  }, [selectedIds, employees, certificatesInBucket]);
 
   const handleDeleteEmployee = (employeeId: string, name: string) => {
     if (confirm(`Are you sure you want to delete ${name}?`)) {
@@ -647,7 +627,7 @@ export default function CertificatesPage() {
                   onClick={handleSendToMail}
                   className="gap-2 transition-all duration-200 bg-emerald-600 hover:bg-emerald-700 text-white font-500"
                   disabled={
-                    !areAllSelectedInBucket() ||
+                    !areAllSelectedInBucket ||
                     selectedIds.size === 0 ||
                     isSendingEmails ||
                     isLoadingPdfs
@@ -655,7 +635,7 @@ export default function CertificatesPage() {
                   title={
                     isLoadingPdfs
                       ? "Loading certificate status..."
-                      : areAllSelectedInBucket()
+                      : areAllSelectedInBucket
                         ? "Send certificates to selected employees"
                         : "Generate certificates first before sending"
                   }
@@ -740,7 +720,7 @@ export default function CertificatesPage() {
                       onClick={() => router.push(`/admin/certificates/${emp.id}`)}
                       className="transition-colors duration-200 hover:bg-slate-50 cursor-pointer"
                     >
-                      <TableCell className="py-4 px-4 sm:px-6 text-left w-12 shrink-0">
+                      <TableCell className="py-4 px-4 sm:px-6 text-left w-12 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedIds.has(emp.id)}

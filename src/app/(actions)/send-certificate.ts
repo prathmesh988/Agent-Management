@@ -153,17 +153,11 @@ export async function checkCertificatesInBucketAction(
     employeeIds: string[]
 ) {
     try {
-        console.log('📋 Checking certificates for employeeIds:', employeeIds);
-        
         const status: Record<string, boolean> = {};
         
         for (const employeeId of employeeIds) {
-            const exists = await checkIfCertificateExists(employeeId);
-            status[employeeId] = exists;
-            console.log(`  - ${employeeId}: ${exists ? '✓ exists' : '✗ not found'}`);
+            status[employeeId] = await checkIfCertificateExists(employeeId);
         }
-        
-        console.log('📊 Final status:', status);
         
         return {
             success: true,
