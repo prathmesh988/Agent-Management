@@ -36,7 +36,7 @@ async function initializeCollection() {
     try {
       await databases.getCollection(DATABASE_ID, COLLECTION_ID);
       console.log("✓ Collection already exists - no initialization needed");
-      process.exit(0);
+      return; // Let the event loop drain naturally — process.exit() here crashes Windows libuv
     } catch (err) {
       if (err.code !== 404) {
         throw err;
@@ -162,7 +162,7 @@ async function initializeCollection() {
     }
 
     console.log(`✓ Collection initialized with ${created} attributes`);
-    process.exit(0);
+    // No process.exit(0) — let Node drain open handles cleanly before exiting
   } catch (error) {
     console.error("✗ Failed to initialize collection");
     console.error("");
