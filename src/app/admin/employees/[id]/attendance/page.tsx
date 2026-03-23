@@ -1,30 +1,43 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Employee } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Download, Save, AlertCircle } from "lucide-react";
+import { ArrowLeft, Download, AlertCircle } from "lucide-react";
 import { getEmployee } from "@/app/(actions)/employees";
-import { updateEmployeeAction } from "@/app/(actions)/employees";
+import { getMonthlyAttendanceAction } from "@/app/(actions)/attendance";
 import { MonthlyAttendanceOverview } from "@/components/admin/monthly-attendance-overview";
 import { AttendanceCalendarEditable } from "@/components/admin/attendance-calendar-editable";
 import { AttendanceAnalytics } from "@/components/admin/attendance-analytics";
 
 export const dynamic = "force-dynamic";
 
-const ATTENDANCE_SUMMARY_FIELDS = [
-  { key: "presentDays", label: "Present Days", type: "number", color: "emerald" },
-  { key: "absentDays", label: "Absent Days", type: "number", color: "red" },
-  { key: "leaveDays", label: "Leave Days", type: "number", color: "blue" },
-  { key: "halfDays", label: "Half Days", type: "number", color: "amber" },
-  { key: "weekOffDays", label: "Week Off", type: "number", color: "slate" },
-  { key: "holidayDays", label: "Holidays", type: "number", color: "slate" },
-];
+type AttendanceStatus = "P" | "A" | "L" | "H" | "WO" | "HO" | "-";
+
+const STATUS_MAP: Record<string, AttendanceStatus> = {
+  P: "P", A: "A", L: "L", LWP: "L", H: "H", "0.5": "H", WO: "WO", HO: "HO",
+};
+
+const SUMMARY_CARDS = [
+  { key: "P",  label: "Present Days",  color: "emerald" },
+  { key: "A",  label: "Absent Days",   color: "red"     },
+  { key: "L",  label: "Leave Days",    color: "blue"    },
+  { key: "H",  label: "Half Days",     color: "amber"   },
+  { key: "WO", label: "Week Off",      color: "slate"   },
+  { key: "HO", label: "Holidays",      color: "slate"   },
+] as const;
+
+const CARD_STYLES = {
+  emerald: { border: "border-emerald-200 bg-emerald-50", text: "text-emerald-700" },
+  red:     { border: "border-red-200 bg-red-50",         text: "text-red-700"     },
+  blue:    { border: "border-blue-200 bg-blue-50",       text: "text-blue-700"    },
+  amber:   { border: "border-amber-200 bg-amber-50",     text: "text-amber-700"   },
+  slate:   { border: "border-slate-200 bg-slate-50",     text: "text-slate-700"   },
+};
 
 export default function AttendanceOverviewPage({
   params,
@@ -34,160 +47,89 @@ export default function AttendanceOverviewPage({
   const router = useRouter();
   const resolvedParams = use(params);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
-  const [editedFields, setEditedFields] = useState<Set<string>>(new Set());
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [overviewRefreshKey, setOverviewRefreshKey] = useState(0);
+
+  // Counts calculated from live monthly_attendance data
+  const [counts, setCounts] = useState<Record<string, number>>({ P: 0, A: 0, L: 0, H: 0, WO: 0, HO: 0 });
 
   useEffect(() => {
     const loadEmployee = async () => {
       try {
-        console.log("🔍 Loading attendance employee with ID:", resolvedParams.id);
         const employee = await getEmployee(resolvedParams.id);
-
-        if (!employee) {
-          console.log("❌ Employee not found for ID:", resolvedParams.id);
-          setNotFound(true);
-          setIsLoading(false);
-          return;
-        }
-
-        console.log("✅ Loaded attendance employee:", employee);
+        if (!employee) { setNotFound(true); return; }
         setCurrentEmployee(employee);
-      } catch (error) {
-        console.error("❌ Failed to load employee:", error);
+      } catch {
         setNotFound(true);
       } finally {
         setIsLoading(false);
       }
     };
-
     loadEmployee();
   }, [resolvedParams.id]);
 
-  const handleFieldChange = (key: string, value: string | number | undefined) => {
-    const newEmployee = { ...currentEmployee! };
-    
-    // Convert empty string to undefined
-    if (value === "") {
-      (newEmployee as any)[key] = undefined;
-    } else if (key.endsWith("Days") || key.match(/^(cl|overtime|totalPresent)$/)) {
-      // For summary fields (presentDays, absentDays, etc.)
-      (newEmployee as any)[key] = value !== "" ? Number(value) || 0 : undefined;
-    }
-
-    setCurrentEmployee(newEmployee);
-    setEditedFields((prev) => new Set([...prev, key]));
-  };
-
-  const handleSave = async () => {
-    if (!currentEmployee || editedFields.size === 0) return;
-
-    setIsSaving(true);
-    setSaveError(null);
-
+  // Fetch monthly attendance and calculate counts
+  const recalculate = useCallback(async () => {
+    if (!currentEmployee) return;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
     try {
-      const updates: Partial<Employee> = {};
-      editedFields.forEach((field) => {
-        updates[field as keyof Employee] = (currentEmployee as any)[field];
+      const result = await getMonthlyAttendanceAction(currentEmployee.employeeId, year, month);
+      if (!result.success) return;
+      const fresh: Record<string, number> = { P: 0, A: 0, L: 0, H: 0, WO: 0, HO: 0 };
+      Object.values(result.data).forEach((raw) => {
+        const status = STATUS_MAP[raw as string];
+        if (status && status !== "-" && status in fresh) fresh[status]++;
       });
+      setCounts(fresh);
+    } catch {}
+  }, [currentEmployee]);
 
-      console.log("📦 Saving attendance updates:", updates);
-      
-      await updateEmployeeAction(resolvedParams.id, updates as Employee);
-      setEditedFields(new Set());
-      console.log("✅ Attendance updates saved successfully");
-    } catch (error) {
-      console.error("❌ Failed to save updates:", error);
-      setSaveError(
-        error instanceof Error ? error.message : "Failed to save updates"
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  // Recalculate on first load and after every save
+  useEffect(() => { recalculate(); }, [recalculate, overviewRefreshKey]);
 
   const handleDownloadReport = () => {
     if (!currentEmployee) return;
-
-    const data = [
+    const rows = [
       ["Attendance Overview Report"],
       ["Employee Name", currentEmployee.name],
       ["Employee ID", currentEmployee.id || ""],
-      ["Designation", currentEmployee.designation || "N/A"],
-      ["Department", currentEmployee.process || "N/A"],
       [],
-      ["Attendance Summary"],
-      ["Present Days", (currentEmployee as any).presentDays || 0],
-      ["Absent Days", (currentEmployee as any).absentDays || 0],
-      ["Leave Days", (currentEmployee as any).leaveDays || 0],
-      ["Half Days", (currentEmployee as any).halfDays || 0],
-      ["Week Off", (currentEmployee as any).weekOffDays || 0],
-      ["Holidays", (currentEmployee as any).holidayDays || 0],
+      ["Status", "Count"],
+      ...SUMMARY_CARDS.map(({ key, label }) => [label, counts[key] ?? 0]),
     ];
-
-    const csvContent = data.map((row) => row.join(",")).join("\n");
-    const element = document.createElement("a");
-    element.setAttribute(
-      "href",
-      "data:text/csv;charset=utf-8," + encodeURIComponent(csvContent)
-    );
-    element.setAttribute(
-      "download",
-      `${currentEmployee.name}_attendance_report.csv`
-    );
-    element.style.display = "none";
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = `${currentEmployee.name}_attendance_report.csv`;
+    a.click();
   };
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Attendance Overview</h1>
-        </div>
-        <div className="flex items-center justify-center h-96">
-          <p className="text-slate-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-96">
+      <p className="text-slate-600">Loading...</p>
+    </div>
+  );
 
-  if (notFound || !currentEmployee) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Attendance Overview</h1>
-        </div>
-        <div className="flex flex-col items-center justify-center h-96 gap-4">
-          <p className="text-red-600 font-medium">Employee not found</p>
-          <p className="text-slate-600 text-sm">ID: {resolvedParams.id}</p>
-          <Link href="/admin/employees">
-            <Button>Back to Employees</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  if (notFound || !currentEmployee) return (
+    <div className="flex flex-col items-center justify-center h-96 gap-4">
+      <p className="text-red-600 font-medium">Employee not found</p>
+      <Link href="/admin/employees"><Button>Back to Employees</Button></Link>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      {/*Header */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Attendance Overview</h1>
-          <p className="text-slate-600 mt-1">{currentEmployee?.name}</p>
+          <p className="text-slate-600 mt-1">{currentEmployee.name}</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
-          <Button
-            onClick={handleDownloadReport}
-            variant="outline"
-            size="lg"
-            className="shadow-md"
-          >
+          <Button onClick={handleDownloadReport} variant="outline" size="lg" className="shadow-md">
             <Download className="h-4 w-4 mr-2" />
             Download Report
           </Button>
@@ -197,71 +139,23 @@ export default function AttendanceOverviewPage({
               Back to Profile
             </Button>
           </Link>
-          <Button
-            onClick={handleSave}
-            disabled={editedFields.size === 0 || isSaving}
-            size="lg"
-            className="shadow-md"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? "Saving..." : "Save Changes"}
-          </Button>
         </div>
       </div>
 
-      {/* Error Alert */}
-      {saveError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{saveError}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Attendance Summary Cards */}
-      <div className="grid grid-cols-6 gap-4">
-        {ATTENDANCE_SUMMARY_FIELDS.map(({ key, label, color }) => {
-          const colorVariants = {
-            emerald: "border-emerald-200 bg-emerald-50",
-            red: "border-red-200 bg-red-50",
-            blue: "border-blue-200 bg-blue-50",
-            amber: "border-amber-200 bg-amber-50",
-            slate: "border-slate-200 bg-slate-50",
-          };
-
-          const textColorVariants = {
-            emerald: "text-emerald-700",
-            red: "text-red-700",
-            blue: "text-blue-700",
-            amber: "text-amber-700",
-            slate: "text-slate-700",
-          };
-
-          const currentValue = (currentEmployee as any)?.[key] ?? 0;
-          const isEdited = editedFields.has(key);
-
+      {/* Auto-calculated summary cards (read-only) */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+        {SUMMARY_CARDS.map(({ key, label, color }) => {
+          const styles = CARD_STYLES[color as keyof typeof CARD_STYLES];
           return (
-            <Card key={key} className={`border-2 ${colorVariants[color as keyof typeof colorVariants]}`}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-slate-600">
+            <Card key={key} className={`border-2 ${styles.border}`}>
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   {label}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-3xl font-bold">{currentValue}</div>
-                <Input
-                  type="number"
-                  value={currentValue || ""}
-                  onChange={(e) => handleFieldChange(key, e.target.value)}
-                  className={`h-8 text-sm ${
-                    isEdited
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-slate-300"
-                  }`}
-                  placeholder="0"
-                  step="1"
-                  min="0"
-                />
+              <CardContent className="px-4 pb-4">
+                <div className={`text-4xl font-bold ${styles.text}`}>{counts[key] ?? 0}</div>
+                <p className="text-xs text-slate-400 mt-1">Auto-calculated</p>
               </CardContent>
             </Card>
           );
@@ -269,30 +163,20 @@ export default function AttendanceOverviewPage({
       </div>
 
       {/* Monthly Attendance Overview */}
-      {currentEmployee && (
-        <div>
-          <MonthlyAttendanceOverview employee={currentEmployee} />
-        </div>
-      )}
+      <MonthlyAttendanceOverview
+        employee={currentEmployee}
+        refreshKey={overviewRefreshKey}
+      />
 
       {/* Editable Attendance Calendar */}
-      {currentEmployee && (
-        <div>
-          <AttendanceCalendarEditable 
-            employee={currentEmployee}
-            onEmployeeUpdate={(updatedEmployee) => {
-              setCurrentEmployee(updatedEmployee);
-            }}
-          />
-        </div>
-      )}
+      <AttendanceCalendarEditable
+        employee={currentEmployee}
+        onEmployeeUpdate={(updated) => setCurrentEmployee(updated)}
+        onSave={() => setOverviewRefreshKey((k) => k + 1)}
+      />
 
-      {/* Analytics Section */}
-      {currentEmployee && (
-        <div>
-          <AttendanceAnalytics employee={currentEmployee} />
-        </div>
-      )}
+      {/* Analytics */}
+      <AttendanceAnalytics employee={currentEmployee} />
     </div>
   );
 }

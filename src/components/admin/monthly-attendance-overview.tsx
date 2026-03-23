@@ -8,6 +8,7 @@ import { getMonthlyAttendanceAction } from "@/app/(actions)/attendance";
 
 interface MonthlyAttendanceOverviewProps {
   employee: Employee;
+  refreshKey?: number; // increment to force a re-fetch
 }
 
 type AttendanceStatus = "P" | "A" | "L" | "H" | "WO" | "HO" | "-";
@@ -31,7 +32,7 @@ const STATUS_COLORS: Record<AttendanceStatus, { bg: string; text: string; label:
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function MonthlyAttendanceOverview({ employee }: MonthlyAttendanceOverviewProps) {
+export function MonthlyAttendanceOverview({ employee, refreshKey }: MonthlyAttendanceOverviewProps) {
   const currentDate = new Date();
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1; // 1-indexed
@@ -50,7 +51,7 @@ export function MonthlyAttendanceOverview({ employee }: MonthlyAttendanceOvervie
     } finally {
       setIsLoading(false);
     }
-  }, [employee.employeeId, year, month]);
+  }, [employee.employeeId, year, month, refreshKey]);
 
   useEffect(() => {
     loadData();

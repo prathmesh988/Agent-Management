@@ -11,6 +11,7 @@ import { getMonthlyAttendanceAction, saveMonthlyAttendanceAction } from "@/app/(
 interface AttendanceCalendarProps {
   employee: Employee;
   onEmployeeUpdate?: (employee: Employee) => void;
+  onSave?: () => void; // called after a successful save so parent can refresh siblings
 }
 
 type AttendanceStatus = "P" | "A" | "L" | "H" | "WO" | "HO" | "-";
@@ -35,7 +36,7 @@ const STATUS_COLORS: Record<AttendanceStatus, { bg: string; text: string; label:
 const STATUS_CYCLE: AttendanceStatus[] = ["P", "A", "L", "H", "WO", "HO", "-"];
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function AttendanceCalendarEditable({ employee, onEmployeeUpdate }: AttendanceCalendarProps) {
+export function AttendanceCalendarEditable({ employee, onEmployeeUpdate, onSave }: AttendanceCalendarProps) {
   // Month navigation
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -155,6 +156,7 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate }: Atten
         setEditedFields({});
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
+        onSave?.(); // notify parent so overview re-fetches
       } else {
         setSaveError(result.error || "Save failed");
       }
