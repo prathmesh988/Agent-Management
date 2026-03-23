@@ -52,35 +52,40 @@ export default function CertificatesPage() {
   const [isSendingEmails, setIsSendingEmails] = useState(false);
   const [isLoadingPdfs, setIsLoadingPdfs] = useState(true);
   const [certificatesInBucket, setCertificatesInBucket] = useState<Record<string, boolean>>({});
+  // Guard: only run the expensive bucket check once when employees first populate
+  const hasFetchedBucketStatus = useRef(false);
 
-  // Fetch certificate status from bucket when page loads or employees change
-  // Only fetches ONCE on page load, uses cached data for checkbox operations
+  // Fetch certificate status from bucket ONCE when employees first load.
+  // We guard with hasFetchedBucketStatus to avoid re-running every time the
+  // employees array gets a new reference (which happens on every context render).
   useEffect(() => {
     const fetchCertificateStatus = async () => {
+      if (employees.length === 0) return; // Not loaded yet
+      if (hasFetchedBucketStatus.current) return; // Already fetched — skip
+
+      hasFetchedBucketStatus.current = true;
       setIsLoadingPdfs(true);
-      
-      if (employees.length === 0) {
-        setIsLoadingPdfs(false);
-        return;
-      }
 
       try {
-        // Get employeeIds of all available employees
         const employeeIds = employees
           .map((emp) => emp.employeeId)
-          .filter((id) => id != null);
+          .filter((id): id is string => id != null && id !== "");
 
         if (employeeIds.length === 0) {
           setIsLoadingPdfs(false);
           return;
         }
 
-        // Check which certificates exist in bucket (only on initial load)
+        // Single API call — checks all employees in one listFiles() request
         const result = await checkCertificatesInBucketAction(employeeIds);
-        
+
         if (result.success && result.status) {
           setCertificatesInBucket(result.status);
-          console.log("✓ Certificate status loaded:", Object.values(result.status).filter(v => v).length, "PDFs found");
+          console.log(
+            "✓ Certificate status loaded:",
+            Object.values(result.status).filter((v) => v).length,
+            "PDFs found"
+          );
         }
       } catch (error) {
         console.error("✗ Error fetching certificate status:", error);

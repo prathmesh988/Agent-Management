@@ -67,7 +67,7 @@ async function initializeCollection() {
       { key: "ifscCode", type: "string", required: false },
       { key: "bankName", type: "string", required: false },
       { key: "paymentMode", type: "string", required: false },
-      // Day columns (28 days)
+      // Day columns (28–31 days to support all month lengths)
       { key: "1Sun", type: "string", required: false },
       { key: "2Mon", type: "string", required: false },
       { key: "3Tue", type: "string", required: false },
@@ -96,6 +96,9 @@ async function initializeCollection() {
       { key: "26Thu", type: "string", required: false },
       { key: "27Fri", type: "string", required: false },
       { key: "28Sat", type: "string", required: false },
+      { key: "29Sun", type: "string", required: false },
+      { key: "30Mon", type: "string", required: false },
+      { key: "31Tue", type: "string", required: false },
       // Attendance metrics
       { key: "presentDays", type: "float", required: false },
       { key: "absentDays", type: "float", required: false },

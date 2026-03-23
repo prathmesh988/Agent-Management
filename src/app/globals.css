@@ -210,3 +210,54 @@ h6 {
     @apply transition-colors duration-150 hover:bg-muted/30;
   }
 }
+
+/* ─── Dark mode: remap hardcoded Tailwind colors used in custom components ─── */
+/*
+ * Many components use raw Tailwind slate/gray classes instead of CSS-var-based classes.
+ * These overrides transparently apply dark equivalents without editing every component.
+ */
+.dark .bg-white            { background-color: var(--card) !important; }
+.dark .bg-slate-50         { background-color: hsl(222 47% 11%) !important; }
+.dark .bg-slate-100        { background-color: hsl(217 33% 17%) !important; }
+.dark .bg-gray-50          { background-color: hsl(222 47% 11%) !important; }
+.dark .bg-gray-100         { background-color: hsl(217 33% 17%) !important; }
+
+/* Text */
+.dark .text-slate-900      { color: #f1f5f9 !important; }
+.dark .text-slate-800      { color: #e2e8f0 !important; }
+.dark .text-slate-700      { color: #cbd5e1 !important; }
+.dark .text-slate-600      { color: #94a3b8 !important; }
+.dark .text-slate-500      { color: #64748b !important; }
+.dark .text-gray-900       { color: #f1f5f9 !important; }
+.dark .text-gray-700       { color: #cbd5e1 !important; }
+.dark .text-gray-600       { color: #94a3b8 !important; }
+.dark .text-gray-500       { color: #64748b !important; }
+
+/* Borders */
+.dark .border-slate-200    { border-color: #334155 !important; }
+.dark .border-slate-100    { border-color: #1e293b !important; }
+.dark .border-gray-200     { border-color: #334155 !important; }
+.dark .border-gray-100     { border-color: #1e293b !important; }
+
+/* Divide lines (tables etc.) */
+.dark .divide-slate-200 > * + *  { border-color: #334155 !important; }
+.dark .divide-gray-200  > * + *  { border-color: #334155 !important; }
+
+/* Input / form fields */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border-color: #334155;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #64748b;
+}
+
+/* Hover states on rows / buttons */
+.dark .hover\:bg-slate-50:hover  { background-color: hsl(217 33% 17%) !important; }
+.dark .hover\:bg-slate-100:hover { background-color: hsl(217 33% 20%) !important; }
+.dark .hover\:bg-gray-50:hover   { background-color: hsl(217 33% 17%) !important; }
+

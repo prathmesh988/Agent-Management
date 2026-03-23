@@ -8,13 +8,18 @@ import { InputFile } from "node-appwrite/file";
 const BUCKET_ID = "69b7cf9e001384db23f9";
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID!;
 
-function getStorageClient() {
-  const client = new Client()
-    .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-    .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
-    .setKey(process.env.APPWRITE_PROJECT_ID_API_SECRET!);
+// Lazy singleton — created once per server process, not per request
+let _storageClient: Storage | null = null;
 
-  return new Storage(client);
+function getStorageClient(): Storage {
+  if (!_storageClient) {
+    const client = new Client()
+      .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
+      .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
+      .setKey(process.env.APPWRITE_PROJECT_ID_API_SECRET!);
+    _storageClient = new Storage(client);
+  }
+  return _storageClient;
 }
 
 /**
@@ -65,26 +70,42 @@ export async function uploadCertificateToBucket(
 }
 
 /**
- * Check if certificates exist in bucket for selected employees
+ * Check if certificates exist in bucket for selected employees.
+ * Uses a SINGLE listFiles() API call instead of N getFile() calls.
+ * Appwrite's listFiles returns up to 5000 files — sufficient for typical usage.
  */
 export async function checkCertificatesInBucket(certificateIds: string[]) {
+  return checkAllCertificatesInBucket(certificateIds);
+}
+
+/**
+ * Bulk-check certificate existence in ONE API call.
+ * Lists all files in the bucket, then does a local O(n) set lookup.
+ * Replaces the old sequential loop that made one HTTP request per employee.
+ */
+export async function checkAllCertificatesInBucket(
+  employeeIds: string[]
+): Promise<Record<string, boolean>> {
   try {
     const storage = getStorageClient();
-    const results: Record<string, boolean> = {};
+    const { Query } = await import("node-appwrite");
 
-    for (const certId of certificateIds) {
-      try {
-        await storage.getFile(BUCKET_ID, certId);
-        results[certId] = true;
-      } catch (error) {
-        results[certId] = false;
-      }
-    }
+    // Fetch up to 5000 files in one request — covers all realistic employee counts
+    const response = await storage.listFiles(BUCKET_ID, [
+      Query.limit(5000),
+    ]);
 
-    return results;
+    // Build a set of file IDs that exist for O(1) lookup
+    const existingFileIds = new Set(response.files.map((f) => f.$id));
+
+    // Map each employeeId to whether their certificate file exists
+    return Object.fromEntries(
+      employeeIds.map((id) => [id, existingFileIds.has(id)])
+    );
   } catch (error) {
-    console.error("✗ Error checking certificates in bucket:", error);
-    return certificateIds.reduce((acc, id) => ({ ...acc, [id]: false }), {});
+    console.error("✗ Error bulk-checking certificates in bucket:", error);
+    // Graceful degradation: assume none exist rather than crashing
+    return Object.fromEntries(employeeIds.map((id) => [id, false]));
   }
 }
 

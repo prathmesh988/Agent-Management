@@ -73,8 +73,12 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
     let holidayDays = 0;
 
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    for (let i = 1; i <= 28; i++) {
-      const dayKey = `${i}${dayNames[i % 7]}`;
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+      // (i - 1) % 7 so that 1→Sun, 2→Mon, …7→Sat, 8→Sun — matches DB schema
+      const dayKey = `${i}${dayNames[(i - 1) % 7]}`;
       const status = getattendanceStatus(dayKey, updatedEmployee);
 
       switch (status) {
@@ -104,23 +108,27 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
 
   const attendanceDays = useMemo(() => {
     const days: AttendanceDay[] = [];
-    const daysInMonth = 28; // Employee data has 28 days
-
+    // Compute actual days in the currently-viewed month (28 / 29 / 30 / 31)
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
     for (let i = 1; i <= daysInMonth; i++) {
-      const dayKey = `${i}${dayNames[i % 7]}`;
+      // (i - 1) % 7 so that 1→Sun, 2→Mon, …7→Sat, 8→Sun — matches DB schema keys
+      const dayName = dayNames[(i - 1) % 7];
+      const dayKey = `${i}${dayName}`;
       const status = getattendanceStatus(dayKey);
       days.push({
         date: i,
-        day: dayNames[i % 7],
+        day: dayName,
         status,
         dayKey,
       });
     }
 
     return days;
-  }, [localEmployee]);
+  }, [localEmployee, currentDate]);
 
   const handleDayClick = (dayKey: string, currentStatus: AttendanceStatus) => {
     // Find next status in cycle
@@ -155,10 +163,17 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
     year: "numeric",
   });
 
-  // Group days by week
-  const weeksData: AttendanceDay[][] = [];
-  for (let i = 0; i < attendanceDays.length; i += 7) {
-    weeksData.push(attendanceDays.slice(i, i + 7));
+  // Build calendar grid with proper weekday offset
+  const startOffset = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
+  const paddedDays: (AttendanceDay | null)[] = [
+    ...Array<null>(startOffset).fill(null),
+    ...attendanceDays,
+  ];
+  const weeksData: (AttendanceDay | null)[][] = [];
+  for (let i = 0; i < paddedDays.length; i += 7) {
+    const week = paddedDays.slice(i, i + 7);
+    while (week.length < 7) week.push(null);
+    weeksData.push(week);
   }
 
   return (
@@ -213,7 +228,10 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
           {/* Calendar days */}
           {weeksData.map((week, weekIndex) => (
             <div key={weekIndex} className="grid grid-cols-7 gap-2">
-              {week.map((day) => {
+              {week.map((day, cellIndex) => {
+                if (!day) {
+                  return <div key={`empty-${weekIndex}-${cellIndex}`} />;
+                }
                 const colors = STATUS_COLORS[day.status];
                 return (
                   <button

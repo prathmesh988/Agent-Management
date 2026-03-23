@@ -2,7 +2,9 @@
 
 import { Employee } from "@/lib/types";
 import { Card } from "@/components/ui/card";
-import { useMemo } from "react";
+import { Loader2 } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { getMonthlyAttendanceAction } from "@/app/(actions)/attendance";
 
 interface MonthlyAttendanceOverviewProps {
   employee: Employee;
@@ -27,13 +29,34 @@ const STATUS_COLORS: Record<AttendanceStatus, { bg: string; text: string; label:
   "-": { bg: "bg-gray-50", text: "text-gray-400", label: "No Data", border: "border-gray-200" },
 };
 
-export function MonthlyAttendanceOverview({ employee }: MonthlyAttendanceOverviewProps) {
-  // Always show current month - no navigation
-  const currentDate = new Date();
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  // Parse attendance data from employee record
-  const getAttendanceStatus = (dayKey: string): AttendanceStatus => {
-    const value = (employee as any)[dayKey];
+export function MonthlyAttendanceOverview({ employee }: MonthlyAttendanceOverviewProps) {
+  const currentDate = new Date();
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1; // 1-indexed
+
+  // Per-month attendance data loaded from the monthly_attendance collection
+  const [monthData, setMonthData] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await getMonthlyAttendanceAction(employee.employeeId, year, month);
+      setMonthData(result.success ? result.data : {});
+    } catch {
+      setMonthData({});
+    } finally {
+      setIsLoading(false);
+    }
+  }, [employee.employeeId, year, month]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const parseStatus = (value: string | undefined): AttendanceStatus => {
     if (!value) return "-";
     if (value === "P") return "P";
     if (value === "A") return "A";
@@ -46,78 +69,54 @@ export function MonthlyAttendanceOverview({ employee }: MonthlyAttendanceOvervie
 
   const attendanceDays = useMemo(() => {
     const days: AttendanceDay[] = [];
-    const daysInMonth = 28; // Employee data has 28 days
-
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
+    const daysInMonth = new Date(year, month, 0).getDate(); // month is 1-based here
     for (let i = 1; i <= daysInMonth; i++) {
-      const dayKey = `${i}${dayNames[(i - 1) % 7]}`;
-      const status = getAttendanceStatus(dayKey);
-      days.push({
-        date: i,
-        day: dayNames[(i - 1) % 7],
-        status,
-        dayKey,
-      });
+      const dayName = DAY_NAMES[(i - 1) % 7];
+      const dayKey = `${i}${dayName}`;
+      days.push({ date: i, day: dayName, status: parseStatus(monthData[dayKey]), dayKey });
     }
-
     return days;
-  }, [employee]);
+  }, [monthData, year, month]);
 
-  const monthYear = currentDate.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
-
-  // Group days by week (4 weeks for 28 days)
-  const weeksData: AttendanceDay[][] = [];
-  for (let i = 0; i < attendanceDays.length; i += 7) {
-    weeksData.push(attendanceDays.slice(i, i + 7));
-  }
-
-  // Count statuses
   const statusCounts = useMemo(() => {
-    const counts: Record<AttendanceStatus, number> = {
-      P: 0,
-      A: 0,
-      L: 0,
-      H: 0,
-      WO: 0,
-      HO: 0,
-      "-": 0,
-    };
-
-    attendanceDays.forEach((day) => {
-      counts[day.status]++;
-    });
-
+    const counts: Record<AttendanceStatus, number> = { P: 0, A: 0, L: 0, H: 0, WO: 0, HO: 0, "-": 0 };
+    attendanceDays.forEach((d) => counts[d.status]++);
     return counts;
   }, [attendanceDays]);
 
+  // Calendar grid with weekday offset
+  const startOffset = new Date(year, month - 1, 1).getDay();
+  const paddedDays: (AttendanceDay | null)[] = [
+    ...Array<null>(startOffset).fill(null),
+    ...attendanceDays,
+  ];
+  const weeksData: (AttendanceDay | null)[][] = [];
+  for (let i = 0; i < paddedDays.length; i += 7) {
+    const week = paddedDays.slice(i, i + 7);
+    while (week.length < 7) week.push(null);
+    weeksData.push(week);
+  }
+
+  const monthYear = currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
   return (
-    <Card className="p-6 border border-slate-200 shadow-sm rounded-lg bg-white">
+    <Card className="p-6 border border-slate-200 shadow-sm rounded-lg">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900">Monthly Attendance Overview - {monthYear}</h3>
+          {isLoading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
         </div>
 
         {/* Legend */}
         <div className="flex flex-wrap gap-4 pb-4 border-b border-slate-200">
-          {[
-            { status: "P" as AttendanceStatus, count: statusCounts.P },
-            { status: "A" as AttendanceStatus, count: statusCounts.A },
-            { status: "L" as AttendanceStatus, count: statusCounts.L },
-            { status: "H" as AttendanceStatus, count: statusCounts.H },
-            { status: "WO" as AttendanceStatus, count: statusCounts.WO },
-            { status: "HO" as AttendanceStatus, count: statusCounts.HO },
-          ].map(({ status, count }) => {
+          {(["P", "A", "L", "H", "WO", "HO"] as AttendanceStatus[]).map((status) => {
             const colors = STATUS_COLORS[status];
             return (
               <div key={status} className="flex items-center gap-2">
                 <div className={`w-4 h-4 rounded ${colors.bg} border ${colors.border}`} />
                 <span className="text-sm text-slate-700">
-                  <span className="font-semibold">{status}</span> ({count})
+                  <span className="font-semibold">{status}</span> ({statusCounts[status]})
                 </span>
               </div>
             );
@@ -125,41 +124,44 @@ export function MonthlyAttendanceOverview({ employee }: MonthlyAttendanceOvervie
         </div>
 
         {/* Calendar Grid */}
-        <div className="space-y-4">
-          {/* Day headers */}
-          <div className="grid grid-cols-7 gap-2 mb-2">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div
-                key={day}
-                className="p-2 text-center text-xs font-bold text-slate-700 uppercase bg-slate-50 rounded"
-              >
-                {day}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-slate-500">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            Loading attendance...
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-7 gap-2 mb-2">
+              {DAY_NAMES.map((day) => (
+                <div key={day} className="p-2 text-center text-xs font-bold text-slate-700 uppercase bg-slate-50 rounded">
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            {weeksData.map((week, weekIndex) => (
+              <div key={weekIndex} className="grid grid-cols-7 gap-2">
+                {week.map((day, cellIndex) => {
+                  if (!day) return <div key={`empty-${weekIndex}-${cellIndex}`} />;
+                  const colors = STATUS_COLORS[day.status];
+                  return (
+                    <div
+                      key={`${day.date}-${day.day}`}
+                      className={`p-4 rounded-lg text-center border-2 transition-all ${colors.bg} ${colors.border}`}
+                      title={colors.label}
+                    >
+                      <div className="text-lg font-bold text-slate-900">{day.date}</div>
+                      <div className={`text-sm font-bold mt-2 ${colors.text}`}>
+                        {day.status === "-" ? "—" : day.status}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">{colors.label}</div>
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>
-
-          {/* Calendar days */}
-          {weeksData.map((week, weekIndex) => (
-            <div key={weekIndex} className="grid grid-cols-7 gap-2">
-              {week.map((day) => {
-                const colors = STATUS_COLORS[day.status];
-                return (
-                  <div
-                    key={`${day.date}-${day.day}`}
-                    className={`p-4 rounded-lg text-center border-2 transition-all ${colors.bg} ${colors.border}`}
-                    title={`${colors.label}`}
-                  >
-                    <div className="text-lg font-bold text-slate-900">{day.date}</div>
-                    <div className={`text-sm font-bold mt-2 ${colors.text}`}>
-                      {day.status === "-" ? "—" : day.status}
-                    </div>
-                    <div className="text-xs text-slate-500 mt-1">{colors.label}</div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+        )}
 
         {/* Info Box */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">

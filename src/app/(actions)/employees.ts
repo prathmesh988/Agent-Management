@@ -90,6 +90,9 @@ function transformEmployeeRecord(record: EmployeeRecord): Employee {
     "26Thu": record["26Thu"],
     "27Fri": record["27Fri"],
     "28Sat": record["28Sat"],
+    "29Sun": record["29Sun"],
+    "30Mon": record["30Mon"],
+    "31Tue": record["31Tue"],
   };
 }
 
@@ -282,6 +285,9 @@ export async function updateEmployeeAction(
       "26Thu": updates['26Thu'],
       "27Fri": updates['27Fri'],
       "28Sat": updates['28Sat'],
+      "29Sun": updates['29Sun'],
+      "30Mon": updates['30Mon'],
+      "31Tue": updates['31Tue'],
       
       // Only include dateOfJoining if it's a valid positive number
       ...(updates.dateOfJoining && updates.dateOfJoining > 0 ? { dateOfJoining: updates.dateOfJoining } : {}),

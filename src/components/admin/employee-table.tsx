@@ -132,7 +132,17 @@ export function EmployeeTable({
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [searchResults, setSearchResults] = useState<Employee[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  // 0 = server/SSR (unknown width). Populated after mount to avoid hydration mismatch.
+  const [windowWidth, setWindowWidth] = useState(0);
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Update windowWidth safely after mount only
+  useEffect(() => {
+    const updateWidth = () => setWindowWidth(window.innerWidth);
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
 
   // Debounced server-side search
   useEffect(() => {
@@ -404,8 +414,8 @@ export function EmployeeTable({
             <ChevronLeft className="h-4 w-4" />
           </Button>
           {(() => {
-            // Mobile: extremely simplified pagination to avoid squishing
-            const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+            // Mobile: simplified pagination. Use windowWidth state (safe for SSR)
+            const isMobile = windowWidth > 0 && windowWidth < 640;
             
             const pages: (number | "ellipsis")[] = [];
             const maxVisiblePages = isMobile ? 3 : 5;

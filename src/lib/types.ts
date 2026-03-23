@@ -44,6 +44,9 @@ export interface Employee {
   "26Thu"?: string;
   "27Fri"?: string;
   "28Sat"?: string;
+  "29Sun"?: string;
+  "30Mon"?: string;
+  "31Tue"?: string;
   presentDays?: number;
   absentDays?: number;
   leaveDays?: number;

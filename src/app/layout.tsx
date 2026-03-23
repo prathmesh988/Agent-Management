@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 import { AuthProvider } from "@/hooks/useAuth";
 import { EmployeeProvider } from "@/hooks/useEmployees";
 import { CertificateProvider } from "@/hooks/useCertificates";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,13 +29,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${poppins.variable} antialiased`} suppressHydrationWarning>
-        <AuthProvider>
-          <EmployeeProvider>
-            <CertificateProvider>{children}</CertificateProvider>
-          </EmployeeProvider>
-        </AuthProvider>
+        <Providers>
+          <AuthProvider>
+            <EmployeeProvider>
+              <CertificateProvider>{children}</CertificateProvider>
+            </EmployeeProvider>
+          </AuthProvider>
+        </Providers>
       </body>
     </html>
   );

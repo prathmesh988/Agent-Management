@@ -5,7 +5,7 @@
  */
 
 import nodemailer from 'nodemailer';
-import { getCertificateDownloadUrl, checkIfCertificateExists } from '@/lib/appwrite-storage';
+import { getCertificateDownloadUrl, checkAllCertificatesInBucket } from '@/lib/appwrite-storage';
 
 // Create transporter
 const transporter = nodemailer.createTransport({
@@ -146,19 +146,15 @@ export async function sendCertificatesToMultiple(
 }
 
 /**
- * Server action to check which certificates exist in bucket
- * Now checks by employeeId instead of certificateId
+ * Server action to check which certificates exist in bucket.
+ * Uses a single listFiles() API call instead of N sequential getFile() calls.
  */
 export async function checkCertificatesInBucketAction(
     employeeIds: string[]
 ) {
     try {
-        const status: Record<string, boolean> = {};
-        
-        for (const employeeId of employeeIds) {
-            status[employeeId] = await checkIfCertificateExists(employeeId);
-        }
-        
+        // Single API call instead of one-per-employee
+        const status = await checkAllCertificatesInBucket(employeeIds);
         return {
             success: true,
             status,
@@ -169,7 +165,7 @@ export async function checkCertificatesInBucketAction(
         return {
             success: false,
             error: errorMessage,
-            status: {},
+            status: {} as Record<string, boolean>,
         };
     }
 }

@@ -2,11 +2,11 @@
 
 import { Employee } from "@/lib/types";
 import { Card } from "@/components/ui/card";
-import { Save, AlertCircle } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { Save, AlertCircle, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { updateEmployeeAction } from "@/app/(actions)/employees";
+import { getMonthlyAttendanceAction, saveMonthlyAttendanceAction } from "@/app/(actions)/attendance";
 
 interface AttendanceCalendarProps {
   employee: Employee;
@@ -32,26 +32,55 @@ const STATUS_COLORS: Record<AttendanceStatus, { bg: string; text: string; label:
   "-": { bg: "bg-gray-50", text: "text-gray-400", label: "No Data", border: "border-gray-300" },
 };
 
-// Cycle through statuses when clicked
 const STATUS_CYCLE: AttendanceStatus[] = ["P", "A", "L", "H", "WO", "HO", "-"];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function AttendanceCalendarEditable({ employee, onEmployeeUpdate }: AttendanceCalendarProps) {
-  // Always use current month - no navigation
-  const currentDate = new Date();
-  const [localEmployee, setLocalEmployee] = useState<Employee>(employee);
-  const [editedFields, setEditedFields] = useState<Set<string>>(new Set());
+  // Month navigation
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Per-month attendance data (dayKey → status string), loaded from DB
+  const [monthData, setMonthData] = useState<Record<string, string>>({});
+  // Unsaved edits on top of monthData
+  const [editedFields, setEditedFields] = useState<Record<string, string>>({});
+
+  const [isLoadingMonth, setIsLoadingMonth] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Sync local state with prop changes
-  useEffect(() => {
-    setLocalEmployee(employee);
-  }, [employee]);
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1; // 1-indexed
 
-  // Parse attendance data from employee record
-  const getAttendanceStatus = (dayKey: string, emp: Employee = localEmployee): AttendanceStatus => {
-    const value = (emp as any)[dayKey];
+  // ── Load attendance for the selected month ───────────────────────────────
+  const loadMonthData = useCallback(async () => {
+    setIsLoadingMonth(true);
+    setEditedFields({});
+    setSaveError(null);
+    setSaveSuccess(false);
+    try {
+      const result = await getMonthlyAttendanceAction(employee.employeeId, year, month);
+      if (result.success) {
+        setMonthData(result.data);
+      } else {
+        setMonthData({});
+      }
+    } catch (e) {
+      console.error("Failed to load month data:", e);
+      setMonthData({});
+    } finally {
+      setIsLoadingMonth(false);
+    }
+  }, [employee.employeeId, year, month]);
+
+  useEffect(() => {
+    loadMonthData();
+  }, [loadMonthData]);
+
+  // ── Merge DB data + unsaved edits for display ────────────────────────────
+  const getAttendanceStatus = (dayKey: string): AttendanceStatus => {
+    const merged = { ...monthData, ...editedFields };
+    const value = merged[dayKey];
     if (!value) return "-";
     if (value === "P") return "P";
     if (value === "A") return "A";
@@ -62,126 +91,117 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate }: Atten
     return "-";
   };
 
+  // ── Build calendar days ──────────────────────────────────────────────────
   const attendanceDays = useMemo(() => {
     const days: AttendanceDay[] = [];
-    const daysInMonth = 28; // Employee data has 28 days
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const daysInMonth = new Date(year, month, 0).getDate(); // month is 1-indexed here, so month = next month's 0th day
 
     for (let i = 1; i <= daysInMonth; i++) {
-      const dayKey = `${i}${dayNames[(i - 1) % 7]}`;
-      const status = getAttendanceStatus(dayKey);
-      days.push({
-        date: i,
-        day: dayNames[(i - 1) % 7],
-        status,
-        dayKey,
-      });
+      const dayName = DAY_NAMES[(i - 1) % 7];
+      const dayKey = `${i}${dayName}`;
+      days.push({ date: i, day: dayName, status: getAttendanceStatus(dayKey), dayKey });
     }
-
     return days;
-  }, [localEmployee]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthData, editedFields, year, month]);
 
+  // Status counts
+  const statusCounts = useMemo(() => {
+    const counts: Record<AttendanceStatus, number> = { P: 0, A: 0, L: 0, H: 0, WO: 0, HO: 0, "-": 0 };
+    attendanceDays.forEach((d) => counts[d.status]++);
+    return counts;
+  }, [attendanceDays]);
+
+  // ── Calendar grid with weekday offset ───────────────────────────────────
+  const startOffset = new Date(year, month - 1, 1).getDay();
+  const paddedDays: (AttendanceDay | null)[] = [
+    ...Array<null>(startOffset).fill(null),
+    ...attendanceDays,
+  ];
+  const weeksData: (AttendanceDay | null)[][] = [];
+  for (let i = 0; i < paddedDays.length; i += 7) {
+    const week = paddedDays.slice(i, i + 7);
+    while (week.length < 7) week.push(null);
+    weeksData.push(week);
+  }
+
+  // ── Handle day click ─────────────────────────────────────────────────────
   const handleDayClick = (dayKey: string, currentStatus: AttendanceStatus) => {
-    // Find next status in cycle
-    const currentIndex = STATUS_CYCLE.indexOf(currentStatus);
-    const nextIndex = (currentIndex + 1) % STATUS_CYCLE.length;
-    const nextStatus = STATUS_CYCLE[nextIndex];
-
-    // Update local employee state
-    const updatedEmployee = { ...localEmployee };
-    (updatedEmployee as any)[dayKey] = nextStatus;
-    setLocalEmployee(updatedEmployee);
-    setEditedFields((prev) => new Set([...prev, dayKey]));
+    const nextStatus = STATUS_CYCLE[(STATUS_CYCLE.indexOf(currentStatus) + 1) % STATUS_CYCLE.length];
+    setEditedFields((prev) => ({ ...prev, [dayKey]: nextStatus === "-" ? "" : nextStatus }));
     setSaveSuccess(false);
   };
 
+  // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (editedFields.size === 0) return;
-
+    if (Object.keys(editedFields).length === 0) return;
     setIsSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
-
     try {
-      const updates: Partial<Employee> = {};
-      editedFields.forEach((field) => {
-        updates[field as keyof Employee] = (localEmployee as any)[field];
-      });
-
-      console.log("📦 Saving attendance updates:", updates);
-      
-      await updateEmployeeAction(employee.id, updates as Employee);
-      
-      setEditedFields(new Set());
-      setSaveSuccess(true);
-      
-      // Update parent component
-      if (onEmployeeUpdate) {
-        onEmployeeUpdate(localEmployee);
+      // Build the full merged dataset to save
+      const fullData: Record<string, string> = {};
+      const merged = { ...monthData, ...editedFields };
+      for (const [key, val] of Object.entries(merged)) {
+        if (val && val !== "-") fullData[key] = val;
       }
-      
-      console.log("✅ Attendance updates saved successfully");
-      
-      // Auto-hide success message after 2 seconds
-      setTimeout(() => setSaveSuccess(false), 2000);
-    } catch (error) {
-      console.error("❌ Failed to save updates:", error);
-      setSaveError(
-        error instanceof Error ? error.message : "Failed to save updates"
+
+      const result = await saveMonthlyAttendanceAction(
+        employee.employeeId, year, month, fullData
       );
+
+      if (result.success) {
+        setMonthData(fullData);
+        setEditedFields({});
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2000);
+      } else {
+        setSaveError(result.error || "Save failed");
+      }
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Save failed");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const monthYear = currentDate.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
-
-  // Group days by week
-  const weeksData: AttendanceDay[][] = [];
-  for (let i = 0; i < attendanceDays.length; i += 7) {
-    weeksData.push(attendanceDays.slice(i, i + 7));
-  }
-
-  // Count statuses
-  const statusCounts = useMemo(() => {
-    const counts: Record<AttendanceStatus, number> = {
-      P: 0,
-      A: 0,
-      L: 0,
-      H: 0,
-      WO: 0,
-      HO: 0,
-      "-": 0,
-    };
-
-    attendanceDays.forEach((day) => {
-      counts[day.status]++;
-    });
-
-    return counts;
-  }, [attendanceDays]);
+  const monthYear = currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const editCount = Object.keys(editedFields).length;
 
   return (
-    <Card className="p-6 border border-slate-200 shadow-sm rounded-lg bg-white">
+    <Card className="p-6 border border-slate-200 shadow-sm rounded-lg">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900">Editable Attendance - {monthYear}</h3>
-          <p className="text-sm text-slate-600">Current Month Only</p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentDate(new Date(year, month - 2))}
+              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+              title="Previous month"
+            >
+              <ChevronLeft className="h-5 w-5 text-slate-600" />
+            </button>
+            <span className="text-sm font-semibold text-slate-600 min-w-[130px] text-center">
+              {monthYear}
+            </span>
+            <button
+              onClick={() => setCurrentDate(new Date(year, month))}
+              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+              title="Next month"
+            >
+              <ChevronRight className="h-5 w-5 text-slate-600" />
+            </button>
+          </div>
         </div>
 
-        {/* Error Alert */}
+        {/* Alerts */}
         {saveError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{saveError}</AlertDescription>
           </Alert>
         )}
-
-        {/* Success Alert */}
         {saveSuccess && (
           <Alert className="border-green-200 bg-green-50">
             <AlertDescription className="text-green-800">✅ Changes saved successfully!</AlertDescription>
@@ -190,20 +210,13 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate }: Atten
 
         {/* Legend */}
         <div className="flex flex-wrap gap-3 pb-4 border-b border-slate-200">
-          {[
-            { status: "P" as AttendanceStatus, count: statusCounts.P },
-            { status: "A" as AttendanceStatus, count: statusCounts.A },
-            { status: "L" as AttendanceStatus, count: statusCounts.L },
-            { status: "H" as AttendanceStatus, count: statusCounts.H },
-            { status: "WO" as AttendanceStatus, count: statusCounts.WO },
-            { status: "HO" as AttendanceStatus, count: statusCounts.HO },
-          ].map(({ status, count }) => {
+          {(["P", "A", "L", "H", "WO", "HO"] as AttendanceStatus[]).map((status) => {
             const colors = STATUS_COLORS[status];
             return (
               <div key={status} className="flex items-center gap-2">
                 <div className={`w-4 h-4 rounded ${colors.bg} border ${colors.border}`} />
                 <span className="text-sm text-slate-700">
-                  <span className="font-semibold">{status}</span> ({count})
+                  <span className="font-semibold">{status}</span> ({statusCounts[status]})
                 </span>
               </div>
             );
@@ -211,59 +224,64 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate }: Atten
         </div>
 
         {/* Calendar Grid */}
-        <div className="space-y-4">
-          {/* Day headers */}
-          <div className="grid grid-cols-7 gap-2">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div
-                key={day}
-                className="p-2 text-center text-xs font-bold text-slate-700 uppercase bg-slate-50 rounded"
-              >
-                {day}
+        {isLoadingMonth ? (
+          <div className="flex items-center justify-center py-16 text-slate-500">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            Loading attendance...
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Day headers */}
+            <div className="grid grid-cols-7 gap-2">
+              {DAY_NAMES.map((d) => (
+                <div key={d} className="p-2 text-center text-xs font-bold text-slate-700 uppercase bg-slate-50 rounded">
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar rows */}
+            {weeksData.map((week, weekIndex) => (
+              <div key={weekIndex} className="grid grid-cols-7 gap-2">
+                {week.map((day, cellIndex) => {
+                  if (!day) return <div key={`empty-${weekIndex}-${cellIndex}`} />;
+                  const colors = STATUS_COLORS[day.status];
+                  const isEdited = day.dayKey in editedFields;
+                  return (
+                    <button
+                      key={`${day.date}-${day.day}`}
+                      onClick={() => handleDayClick(day.dayKey, day.status)}
+                      className={`p-4 rounded-lg text-center border-2 transition-all hover:shadow-md transform hover:-translate-y-0.5 active:scale-95 cursor-pointer ${colors.bg} ${colors.border} ${isEdited ? "ring-2 ring-blue-500" : ""}`}
+                      title={`Click to cycle - Currently: ${colors.label}`}
+                    >
+                      <div className="text-lg font-bold text-slate-900">{day.date}</div>
+                      <div className={`text-sm font-bold mt-2 ${colors.text}`}>
+                        {day.status === "-" ? "—" : day.status}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ))}
           </div>
+        )}
 
-          {/* Calendar days */}
-          {weeksData.map((week, weekIndex) => (
-            <div key={weekIndex} className="grid grid-cols-7 gap-2">
-              {week.map((day) => {
-                const colors = STATUS_COLORS[day.status];
-                const isEdited = editedFields.has(day.dayKey);
-                
-                return (
-                  <button
-                    key={`${day.date}-${day.day}`}
-                    onClick={() => handleDayClick(day.dayKey, day.status)}
-                    className={`p-4 rounded-lg text-center border-2 transition-all hover:shadow-md transform hover:-translate-y-0.5 active:scale-95 cursor-pointer ${
-                      colors.bg
-                    } ${colors.border} ${isEdited ? "ring-2 ring-blue-500" : ""}`}
-                    title={`Click to cycle - Currently: ${colors.label}`}
-                  >
-                    <div className="text-lg font-bold text-slate-900">{day.date}</div>
-                    <div className={`text-sm font-bold mt-2 ${colors.text}`}>
-                      {day.status === "-" ? "—" : day.status}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        {/* Save Button and Info */}
+        {/* Footer */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-200">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 flex-1">
             <p className="font-semibold mb-1">💡 How to use:</p>
-            <p>Click on any day to cycle through statuses: P → A → L → H → WO → HO → (empty)</p>
+            <p>Click any day to cycle: P → A → L → H → WO → HO → (empty)</p>
           </div>
           <Button
             onClick={handleSave}
-            disabled={editedFields.size === 0 || isSaving}
+            disabled={editCount === 0 || isSaving || isLoadingMonth}
             className="ml-4 whitespace-nowrap"
           >
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? "Saving..." : `Save Changes (${editedFields.size})`}
+            {isSaving ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
+            ) : (
+              <><Save className="h-4 w-4 mr-2" />Save Changes ({editCount})</>
+            )}
           </Button>
         </div>
       </div>
