@@ -4,23 +4,39 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Upload, CheckCircle, AlertCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
 
 interface ExcelUploadComponentProps {
   onUpload?: (file: File) => void;
   isLoading?: boolean;
 }
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function getDefaultMonthYear() {
+  const now = new Date();
+  return { month: now.getMonth() + 1, year: now.getFullYear() };
+}
+
 export function ExcelUploadComponent({
   onUpload,
   isLoading = false,
 }: ExcelUploadComponentProps) {
+  const defaults = getDefaultMonthYear();
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState<
-    "idle" | "success" | "error"
-  >("idle");
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [successSummary, setSuccessSummary] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<number>(defaults.month);
+  const [selectedYear, setSelectedYear] = useState<number>(defaults.year);
+
+  // Year range: 5 years back to 2 years ahead
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: 8 }, (_, i) => currentYear - 5 + i);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -41,12 +57,13 @@ export function ExcelUploadComponent({
 
     if (!validTypes.includes(file.type)) {
       setUploadStatus("error");
+      setErrorMessage("Invalid file type. Please upload an Excel (.xlsx, .xls) or CSV file.");
       return false;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      // 5MB limit
       setUploadStatus("error");
+      setErrorMessage("File size exceeds the 5MB limit.");
       return false;
     }
 
@@ -83,24 +100,23 @@ export function ExcelUploadComponent({
     if (!file) return;
 
     setUploadProgress(0);
+    setErrorMessage("");
+    setSuccessSummary("");
 
     try {
-      // Create FormData for file upload
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("month", String(selectedMonth));
+      formData.append("year", String(selectedYear));
 
-      // Upload progress simulation
+      // Simulate progress
       const interval = setInterval(() => {
         setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return 90;
-          }
+          if (prev >= 90) { clearInterval(interval); return 90; }
           return prev + Math.random() * 30;
         });
       }, 500);
 
-      // Call the API endpoint
       const response = await fetch("/api/upload-employees", {
         method: "POST",
         body: formData,
@@ -108,36 +124,82 @@ export function ExcelUploadComponent({
 
       clearInterval(interval);
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Upload failed:", errorData);
+        console.error("Upload failed:", data);
         setUploadStatus("error");
+        setErrorMessage(data.error || "Upload failed. Please try again.");
         setUploadProgress(0);
         return;
       }
 
-      const result = await response.json();
-      console.log("Upload successful:", result);
-
+      console.log("Upload successful:", data);
       setUploadProgress(100);
       setUploadStatus("success");
+
+      const { summary } = data;
+      if (summary) {
+        setSuccessSummary(
+          `${summary.inserted} inserted, ${summary.skipped} skipped` +
+          (summary.attendanceUpdated != null ? `, ${summary.attendanceUpdated} attendance records updated` : "") +
+          (summary.errors?.length ? `, ${summary.errors.length} errors` : "")
+        );
+      }
+
       onUpload?.(file);
 
-      // Reset after 2 seconds
       setTimeout(() => {
         setFile(null);
         setUploadProgress(0);
         setUploadStatus("idle");
-      }, 2000);
+        setSuccessSummary("");
+      }, 4000);
     } catch (error) {
       console.error("Upload error:", error);
       setUploadStatus("error");
+      setErrorMessage("A network error occurred. Please try again.");
       setUploadProgress(0);
     }
   };
 
+  const canUpload = !!file && !isLoading && uploadStatus !== "success";
+
   return (
     <Card className="p-8 bg-gradient-to-b from-slate-50 to-white">
+      {/* Month / Year Selector */}
+      <div className="mb-8">
+        <p className="text-sm font-semibold text-slate-700 mb-3">
+          Select the payroll month this sheet covers
+        </p>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="text-xs text-slate-500 mb-1 block">Month</label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {MONTHS.map((name, i) => (
+                <option key={i + 1} value={i + 1}>{name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-slate-500 mb-1 block">Year</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Drag and Drop Area */}
       <div
         onDragEnter={handleDrag}
@@ -193,12 +255,11 @@ export function ExcelUploadComponent({
         <div className="mt-8 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-emerald-900">
-                File selected
-              </p>
+              <p className="text-sm font-medium text-emerald-900">File selected</p>
               <p className="text-sm text-emerald-700 mt-1">{file.name}</p>
               <p className="text-xs text-emerald-600">
-                Size: {(file.size / 1024).toFixed(2)} KB
+                Size: {(file.size / 1024).toFixed(2)} KB &nbsp;|&nbsp;
+                Month: {MONTHS[selectedMonth - 1]} {selectedYear}
               </p>
             </div>
             <CheckCircle className="h-6 w-6 text-emerald-600" />
@@ -210,12 +271,8 @@ export function ExcelUploadComponent({
       {uploadProgress > 0 && uploadProgress < 100 && (
         <div className="mt-8">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-slate-900">
-              Uploading in progress...
-            </p>
-            <p className="text-sm font-medium text-blue-600">
-              {Math.round(uploadProgress)}%
-            </p>
+            <p className="text-sm font-medium text-slate-900">Uploading in progress...</p>
+            <p className="text-sm font-medium text-blue-600">{Math.round(uploadProgress)}%</p>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
             <div
@@ -231,11 +288,10 @@ export function ExcelUploadComponent({
         <div className="mt-8 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-4">
           <CheckCircle className="h-6 w-6 text-emerald-600 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-emerald-900">
-              Upload successful! 🎉
-            </p>
+            <p className="text-sm font-semibold text-emerald-900">Upload successful! 🎉</p>
             <p className="text-sm text-emerald-700 mt-1">
-              {file?.name} has been imported successfully.
+              {file?.name} has been imported.
+              {successSummary && <> &mdash; {successSummary}.</>}
             </p>
           </div>
         </div>
@@ -245,9 +301,9 @@ export function ExcelUploadComponent({
         <div className="mt-8 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-4">
           <AlertCircle className="h-6 w-6 text-rose-600 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-rose-900">Invalid file</p>
+            <p className="text-sm font-semibold text-rose-900">Upload failed</p>
             <p className="text-sm text-rose-700 mt-1">
-              Please check file format and size. Maximum file size is 5MB
+              {errorMessage || "Please check file format and size. Maximum file size is 5MB."}
             </p>
           </div>
         </div>
@@ -257,10 +313,12 @@ export function ExcelUploadComponent({
       <div className="mt-8">
         <Button
           onClick={handleUpload}
-          disabled={!file || isLoading || uploadStatus === "success"}
+          disabled={!canUpload}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
-          {isLoading || uploadProgress > 0 ? "Uploading..." : "Upload File"}
+          {isLoading || (uploadProgress > 0 && uploadProgress < 100)
+            ? "Uploading..."
+            : `Upload File — ${MONTHS[selectedMonth - 1]} ${selectedYear}`}
         </Button>
       </div>
     </Card>
