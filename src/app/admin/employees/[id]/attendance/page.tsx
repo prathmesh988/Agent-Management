@@ -11,16 +11,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ArrowLeft, Download, Save, AlertCircle } from "lucide-react";
 import { getEmployee } from "@/app/(actions)/employees";
 import { updateEmployeeAction } from "@/app/(actions)/employees";
-import { AttendanceCalendar, type AttendanceStatus, type AttendanceMetrics } from "@/components/admin/attendance-calendar";
+import { MonthlyAttendanceOverview } from "@/components/admin/monthly-attendance-overview";
+import { AttendanceCalendarEditable } from "@/components/admin/attendance-calendar-editable";
 import { AttendanceAnalytics } from "@/components/admin/attendance-analytics";
 
 export const dynamic = "force-dynamic";
-
-const ATTENDANCE_DAYS = Array.from({ length: 28 }, (_, i) => ({
-  key: `${i + 1}${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][(i % 7)]}`,
-  label: `${i + 1}`,
-  day: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][i % 7],
-}));
 
 const ATTENDANCE_SUMMARY_FIELDS = [
   { key: "presentDays", label: "Present Days", type: "number", color: "emerald" },
@@ -80,9 +75,6 @@ export default function AttendanceOverviewPage({
     } else if (key.endsWith("Days") || key.match(/^(cl|overtime|totalPresent)$/)) {
       // For summary fields (presentDays, absentDays, etc.)
       (newEmployee as any)[key] = value !== "" ? Number(value) || 0 : undefined;
-    } else {
-      // For daily attendance fields (single character)
-      (newEmployee as any)[key] = value;
     }
 
     setCurrentEmployee(newEmployee);
@@ -114,39 +106,6 @@ export default function AttendanceOverviewPage({
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleAttendanceChange = (dayKey: string, status: AttendanceStatus, metrics: AttendanceMetrics) => {
-    if (!currentEmployee) return;
-
-    const updatedEmployee = { ...currentEmployee };
-    
-    // Update the daily attendance field
-    (updatedEmployee as any)[dayKey] = status;
-    
-    // Update the computed metrics
-    updatedEmployee.presentDays = metrics.presentDays;
-    updatedEmployee.absentDays = metrics.absentDays;
-    updatedEmployee.leaveDays = metrics.leaveDays;
-    updatedEmployee.halfDays = metrics.halfDays;
-    updatedEmployee.weekOffDays = metrics.weekOffDays;
-    updatedEmployee.holidayDays = metrics.holidayDays;
-
-    setCurrentEmployee(updatedEmployee);
-    
-    // Mark all affected fields as edited
-    setEditedFields((prev) => new Set([
-      ...prev,
-      dayKey,
-      'presentDays',
-      'absentDays',
-      'leaveDays',
-      'halfDays',
-      'weekOffDays',
-      'holidayDays',
-    ]));
-
-    console.log("📝 Attendance updated:", dayKey, status, "Metrics:", metrics);
   };
 
   const handleDownloadReport = () => {
@@ -309,66 +268,29 @@ export default function AttendanceOverviewPage({
         })}
       </div>
 
-      {/* Daily Attendance Grid */}
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle>Daily Attendance</CardTitle>
-          <CardDescription>
-            Enter attendance for each day. Use: P=Present, A=Absent, L=Leave, H=Half Day, W=Week Off, S=Holiday
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-7 gap-2">
-            {ATTENDANCE_DAYS.map(({ key, label, day }) => {
-              const currentValue = (currentEmployee as any)?.[key] ?? "";
-              const isEdited = editedFields.has(key);
+      {/* Monthly Attendance Overview */}
+      {currentEmployee && (
+        <div>
+          <MonthlyAttendanceOverview employee={currentEmployee} />
+        </div>
+      )}
 
-              const attendanceColors: Record<string, string> = {
-                P: "bg-emerald-100 border-emerald-500",
-                A: "bg-red-100 border-red-500",
-                L: "bg-blue-100 border-blue-500",
-                H: "bg-amber-100 border-amber-500",
-                W: "bg-slate-100 border-slate-500",
-                S: "bg-purple-100 border-purple-500",
-              };
-
-              return (
-                <div key={key} className="flex flex-col items-center gap-2">
-                  <div className="text-xs font-semibold text-slate-600">{label}</div>
-                  <div className="text-xs text-slate-500 mb-1">{day}</div>
-                  <Input
-                    type="text"
-                    value={currentValue}
-                    onChange={(e) => handleFieldChange(key, e.target.value.toUpperCase())}
-                    maxLength={1}
-                    className={`h-10 w-10 text-center font-bold uppercase ${
-                      isEdited
-                        ? "border-blue-500 bg-blue-50"
-                        : attendanceColors[currentValue] || "border-slate-300"
-                    }`}
-                    placeholder="-"
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Editable Attendance Calendar */}
+      {currentEmployee && (
+        <div>
+          <AttendanceCalendarEditable 
+            employee={currentEmployee}
+            onEmployeeUpdate={(updatedEmployee) => {
+              setCurrentEmployee(updatedEmployee);
+            }}
+          />
+        </div>
+      )}
 
       {/* Analytics Section */}
       {currentEmployee && (
         <div>
           <AttendanceAnalytics employee={currentEmployee} />
-        </div>
-      )}
-
-      {/* Calendar Section */}
-      {currentEmployee && (
-        <div>
-          <AttendanceCalendar 
-            employee={currentEmployee} 
-            onAttendanceChange={handleAttendanceChange}
-          />
         </div>
       )}
     </div>
