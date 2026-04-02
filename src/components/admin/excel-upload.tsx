@@ -11,7 +11,7 @@ interface ExcelUploadComponentProps {
 }
 
 const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
+  "All Months", "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
 
@@ -206,11 +206,10 @@ export function ExcelUploadComponent({
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-2xl p-16 text-center transition-all duration-300 cursor-pointer ${
-          dragActive
+        className={`relative border-2 border-dashed rounded-2xl p-16 text-center transition-all duration-300 cursor-pointer ${dragActive
             ? "border-blue-500 bg-blue-50 shadow-lg scale-105"
             : "border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50 hover:shadow-md"
-        }`}
+          }`}
       >
         <div className="relative inline-block mb-6">
           <div className="absolute inset-0 bg-blue-100 rounded-full opacity-20 blur-xl"></div>
