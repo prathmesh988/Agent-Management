@@ -166,7 +166,7 @@ export function ExcelUploadComponent({
   const canUpload = !!file && !isLoading && uploadStatus !== "success";
 
   return (
-    <Card className="p-8 bg-gradient-to-b from-slate-50 to-white">
+    <Card className="p-8 bg-gradient-to-b bg-white dark:bg-black">
       {/* Month / Year Selector */}
       <div className="mb-8">
         <p className="text-sm font-semibold text-slate-700 mb-3">

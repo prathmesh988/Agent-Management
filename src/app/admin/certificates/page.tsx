@@ -607,7 +607,7 @@ export default function CertificatesPage() {
 
       {/* Certificates Table Card */}
       <Card className="flex flex-col flex-1 min-h-0 border-0 shadow-sm sm:border sm:shadow">
-        <div className="p-4 sm:p-6 border-b border-slate-200 shrink-0 bg-slate-50/50">
+        <div className="p-4 sm:p-6 border-b bg-white dark:bg-black">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
               <h2 className="text-lg font-600 text-slate-900">
