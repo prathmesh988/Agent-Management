@@ -246,9 +246,9 @@ export function EmployeeTable({
       </div>
 
       {/* Filters */}
-      <div className="p-4 border-b border-slate-200 shrink-0 bg-slate-50/50">
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end w-full">
-          <div className="flex-1 w-full min-w-0 space-y-1.5">
+      <div className="p-4 border-b border-slate-200 shrink-0 bg-white dark:bg-black">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end w-full ">
+          <div className="flex-1 w-full min-w-0 space-y-1.5 ">
             <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Search</label>
             <Input
               placeholder="Search by name, email, or ID..."
