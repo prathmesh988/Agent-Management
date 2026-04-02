@@ -49,10 +49,10 @@ export default function EmployeeDetailPage({
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Employee Details</h1>
+          <h1 className="text-3xl font-bold text-foreground">Employee Details</h1>
         </div>
         <div className="flex items-center justify-center h-96">
-          <p className="text-slate-600">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -62,14 +62,14 @@ export default function EmployeeDetailPage({
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Employee Details</h1>
+          <h1 className="text-3xl font-bold text-foreground">Employee Details</h1>
         </div>
         <div className="flex flex-col items-center justify-center h-96 gap-4">
-          <p className="text-red-600 font-medium">Employee not found</p>
-          <p className="text-slate-600 text-sm">ID: {resolvedParams.id}</p>
+          <p className="text-destructive font-medium">Employee not found</p>
+          <p className="text-muted-foreground text-sm">ID: {resolvedParams.id}</p>
           <button
             onClick={() => router.push("/admin/employees")}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             Back to Employees
           </button>
@@ -82,14 +82,14 @@ export default function EmployeeDetailPage({
     <div className="space-y-6 pb-12">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Employee Details</h1>
-          <p className="text-slate-600 mt-2">
+          <h1 className="text-3xl font-bold text-foreground">Employee Details</h1>
+          <p className="text-muted-foreground mt-2">
             {currentEmployee.name} • ID: {currentEmployee.employeeId}
           </p>
         </div>
         <button
           onClick={() => router.push("/admin/employees")}
-          className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+          className="px-4 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition-colors"
         >
           ← Back to Employees
         </button>

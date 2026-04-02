@@ -12,25 +12,25 @@ export default function ExcelUploadPage() {
       <ExcelUploadComponent onUpload={handleUpload} />
 
       {/* Requirements Info */}
-      <div className="border border-slate-200 rounded-lg p-6">
-        <h3 className="font-semibold text-slate-900 mb-4">
+      <div className="border border-border rounded-lg p-6">
+        <h3 className="font-semibold text-foreground mb-4">
           Requirements
         </h3>
         <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <h4 className="text-sm font-medium text-slate-700 mb-2">
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">
               Required Columns
             </h4>
-            <ul className="space-y-1 text-sm text-slate-600">
+            <ul className="space-y-1 text-sm text-muted-foreground">
               <li>• Name</li>
               <li>• Email</li>
               <li>• Department</li>
               <li>• Role</li>
             </ul>
-            <h4 className="font-medium text-slate-900 mb-3 mt-6">
+            <h4 className="font-medium text-foreground mb-3 mt-6">
               Optional Columns
             </h4>
-            <ul className="space-y-2 text-sm text-slate-600">
+            <ul className="space-y-2 text-sm text-muted-foreground">
               <li>• S.No. (Serial Number)</li>
               <li>• CTC (Annual Salary)</li>
               <li>• Atten Allow (Attendance Allowance)</li>
@@ -43,19 +43,19 @@ export default function ExcelUploadPage() {
             </ul>
           </div>
           <div>
-            <h4 className="text-sm font-medium text-slate-700 mb-2">
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">
               Specifications
             </h4>
-            <ul className="space-y-1 text-sm text-slate-600">
+            <ul className="space-y-1 text-sm text-muted-foreground">
               <li>• Formats: .xlsx, .xls, .csv</li>
               <li>• Max size: 5MB</li>
               <li>• Header row required</li>
             </ul>
 
-            <h4 className="font-medium text-slate-900 mb-3">
+            <h4 className="font-medium text-foreground mb-3">
               Data Types
             </h4>
-            <ul className="space-y-2 text-sm text-slate-700">
+            <ul className="space-y-2 text-sm text-muted-foreground">
               <li>• Text fields: Employee ID, Name, Designation, etc.</li>
               <li>• Number fields: Days, Salary, CTC, etc.</li>
               <li>• Date fields: DOJ (format: YYYY-MM-DD)</li>

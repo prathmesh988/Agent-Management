@@ -166,19 +166,19 @@ export function ExcelUploadComponent({
   const canUpload = !!file && !isLoading && uploadStatus !== "success";
 
   return (
-    <Card className="p-8 bg-gradient-to-b bg-white dark:bg-black">
+    <Card className="p-8 bg-background">
       {/* Month / Year Selector */}
       <div className="mb-8">
-        <p className="text-sm font-semibold text-slate-700 mb-3">
+        <p className="text-sm font-semibold text-foreground mb-3">
           Select the payroll month this sheet covers
         </p>
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="text-xs text-slate-500 mb-1 block">Month</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Month</label>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {MONTHS.map((name, i) => (
                 <option key={i + 1} value={i + 1}>{name}</option>
@@ -186,11 +186,11 @@ export function ExcelUploadComponent({
             </select>
           </div>
           <div className="flex-1">
-            <label className="text-xs text-slate-500 mb-1 block">Year</label>
+            <label className="text-xs text-muted-foreground mb-1 block">Year</label>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {yearOptions.map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -207,22 +207,22 @@ export function ExcelUploadComponent({
         onDragOver={handleDrag}
         onDrop={handleDrop}
         className={`relative border-2 border-dashed rounded-2xl p-16 text-center transition-all duration-300 cursor-pointer ${dragActive
-            ? "border-blue-500 bg-blue-50 shadow-lg scale-105"
-            : "border-slate-300 bg-white hover:border-blue-400 hover:bg-blue-50 hover:shadow-md"
+            ? "border-primary bg-primary/10 shadow-lg scale-105"
+            : "border-border bg-card hover:border-primary/60 hover:bg-primary/5 hover:shadow-md"
           }`}
       >
         <div className="relative inline-block mb-6">
-          <div className="absolute inset-0 bg-blue-100 rounded-full opacity-20 blur-xl"></div>
-          <Upload className="relative h-16 w-16 text-blue-600" />
+          <div className="absolute inset-0 bg-primary/20 rounded-full opacity-20 blur-xl"></div>
+          <Upload className="relative h-16 w-16 text-primary" />
         </div>
 
-        <h3 className="text-xl font-bold text-slate-900 mb-2">
+        <h3 className="text-xl font-bold text-foreground mb-2">
           Drag and drop your file here
         </h3>
-        <p className="text-sm text-slate-600 mb-1">
+        <p className="text-sm text-muted-foreground mb-1">
           or click the button below to select from your computer
         </p>
-        <p className="text-xs text-slate-500 mt-4">
+        <p className="text-xs text-muted-foreground/70 mt-4">
           Supported formats: CSV, Excel (.xlsx, .xls) • Max size: 5MB
         </p>
 
@@ -241,7 +241,7 @@ export function ExcelUploadComponent({
         <label htmlFor="file-input" className="flex-1">
           <Button
             type="button"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all duration-200 hover:shadow-lg hover:scale-105"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all duration-200 hover:shadow-lg hover:scale-105"
             onClick={() => document.getElementById("file-input")?.click()}
           >
             Select File from Computer
@@ -251,17 +251,17 @@ export function ExcelUploadComponent({
 
       {/* Selected File Info */}
       {file && (
-        <div className="mt-8 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+        <div className="mt-8 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-emerald-900">File selected</p>
-              <p className="text-sm text-emerald-700 mt-1">{file.name}</p>
-              <p className="text-xs text-emerald-600">
+              <p className="text-sm font-medium text-emerald-900 dark:text-emerald-200">File selected</p>
+              <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">{file.name}</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">
                 Size: {(file.size / 1024).toFixed(2)} KB &nbsp;|&nbsp;
                 Month: {MONTHS[selectedMonth - 1]} {selectedYear}
               </p>
             </div>
-            <CheckCircle className="h-6 w-6 text-emerald-600" />
+            <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           </div>
         </div>
       )}
@@ -270,12 +270,12 @@ export function ExcelUploadComponent({
       {uploadProgress > 0 && uploadProgress < 100 && (
         <div className="mt-8">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-slate-900">Uploading in progress...</p>
-            <p className="text-sm font-medium text-blue-600">{Math.round(uploadProgress)}%</p>
+            <p className="text-sm font-medium text-foreground">Uploading in progress...</p>
+            <p className="text-sm font-medium text-primary">{Math.round(uploadProgress)}%</p>
           </div>
-          <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+          <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-blue-600 to-emerald-600 h-3 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all duration-300"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>
@@ -284,11 +284,11 @@ export function ExcelUploadComponent({
 
       {/* Status Messages */}
       {uploadStatus === "success" && (
-        <div className="mt-8 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-4">
-          <CheckCircle className="h-6 w-6 text-emerald-600 flex-shrink-0" />
+        <div className="mt-8 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-4">
+          <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-emerald-900">Upload successful! 🎉</p>
-            <p className="text-sm text-emerald-700 mt-1">
+            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Upload successful! 🎉</p>
+            <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
               {file?.name} has been imported.
               {successSummary && <> &mdash; {successSummary}.</>}
             </p>
@@ -297,11 +297,11 @@ export function ExcelUploadComponent({
       )}
 
       {uploadStatus === "error" && (
-        <div className="mt-8 p-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-4">
-          <AlertCircle className="h-6 w-6 text-rose-600 flex-shrink-0" />
+        <div className="mt-8 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl flex items-center gap-4">
+          <AlertCircle className="h-6 w-6 text-rose-600 dark:text-rose-400 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-rose-900">Upload failed</p>
-            <p className="text-sm text-rose-700 mt-1">
+            <p className="text-sm font-semibold text-rose-900 dark:text-rose-200">Upload failed</p>
+            <p className="text-sm text-rose-700 dark:text-rose-300 mt-1">
               {errorMessage || "Please check file format and size. Maximum file size is 5MB."}
             </p>
           </div>
@@ -313,7 +313,7 @@ export function ExcelUploadComponent({
         <Button
           onClick={handleUpload}
           disabled={!canUpload}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-medium transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
           {isLoading || (uploadProgress > 0 && uploadProgress < 100)
             ? "Uploading..."
