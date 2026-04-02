@@ -15,8 +15,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { employees, isLoading } = useEmployees();
 
   const totalEmployees = employees.length;
@@ -172,7 +174,11 @@ export default function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {recentEmployees.map((employee, idx) => (
-                  <TableRow key={employee.id}>
+                  <TableRow 
+                    key={employee.id}
+                    onClick={() => router.push(`/admin/employees/${employee.id}`)}
+                    className="cursor-pointer hover:bg-slate-50 transition-colors duration-200"
+                  >
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div
