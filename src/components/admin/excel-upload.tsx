@@ -107,6 +107,7 @@ export function ExcelUploadComponent({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("month", String(selectedMonth));
+      formData.append("monthName", MONTHS[selectedMonth - 1]);
       formData.append("year", String(selectedYear));
 
       // Simulate progress

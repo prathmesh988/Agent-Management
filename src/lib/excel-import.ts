@@ -28,10 +28,35 @@ export function parseExcelFile(filePath: string): ExcelRow[] {
 /**
  * Parse Excel file from buffer
  */
-export function parseExcelBuffer(buffer: Buffer): ExcelRow[] {
+export function parseExcelBuffer(buffer: Buffer, monthName?: string): ExcelRow[] {
   try {
     const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
+    let sheetName = workbook.SheetNames[0];
+
+    // Try to find the exact sheet instead of using index 0
+    if (monthName && monthName !== "All Months") {
+      const fullTarget = monthName.toLowerCase().replace(/\s+/g, '');
+      const shortTarget = fullTarget.substring(0, 3);
+      
+      // Short target needs boundary checks so it doesn't falsely match words like 'primary' (pri-mar-y)
+      const shortTargetRegex = new RegExp(`(^|[^a-z])${shortTarget}($|[^a-z])`, 'i');
+
+      const matchedName = workbook.SheetNames.find(name => {
+         // Match if it includes the full month name (allowing spaces/concatenation)
+         if (name.toLowerCase().replace(/\s+/g, '').includes(fullTarget)) return true;
+         // Or if it matches the 3-letter abbreviation with proper boundaries
+         if (shortTargetRegex.test(name)) return true;
+         return false;
+      });
+      
+      if (matchedName) {
+        sheetName = matchedName;
+        console.log(`Matched sheet "${matchedName}" for month "${monthName}"`);
+      } else {
+        throw new Error(`Could not find a sheet matching the month '${monthName}' in this file.`);
+      }
+    }
+
     const sheet = workbook.Sheets[sheetName];
     // Use raw array mode to detect and skip sub-header rows
     const allRows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
@@ -243,11 +268,11 @@ export function processExcelFile(filePath: string): {
  * Process Excel buffer and return transformed employees
  * Avoids file I/O issues with spaces in filenames
  */
-export function processExcelFileFromBuffer(buffer: Buffer): {
+export function processExcelFileFromBuffer(buffer: Buffer, monthName?: string): {
   employees: TransformedEmployee[];
   errors: string[];
 } {
-  const rows = parseExcelBuffer(buffer);
+  const rows = parseExcelBuffer(buffer, monthName);
   const employees: TransformedEmployee[] = [];
   const errors: string[] = [];
 
@@ -272,11 +297,11 @@ export function processExcelFileFromBuffer(buffer: Buffer): {
 /**
  * Process Excel buffer and return transformed employees
  */
-export function processExcelBuffer(buffer: Buffer): {
+export function processExcelBuffer(buffer: Buffer, monthName?: string): {
   employees: TransformedEmployee[];
   errors: string[];
 } {
-  const rows = parseExcelBuffer(buffer);
+  const rows = parseExcelBuffer(buffer, monthName);
   const employees: TransformedEmployee[] = [];
   const errors: string[] = [];
 

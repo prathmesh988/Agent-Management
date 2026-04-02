@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
         const formData = await request.formData();
         const file = formData.get('file') as File;
         const monthRaw = formData.get('month');
+        const monthNameRaw = formData.get('monthName');
         const yearRaw = formData.get('year');
 
         if (!file) {
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
 
         const month = monthRaw ? parseInt(String(monthRaw), 10) : NaN;
         const year = yearRaw ? parseInt(String(yearRaw), 10) : NaN;
+        const monthName = monthNameRaw ? String(monthNameRaw) : undefined;
 
         if (isNaN(month) || month < 1 || month > 12) {
             return NextResponse.json({ error: 'Invalid or missing month (must be 1–12)' }, { status: 400 });
@@ -167,7 +169,7 @@ export async function POST(request: NextRequest) {
 
         // Parse Excel
         console.log('Processing Excel file...');
-        const { employees, errors: validationErrors } = processExcelFileFromBuffer(fileBuffer);
+        const { employees, errors: validationErrors } = processExcelFileFromBuffer(fileBuffer, monthName);
 
         if (employees.length === 0) {
             return NextResponse.json(
