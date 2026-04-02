@@ -40,10 +40,33 @@ function getAvatarColor(name: string): string {
   return colors[name.charCodeAt(0) % colors.length];
 }
 
+// Helper to parse dates correctly from possible Excel serial number or Unix timestamp
+function parseDateValue(value: any): Date | null {
+  if (!value) return null;
+  const numValue = Number(value);
+  
+  if (!isNaN(numValue) && numValue !== 0) {
+    // If the number is small, it's likely an Excel serial date (e.g. 45000 for year 2023)
+    if (numValue > 1000 && numValue < 100000) {
+      return new Date(Math.round((numValue - 25569) * 86400 * 1000));
+    }
+    // Otherwise treat as Unix timestamp (milliseconds)
+    return new Date(numValue);
+  }
+  
+  // If we couldn't parse it as a number, try parsing as an ISO string
+  const strDate = new Date(value);
+  if (!isNaN(strDate.getTime())) return strDate;
+  
+  return null;
+}
+
 // Helper to format dates
-function formatDate(timestamp?: number): string {
-  if (!timestamp) return "N/A";
-  return new Date(timestamp).toLocaleDateString("en-US", {
+function formatDate(timestamp?: any): string {
+  const dateObj = parseDateValue(timestamp);
+  if (!dateObj) return "N/A";
+  
+  return dateObj.toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -197,10 +220,14 @@ export function EmployeeDetailPanel({
     }
   };
 
-  const formatDateForInput = (timestamp?: number): string => {
-    if (!timestamp || timestamp === 0) return "";
-    const date = new Date(timestamp);
-    return date.toISOString().split("T")[0];
+  const formatDateForInput = (timestamp?: any): string => {
+    const date = parseDateValue(timestamp);
+    if (!date) return "";
+    try {
+      return date.toISOString().split("T")[0];
+    } catch (e) {
+      return "";
+    }
   };
 
   const renderField = (field: { key: string; label: string; type: string }, value: any) => {
