@@ -42,16 +42,31 @@ export function parseExcelBuffer(buffer: Buffer): ExcelRow[] {
     // Skip row 1 (index 1) which is the sub-header row; data starts at row 2 (index 2)
     const dataRows = allRows.slice(2);
 
+    // Build a list of keys, assigning __EMPTY / __EMPTY_1 etc. for null/undefined header cells
+    // so they match what XLSX's default sheet_to_json would produce.
+    // IMPORTANT: Use Array.from() to densify the potentially-sparse headers array.
+    // XLSX can return sparse arrays where empty cells are holes (not even undefined),
+    // and Array.map() silently skips holes — Array.from() materialises them as undefined.
+    let emptyCount = 0;
+    const headerCount = headers.length;
+    const headerKeys: string[] = Array.from({ length: headerCount }, (_, i) => {
+      const header = headers[i]; // safe even for holes — returns undefined
+      if (header !== null && header !== undefined) {
+        return String(header);
+      }
+      const key = emptyCount === 0 ? '__EMPTY' : `__EMPTY_${emptyCount}`;
+      emptyCount++;
+      return key;
+    });
+
     const rows: ExcelRow[] = dataRows
       .filter((row) =>
         row.some((cell) => cell !== null && cell !== undefined && cell !== ""),
       )
       .map((row) => {
         const obj: ExcelRow = {};
-        headers.forEach((header, i) => {
-          if (header !== null && header !== undefined) {
-            obj[String(header)] = row[i];
-          }
+        headerKeys.forEach((key, i) => {
+          obj[key] = row[i];
         });
         return obj;
       });
@@ -144,16 +159,18 @@ export function transformExcelRow(row: ExcelRow): TransformedEmployee {
     "Shift Allow": ["shiftAllowance", (val: any) => parseNum(val)],
     "Gross Salary": ["grossSalary", (val: any) => parseNum(val)],
     // Merged-cell column names after XLSX parsing
-    "Atten Allow_1": ["attendanceDeduction", (val: any) => parseNum(val)],
-    EMPLOYEE: ["employeeContribution", (val: any) => parseNum(val)],
-    __EMPTY: ["employeeEsic", (val: any) => parseNum(val)],
-    EMPLOYEER: ["employerContribution", (val: any) => parseNum(val)],
-    __EMPTY_1: ["employerEsic", (val: any) => parseNum(val)],
-    TDS: ["tds5perc", (val: any) => parseNum(val)],
-    "Net Salary": ["netSalary", (val: any) => parseNum(val)],
-    Penalty: ["penalty", (val: any) => parseNum(val)],
-    Paid: ["paidAmount", (val: any) => parseNum(val)],
-    "Paid ": ["paidAmount", (val: any) => parseNum(val)],
+    // In the sheet, the merged 'Atten Allow' header cell (second occurrence) shows as 'Atten'
+    // when parsed with header:1 (the sub-row underneath says 'Allow').
+    'Atten': ['attendanceDeduction', (val: any) => parseNum(val)],
+    'EMPLOYEE': ['employeeContribution', (val: any) => parseNum(val)],
+    '__EMPTY': ['employeeEsic', (val: any) => parseNum(val)],
+    'EMPLOYEER': ['employerContribution', (val: any) => parseNum(val)],
+    '__EMPTY_1': ['employerEsic', (val: any) => parseNum(val)],
+    'TDS': ['tds5perc', (val: any) => parseNum(val)],
+    'Net Salary': ['netSalary', (val: any) => parseNum(val)],
+    'Penalty': ['penalty', (val: any) => parseNum(val)],
+    'Paid': ['paidAmount', (val: any) => parseNum(val)],
+    'Paid ': ['paidAmount', (val: any) => parseNum(val)],
   };
 
   // Apply column mapping with type conversion
