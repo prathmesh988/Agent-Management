@@ -26,10 +26,10 @@ interface AdminTableProps {
 }
 
 const permissionColors: Record<string, string> = {
-  READ: "bg-blue-100 text-blue-700 border border-blue-200",
-  WRITE: "bg-purple-100 text-purple-700 border border-purple-200",
-  UPDATE: "bg-green-100 text-green-700 border border-green-200",
-  DELETE: "bg-red-100 text-red-700 border border-red-200",
+  READ: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+  WRITE: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
+  UPDATE: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800",
+  DELETE: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800",
 };
 
 
@@ -60,12 +60,12 @@ export function AdminTable({
   return (
     <>
       <Card>
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground">
             Admin Users ({admins.length})
           </h2>
           {!canEditRoles && currentUserRole === 'mvp' && (
-            <div className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-lg border border-blue-200">
+            <div className="text-xs bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg border border-blue-200 dark:border-blue-800">
               🔒 MVP users can only view roles
             </div>
           )}
@@ -85,13 +85,13 @@ export function AdminTable({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     Loading admins...
                   </TableCell>
                 </TableRow>
               ) : admins.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     No admins found
                   </TableCell>
                 </TableRow>
@@ -99,20 +99,20 @@ export function AdminTable({
                 admins.map((admin) => (
                   <TableRow
                     key={admin.id}
-                    className="transition-colors duration-200 hover:bg-slate-50"
+                    className="transition-colors duration-200 hover:bg-muted/50"
                   >
                     <TableCell>
                       <div>
-                        <p className="font-medium text-slate-900">{admin.name}</p>
-                        <p className="text-xs text-slate-500">{admin.email}</p>
+                        <p className="font-medium text-foreground">{admin.name}</p>
+                        <p className="text-xs text-muted-foreground">{admin.email}</p>
                       </div>
                     </TableCell>
                     <TableCell>
                       <span
                         className={`px-3 py-1 rounded-lg text-sm font-medium ${
                           admin.role === 'admin'
-                            ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                            : 'bg-muted text-muted-foreground border border-border'
                         }`}
                       >
                         {admin.role.charAt(0).toUpperCase() + admin.role.slice(1)}
@@ -124,7 +124,7 @@ export function AdminTable({
                           <span
                             key={perm}
                             className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                              permissionColors[perm] || 'bg-slate-100 text-slate-700 border border-slate-200'
+                              permissionColors[perm] || 'bg-muted text-muted-foreground border border-border'
                             }`}
                           >
                             {perm}
@@ -136,8 +136,8 @@ export function AdminTable({
                       <span
                         className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${
                           admin.status === 'active'
-                            ? 'bg-green-100 text-green-700 border border-green-200'
-                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            ? 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
+                            : 'bg-muted text-muted-foreground border border-border'
                         }`}
                       >
                         {admin.status.charAt(0).toUpperCase() + admin.status.slice(1)}
@@ -150,7 +150,7 @@ export function AdminTable({
                             <button
                               onClick={() => setEditingAdmin(admin)}
                               disabled={updatingId === admin.id}
-                              className="p-2 rounded-lg text-slate-600 hover:bg-blue-100 transition-all duration-200 hover:text-blue-900 disabled:opacity-50"
+                              className="p-2 rounded-lg text-muted-foreground hover:bg-primary/10 transition-all duration-200 hover:text-primary disabled:opacity-50"
                               title="Edit admin role"
                             >
                               <Edit2 className="h-4 w-4" />
@@ -158,7 +158,7 @@ export function AdminTable({
                             <button
                               onClick={() => onDeleteAdmin?.(admin)}
                               disabled={updatingId === admin.id}
-                              className="p-2 rounded-lg text-slate-600 hover:bg-red-100 transition-all duration-200 hover:text-red-900 disabled:opacity-50"
+                              className="p-2 rounded-lg text-muted-foreground hover:bg-destructive/10 transition-all duration-200 hover:text-destructive disabled:opacity-50"
                               title="Delete admin"
                             >
                               <Trash2 className="h-4 w-4" />

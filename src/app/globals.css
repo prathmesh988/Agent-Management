@@ -285,6 +285,41 @@ h6 {
 .dark .hover\:bg-red-50:hover { background-color: hsl(350 50% 12%) !important; }
 
 /* Amber / yellow tints */
+.dark .bg-amber-50          { background-color: hsl(38 50% 10%) !important; }
 .dark .bg-amber-100         { background-color: hsl(38 50% 14%) !important; }
 .dark .text-amber-700       { color: #fbbf24 !important; }
+.dark .text-amber-900       { color: #fde68a !important; }
+.dark .border-amber-200     { border-color: hsl(38 40% 22%) !important; }
 
+/* Green tints (status badges) */
+.dark .bg-green-100         { background-color: hsl(140 40% 14%) !important; }
+.dark .text-green-700       { color: #4ade80 !important; }
+.dark .border-green-200     { border-color: hsl(140 40% 22%) !important; }
+
+/* Purple tints (WRITE permission badge) */
+.dark .bg-purple-100        { background-color: hsl(270 40% 14%) !important; }
+.dark .text-purple-700      { color: #c084fc !important; }
+.dark .border-purple-200    { border-color: hsl(270 40% 22%) !important; }
+
+/* Red tints (DELETE permission badge) */
+.dark .bg-red-100           { background-color: hsl(0 40% 14%) !important; }
+.dark .text-red-700         { color: #f87171 !important; }
+.dark .border-red-200       { border-color: hsl(0 40% 22%) !important; }
+
+/* Blue text overrides */
+.dark .text-blue-700        { color: #60a5fa !important; }
+.dark .border-blue-200      { border-color: hsl(217 50% 22%) !important; }
+
+/* Orange tints (update error alert) */
+.dark .bg-orange-50         { background-color: hsl(25 50% 10%) !important; }
+.dark .text-orange-900      { color: #fed7aa !important; }
+.dark .text-orange-700      { color: #fb923c !important; }
+.dark .text-orange-600      { color: #f97316 !important; }
+.dark .border-orange-200    { border-color: hsl(25 40% 22%) !important; }
+
+/* Yellow tints (not authenticated alert) */
+.dark .bg-yellow-50         { background-color: hsl(50 50% 10%) !important; }
+.dark .text-yellow-900      { color: #fef9c3 !important; }
+.dark .text-yellow-700      { color: #facc15 !important; }
+.dark .text-yellow-600      { color: #eab308 !important; }
+.dark .border-yellow-200    { border-color: hsl(50 40% 22%) !important; }
