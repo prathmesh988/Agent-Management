@@ -79,7 +79,7 @@ export function AdminTable({
                 <TableHead>Admin</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Permissions</TableHead>
-                <TableHead>Status</TableHead>
+                {/* <TableHead>Status</TableHead> */}
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -133,17 +133,7 @@ export function AdminTable({
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-block px-3 py-1 rounded-lg text-sm font-medium ${
-                          admin.status === 'active'
-                            ? 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
-                            : 'bg-muted text-muted-foreground border border-border'
-                        }`}
-                      >
-                        {admin.status.charAt(0).toUpperCase() + admin.status.slice(1)}
-                      </span>
-                    </TableCell>
+                 
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         {canEditRoles && (
