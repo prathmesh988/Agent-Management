@@ -17,14 +17,16 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAdmins } from "@/hooks/useAdmins";
 
 export default function DashboardPage() {
   const router = useRouter();
   const { employees, isLoading } = useEmployees();
-
+  const { admins } = useAdmins();
+  
   const totalEmployees = employees.length;
   const activeEmployees = employees.filter((e) => e.status === "active").length;
-  const totalAdmins = mockAdmins.length;
+  const totalAdmins = admins.length;
   const totalSalary = employees.reduce(
     (sum, e) => sum + (e.ctc || 0),
     0,
