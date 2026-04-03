@@ -13,6 +13,7 @@ import { getMonthlyAttendanceAction } from "@/app/(actions)/attendance";
 import { MonthlyAttendanceOverview } from "@/components/admin/monthly-attendance-overview";
 import { AttendanceCalendarEditable } from "@/components/admin/attendance-calendar-editable";
 import { AttendanceAnalytics } from "@/components/admin/attendance-analytics";
+import { PageLoader } from "@/components/ui/page-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -108,9 +109,7 @@ export default function AttendanceOverviewPage({
   };
 
   if (isLoading) return (
-    <div className="flex items-center justify-center h-96">
-      <p className="text-slate-600">Loading...</p>
-    </div>
+    <PageLoader message="Loading attendance data…" className="h-96" />
   );
 
   if (notFound || !currentEmployee) return (

@@ -6,6 +6,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useState } from "react";
 import { Eye, Shield, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { PageLoader } from "@/components/ui/page-loader";
 
 export default function AdminsPage() {
   const { admins, loading, error, updateAdminRole, deleteAdmin } = useAdmins();
@@ -93,9 +94,7 @@ export default function AdminsPage() {
       )}
 
       {currentUserLoading && (
-        <Card className="p-4 bg-muted border border-border">
-          <p className="text-sm text-muted-foreground">Loading admin information...</p>
-        </Card>
+        <PageLoader message="Loading admin information…" size="sm" className="py-8" />
       )}
 
       {!currentUserLoading && !currentUser && (

@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Download, FileText, Trash2, ChevronLeft, ChevronRight, Mail, Loader2 } from "lucide-react";
+import { PageLoader } from "@/components/ui/page-loader";
 
 const ITEMS_PER_PAGE = 10;
 import { sendCertificatesToMultiple, checkCertificatesInBucketAction } from "@/app/(actions)/send-certificate";
@@ -668,9 +669,7 @@ export default function CertificatesPage() {
         </div>
 
         {isLoading ? (
-          <div className="p-12 text-center flex-1">
-            <p className="text-slate-600">Loading employees...</p>
-          </div>
+          <PageLoader message="Loading employees…" />
         ) : filteredEmployees.length === 0 ? (
           <div className="p-12 flex-1 flex flex-col items-center justify-center">
             <FileText className="h-12 w-12 mx-auto mb-3 text-slate-300" />

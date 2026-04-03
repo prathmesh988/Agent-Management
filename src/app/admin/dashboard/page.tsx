@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useEmployees } from "@/hooks/useEmployees";
 import { mockAdmins } from "@/lib/data/mock-data";
 import { Users, UserCheck, Shield, TrendingUp, ArrowRight } from "lucide-react";
+import { PageLoader, SkeletonTable } from "@/components/ui/page-loader";
 import {
   Table,
   TableBody,
@@ -151,9 +152,7 @@ export default function DashboardPage() {
         </div>
 
         {isLoading ? (
-          <div className="p-12 text-center">
-            <p className="text-slate-600">Loading employees...</p>
-          </div>
+          <PageLoader message="Loading employees…" />
         ) : recentEmployees.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-slate-600">No employees found</p>

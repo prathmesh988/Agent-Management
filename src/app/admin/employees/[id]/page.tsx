@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, use } from "react";
 import { getEmployee } from "@/app/(actions)/employees";
 import { EmployeeDetailPanel } from "@/components/admin/employee-detail-panel";
+import { PageLoader } from "@/components/ui/page-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -51,9 +52,7 @@ export default function EmployeeDetailPage({
         <div>
           <h1 className="text-3xl font-bold text-foreground">Employee Details</h1>
         </div>
-        <div className="flex items-center justify-center h-96">
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
+        <PageLoader message="Loading employee details…" />
       </div>
     );
   }

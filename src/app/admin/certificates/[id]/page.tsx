@@ -17,6 +17,7 @@ import { getEmployee } from "@/app/(actions)/employees";
 import { useCertificates } from "@/hooks/useCertificates";
 import Link from "next/link";
 import { useRef, useState, useEffect, use } from "react";
+import { PageLoader } from "@/components/ui/page-loader";
 
 export const dynamic = "force-dynamic";
 
@@ -77,9 +78,7 @@ export default function CertificateDetailPage({ params }: PageProps) {
 
   if (pageLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-slate-600">Loading certificate...</p>
-      </div>
+      <PageLoader message="Loading certificate…" className="h-96" />
     );
   }
 

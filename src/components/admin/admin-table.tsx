@@ -14,6 +14,7 @@ import {
 import { Edit2, Trash2, Plus } from "lucide-react";
 import { useState } from "react";
 import { EditRoleModal } from "./edit-role-modal";
+import { PageLoader } from "@/components/ui/page-loader";
 
 interface AdminTableProps {
   admins: AdminUser[];
@@ -85,8 +86,8 @@ export function AdminTable({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    Loading admins...
+                  <TableCell colSpan={5} className="py-0">
+                    <PageLoader message="Loading admins…" size="sm" />
                   </TableCell>
                 </TableRow>
               ) : admins.length === 0 ? (
