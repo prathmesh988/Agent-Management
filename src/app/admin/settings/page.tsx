@@ -114,7 +114,7 @@ export default function SettingsPage() {
               <p className="text-xs text-slate-400">Email cannot be changed currently.</p>
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
                 <Briefcase className="h-4 w-4 text-slate-400" />
                 Job Title
@@ -140,9 +140,9 @@ export default function SettingsPage() {
                 onChange={(e) => setPhone(e.target.value)}
                 className="transition-colors focus-visible:ring-blue-500"
               />
-            </div>
+            </div> */}
           </div>
-
+{/* 
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
               <FileText className="h-4 w-4 text-slate-400" />
@@ -154,7 +154,7 @@ export default function SettingsPage() {
               onChange={(e) => setBio(e.target.value)}
               className="w-full min-h-[100px] p-3 rounded-md border border-slate-200 bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
             />
-          </div>
+          </div> */}
 
           <Button 
             onClick={handleSavePersonal}
@@ -179,7 +179,7 @@ export default function SettingsPage() {
             </label>
             <Input
               type="text"
-              defaultValue="Your Company Name"
+              defaultValue="Airvincible"
               className="mt-2"
             />
           </div>
@@ -190,7 +190,7 @@ export default function SettingsPage() {
             </label>
             <Input
               type="email"
-              defaultValue="admin@company.com"
+              defaultValue="company@airvinclible.com"
               className="mt-2"
             />
           </div>
@@ -201,7 +201,7 @@ export default function SettingsPage() {
             </label>
             <Input
               type="email"
-              defaultValue="support@company.com"
+              defaultValue="support@airvincible.com"
               className="mt-2"
             />
           </div>
@@ -289,7 +289,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* Danger Zone */}
-      <Card className="border-red-200">
+      {/* <Card className="border-red-200">
         <div className="p-6 border-b border-red-200">
           <h2 className="text-lg font-semibold text-red-900">Danger Zone</h2>
         </div>
@@ -317,7 +317,7 @@ export default function SettingsPage() {
             </Button>
           </div>
         </div>
-      </Card>
+      </Card> */}
     </div>
   );
 }
