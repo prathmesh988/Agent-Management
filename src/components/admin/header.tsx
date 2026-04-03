@@ -124,7 +124,7 @@ export function AdminHeader() {
                 {user?.name?.charAt(0)?.toUpperCase() || "A"}
               </div>
               <span className="hidden md:block text-sm font-medium text-slate-700 dark:text-slate-300 max-w-25 truncate">
-                {user?.name || "Admin"}
+                {user?.name || user?.email?.split("@")[0] || "Admin"}
               </span>
               <ChevronDown className={cn("hidden md:block h-3.5 w-3.5 text-slate-400 transition-transform", profileOpen && "rotate-180")} />
             </button>
