@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Employee } from "@/lib/types";
+import { getIncentiveByEmployeeIdAction, saveIncentiveAction } from "@/app/(actions)/incentives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -185,6 +186,51 @@ export function EmployeeDetailPanel({
   const [saveError, setSaveError] = useState<string | null>(null);
   const { updateEmployee } = useEmployees();
 
+  useEffect(() => {
+    const fetchIncentives = async () => {
+      try {
+        const idToSearch = employee.employeeId || employeeId; 
+        const incentives = await getIncentiveByEmployeeIdAction(idToSearch);
+        if (incentives) {
+           setEmployee((prev) => ({
+             ...prev,
+             incentiveAmount: incentives.incentiveAmount,
+             performanceBonus: incentives.performanceBonus,
+             referralBonus: incentives.referralBonus,
+             festivalBonus: incentives.festivalBonus,
+             retentionBonus: incentives.retentionBonus,
+             totalIncentive: incentives.totalIncentive,
+           }));
+        }
+      } catch (e) {
+        console.error("Failed to load incentives", e);
+      }
+    };
+    fetchIncentives();
+  }, [employee.employeeId, employeeId]);
+
+  useEffect(() => {
+    const base = Number(employee.incentiveAmount) || 0;
+    const perf = Number(employee.performanceBonus) || 0;
+    const ref = Number(employee.referralBonus) || 0;
+    const fest = Number(employee.festivalBonus) || 0;
+    const ret = Number(employee.retentionBonus) || 0;
+    
+    const total = base + perf + ref + fest + ret;
+    
+    if (employee.totalIncentive !== total) {
+      setEmployee(prev => ({ ...prev, totalIncentive: total }));
+      setEditedFields(prev => new Set(prev).add("totalIncentive"));
+    }
+  }, [
+    employee.incentiveAmount,
+    employee.performanceBonus,
+    employee.referralBonus,
+    employee.festivalBonus,
+    employee.retentionBonus,
+    employee.totalIncentive
+  ]);
+
   const handleFieldChange = useCallback(
     (key: string, value: any) => {
       // Convert dates to timestamps
@@ -215,11 +261,33 @@ export function EmployeeDetailPanel({
     setSaveError(null);
 
     try {
-      // Pass the full employee object with updates
-      console.log("📦 Saving employee with updates:", employee);
-      await updateEmployee(employee);
+      const incentiveFieldsList = [
+        "incentiveAmount", "performanceBonus", "referralBonus", 
+        "festivalBonus", "retentionBonus", "totalIncentive"
+      ];
+      const modifiedIncentiveFields = [...editedFields].filter(f => incentiveFieldsList.includes(f));
+      const modifiedRegularFields = [...editedFields].filter(f => !incentiveFieldsList.includes(f));
 
-      console.log("✅ Employee updated successfully");
+      if (modifiedIncentiveFields.length > 0) {
+        const idForIncentive = employee.employeeId || employeeId;
+        await saveIncentiveAction(idForIncentive, {
+          incentiveAmount: employee.incentiveAmount as number | undefined,
+          performanceBonus: employee.performanceBonus as number | undefined,
+          referralBonus: employee.referralBonus as number | undefined,
+          festivalBonus: employee.festivalBonus as number | undefined,
+          retentionBonus: employee.retentionBonus as number | undefined,
+          totalIncentive: employee.totalIncentive as number | undefined,
+        });
+        console.log("✅ Incentives updated successfully");
+      }
+
+      if (modifiedRegularFields.length > 0) {
+        // Pass the full employee object with updates
+        console.log("📦 Saving employee with updates:", employee);
+        await updateEmployee(employee);
+        console.log("✅ Employee updated successfully");
+      }
+
       setEditedFields(new Set());
       alert("Employee details updated successfully!");
     } catch (error) {
@@ -244,11 +312,13 @@ export function EmployeeDetailPanel({
 
   const renderField = (field: { key: string; label: string; type: string }, value: any) => {
     const isEdited = editedFields.has(field.key);
+    const isDisabled = field.key === "totalIncentive";
 
     if (field.type === "date") {
       return (
         <Input
           type="date"
+          disabled={isDisabled}
           value={formatDateForInput(value as number)}
           onChange={(e) => handleFieldChange(field.key, e.target.value)}
           className={isEdited ? "border-primary bg-primary/5" : ""}
@@ -261,10 +331,26 @@ export function EmployeeDetailPanel({
         <Input
           type="number"
           step="0.01"
+          min="0"
+          disabled={isDisabled}
           value={value ?? ""}
-          onChange={(e) =>
-            handleFieldChange(field.key, e.target.value ? parseFloat(e.target.value) : "")
-          }
+          onKeyDown={(e) => {
+            // Prevent entering negative signs and scientific notations
+            if (["-", "e", "E", "+"].includes(e.key)) {
+              e.preventDefault();
+            }
+          }}
+          onChange={(e) => {
+            if (e.target.value === "") {
+              handleFieldChange(field.key, "");
+            } else {
+              const parsed = parseFloat(e.target.value);
+              if (!isNaN(parsed)) {
+                // Strictly enforce non-negative values
+                handleFieldChange(field.key, Math.max(0, parsed));
+              }
+            }
+          }}
           className={isEdited ? "border-primary bg-primary/5" : ""}
         />
       );
@@ -273,6 +359,7 @@ export function EmployeeDetailPanel({
     return (
       <Input
         type="text"
+        disabled={isDisabled}
         value={value ?? ""}
         onChange={(e) => handleFieldChange(field.key, e.target.value)}
         className={isEdited ? "border-primary bg-primary/5" : ""}
