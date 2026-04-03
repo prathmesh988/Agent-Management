@@ -49,7 +49,7 @@ export default function DashboardPage() {
     {
       title: "Total Employees",
       value: totalEmployees,
-      icon: <Users className="h-6 w-6 text-white" />,
+      icon: <Users className="h-4 w-4 text-slate-400" />,
       trend: `${newEmployeesThisMonth} new this month`,
       color: "bg-blue-500",
       bgGradient: "from-blue-50 to-blue-100/50",
@@ -57,7 +57,7 @@ export default function DashboardPage() {
     {
       title: "Active Employees",
       value: activeEmployees,
-      icon: <UserCheck className="h-6 w-6 text-white" />,
+      icon: <UserCheck className="h-4 w-4 text-slate-400" />,
       trend: `${totalEmployees > 0 ? ((activeEmployees / totalEmployees) * 100).toFixed(0) : 0}% active`,
       color: "bg-emerald-500",
       bgGradient: "from-emerald-50 to-emerald-100/50",
@@ -65,7 +65,7 @@ export default function DashboardPage() {
     {
       title: "Admin Users",
       value: totalAdmins,
-      icon: <Shield className="h-6 w-6 text-white" />,
+      icon: <Shield className="h-4 w-4 text-slate-400" />,
       trend: "Fully configured",
       color: "bg-purple-500",
       bgGradient: "from-purple-50 to-purple-100/50",
@@ -73,7 +73,7 @@ export default function DashboardPage() {
     {
       title: "Total Attendance",
       value: totalAttendance,
-      icon: <TrendingUp className="h-6 w-6 text-white" />,
+      icon: <TrendingUp className="h-4 w-4 text-slate-400" />,
       trend: `Avg: ${totalEmployees > 0 ? (totalAttendance / totalEmployees).toFixed(1) : 0} days`,
       color: "bg-amber-500",
       bgGradient: "from-amber-50 to-amber-100/50",

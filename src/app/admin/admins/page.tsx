@@ -129,54 +129,39 @@ export default function AdminsPage() {
       )}
 
       {/* Permission Levels - Visual Cards */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold text-foreground">
-          Admin Roles & Permissions
+      <div className="space-y-4 pt-4 border-t border-border mt-8">
+        <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-widest">
+          Permission Levels
         </h3>
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card className="p-6 border-l-4 border-l-blue-600 dark:border-l-blue-400">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-950/50">
-                <Eye className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">MVP Role</h4>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Read-only access. View employee data and reports without modification rights.
-                </p>
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-foreground">Permissions:</p>
-                  <ul className="text-xs text-muted-foreground space-y-1 ml-2">
-                    <li>✓ View employee data</li>
-                    <li>✓ View reports</li>
-                    <li>✗ Cannot edit or delete</li>
-                    <li>✗ Cannot manage admins</li>
-                  </ul>
-                </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="p-5 shadow-sm transition-all hover:shadow-md">
+            <div className="flex items-center gap-2 pb-3 border-b border-border mb-3">
+              <Eye className="h-4 w-4 text-blue-500" />
+              <h4 className="font-semibold text-sm text-foreground">MVP Role</h4>
+            </div>
+            <div className="text-xs text-muted-foreground space-y-3">
+              <p>Read-only access. View employee data and reports safely.</p>
+              <div className="grid grid-cols-2 gap-y-2">
+                <span className="flex items-center gap-1.5"><span className="text-emerald-500 font-bold">✓</span> View data</span>
+                <span className="flex items-center gap-1.5"><span className="text-emerald-500 font-bold">✓</span> View reports</span>
+                <span className="flex items-center gap-1.5 text-slate-400"><span className="text-rose-400 font-bold">✗</span> Modifying</span>
+                <span className="flex items-center gap-1.5 text-slate-400"><span className="text-rose-400 font-bold">✗</span> Admin roles</span>
               </div>
             </div>
           </Card>
 
-          <Card className="p-6 border-l-4 border-l-amber-600 dark:border-l-amber-400">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-amber-100 dark:bg-amber-950/50">
-                <Shield className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">Admin Role</h4>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Full access. Create, edit, update, and delete employee records and manage admins.
-                </p>
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-foreground">Permissions:</p>
-                  <ul className="text-xs text-muted-foreground space-y-1 ml-2">
-                    <li>✓ View all data</li>
-                    <li>✓ Create records</li>
-                    <li>✓ Edit & update</li>
-                    <li>✓ Delete records</li>
-                    <li>✓ Manage admin roles</li>
-                  </ul>
-                </div>
+          <Card className="p-5 shadow-sm transition-all hover:shadow-md">
+            <div className="flex items-center gap-2 pb-3 border-b border-border mb-3">
+              <Shield className="h-4 w-4 text-amber-500" />
+              <h4 className="font-semibold text-sm text-foreground">Admin Role</h4>
+            </div>
+            <div className="text-xs text-muted-foreground space-y-3">
+              <p>Full system access including modification and config rights.</p>
+              <div className="grid grid-cols-2 gap-y-2">
+                <span className="flex items-center gap-1.5"><span className="text-emerald-500 font-bold">✓</span> Full view</span>
+                <span className="flex items-center gap-1.5"><span className="text-emerald-500 font-bold">✓</span> Edit records</span>
+                <span className="flex items-center gap-1.5"><span className="text-emerald-500 font-bold">✓</span> Delete records</span>
+                <span className="flex items-center gap-1.5"><span className="text-emerald-500 font-bold">✓</span> Manage roles</span>
               </div>
             </div>
           </Card>

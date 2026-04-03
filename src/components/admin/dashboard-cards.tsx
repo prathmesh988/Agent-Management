@@ -7,8 +7,8 @@ interface StatCard {
   value: string | number;
   icon: React.ReactNode;
   trend?: string;
-  color: string;
-  bgGradient: string;
+  color?: string;
+  bgGradient?: string;
 }
 
 interface DashboardStatsCardsProps {
@@ -19,19 +19,22 @@ export function DashboardStatsCards({ stats }: DashboardStatsCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, index) => (
-        <Card key={index} className="p-4 border-slate-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                {stat.title}
-              </p>
-              <p className="mt-2 text-2xl font-bold text-slate-900">
-                {stat.value}
-              </p>
+        <Card key={index} className="p-6 border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+          <div className="flex flex-row items-center justify-between pb-2">
+            <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">
+              {stat.title}
+            </h3>
+            {stat.icon}
+          </div>
+          <div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+              {stat.value}
             </div>
-            <div className={`${stat.color} text-white p-3 rounded-lg flex-shrink-0`}>
-              {stat.icon}
-            </div>
+            {stat.trend && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {stat.trend}
+              </p>
+            )}
           </div>
         </Card>
       ))}
