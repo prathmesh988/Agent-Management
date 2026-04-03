@@ -127,7 +127,7 @@ export default function AttendanceOverviewPage({
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Attendance Overview</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">{currentEmployee.name}</p>
         </div>
-        <div className="flex gap-2 flex-shrink-0">
+        <div className="flex gap-2 shrink-0">
           <Button onClick={handleDownloadReport} variant="outline" size="lg" className="shadow-md">
             <Download className="h-4 w-4 mr-2" />
             Download Report

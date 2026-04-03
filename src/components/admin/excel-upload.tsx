@@ -276,7 +276,7 @@ export function ExcelUploadComponent({
           </div>
           <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-primary to-accent h-3 rounded-full transition-all duration-300"
+              className="bg-linear-to-r from-primary to-accent h-3 rounded-full transition-all duration-300"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>
@@ -286,7 +286,7 @@ export function ExcelUploadComponent({
       {/* Status Messages */}
       {uploadStatus === "success" && (
         <div className="mt-8 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl flex items-center gap-4">
-          <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+          <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Upload successful! 🎉</p>
             <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
@@ -299,7 +299,7 @@ export function ExcelUploadComponent({
 
       {uploadStatus === "error" && (
         <div className="mt-8 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl flex items-center gap-4">
-          <AlertCircle className="h-6 w-6 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+          <AlertCircle className="h-6 w-6 text-rose-600 dark:text-rose-400 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-rose-900 dark:text-rose-200">Upload failed</p>
             <p className="text-sm text-rose-700 dark:text-rose-300 mt-1">

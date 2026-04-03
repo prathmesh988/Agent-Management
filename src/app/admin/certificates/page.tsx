@@ -654,7 +654,7 @@ export default function CertificatesPage() {
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(page)}
-                      className="transition-all duration-200 hover:scale-105 min-w-[2rem]"
+                      className="transition-all duration-200 hover:scale-105 min-w-8"
                     >
                       {page}
                     </Button>

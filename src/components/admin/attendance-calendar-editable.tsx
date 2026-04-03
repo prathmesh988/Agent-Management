@@ -184,7 +184,7 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate, onSave 
             >
               <ChevronLeft className="h-5 w-5 text-slate-600 dark:text-slate-300" />
             </button>
-            <span className="text-sm font-semibold text-slate-600 min-w-[130px] dark:text-slate-300 text-center">
+            <span className="text-sm font-semibold text-slate-600 min-w-32.5 dark:text-slate-300 text-center">
               {monthYear}
             </span>
             <button

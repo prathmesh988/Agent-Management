@@ -72,7 +72,7 @@ export function AdminHeader() {
           )}
         </div>
 
-        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
             <Bell className="h-5 w-5" />
@@ -120,10 +120,10 @@ export function AdminHeader() {
               onClick={() => setProfileOpen((p) => !p)}
               className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
-              <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                 {user?.name?.charAt(0)?.toUpperCase() || "A"}
               </div>
-              <span className="hidden md:block text-sm font-medium text-slate-700 dark:text-slate-300 max-w-[100px] truncate">
+              <span className="hidden md:block text-sm font-medium text-slate-700 dark:text-slate-300 max-w-25 truncate">
                 {user?.name || "Admin"}
               </span>
               <ChevronDown className={cn("hidden md:block h-3.5 w-3.5 text-slate-400 transition-transform", profileOpen && "rotate-180")} />

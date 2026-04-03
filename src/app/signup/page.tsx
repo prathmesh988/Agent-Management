@@ -53,7 +53,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <div className="p-8">
           {/* Header */}
@@ -116,7 +116,7 @@ export default function SignupPage() {
               {/* Error Message */}
               {error && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
                   <p className="text-sm text-red-800">{error}</p>
                 </div>
               )}

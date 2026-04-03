@@ -379,13 +379,13 @@ export function EmployeeDetailPanel({
       )}
 
       {/* ========== HERO PROFILE HEADER ========== */}
-      <Card className="p-8 bg-gradient-to-br from-background to-muted border shadow-lg">
+      <Card className="p-8 bg-linear-to-br from-background to-muted border shadow-lg">
         <div className="flex items-start justify-between gap-6">
           {/* Left: Avatar + Name + Quick Info */}
           <div className="flex gap-6 flex-1">
             {/* Avatar */}
             <div
-              className={`h-24 w-24 rounded-full ${getAvatarColor(employee.name)} flex items-center justify-center text-white text-4xl font-bold flex-shrink-0`}
+              className={`h-24 w-24 rounded-full ${getAvatarColor(employee.name)} flex items-center justify-center text-white text-4xl font-bold shrink-0`}
             >
               {getInitials(employee.name)}
             </div>
@@ -410,7 +410,7 @@ export function EmployeeDetailPanel({
           </div>
 
           {/* Right: Action Buttons */}
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2 shrink-0">
             <Link href={`/admin/employees/${employeeId}/attendance`}>
               <Button
                 variant="outline"
