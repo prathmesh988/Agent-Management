@@ -48,7 +48,10 @@ export function AdminSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 h-screen bg-gradient-to-b from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 text-white shadow-lg z-30',
+          'fixed left-0 top-0 h-screen shadow-lg z-30',
+          // Light: soft white/gray gradient  •  Dark: deep slate gradient
+          'bg-gradient-to-b from-slate-50 to-slate-100 text-slate-700',
+          'dark:from-slate-950 dark:to-slate-900 dark:text-slate-200',
           'transform transition-all duration-300 ease-in-out',
           // Desktop: obey collapsed state
           collapsed ? 'md:w-16' : 'md:w-64',
@@ -58,21 +61,24 @@ export function AdminSidebar() {
         )}
       >
         {/* Logo + collapse button */}
-        <div className={cn('flex items-center border-b border-slate-700 dark:border-slate-800', collapsed ? 'justify-center p-4' : 'justify-between p-4 md:p-6')}>
+        <div className={cn(
+          'flex items-center border-b border-slate-200 dark:border-slate-800',
+          collapsed ? 'justify-center p-4' : 'justify-between p-4 md:p-6'
+        )}>
           {!collapsed && (
             <Image
               src="/airvincble.svg"
               alt="Airvincible Logo"
               width={120}
               height={40}
-              className="h-8 w-auto"
+              className="h-8 w-auto dark:invert"
             />
           )}
           {/* Desktop collapse toggle */}
           <Button
             variant="ghost"
             size="icon"
-            className="hidden md:flex h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-700 flex-shrink-0"
+            className="hidden md:flex h-8 w-8 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 flex-shrink-0"
             onClick={toggle}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
@@ -98,8 +104,8 @@ export function AdminSidebar() {
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
                   collapsed ? 'justify-center' : '',
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
                 )}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
