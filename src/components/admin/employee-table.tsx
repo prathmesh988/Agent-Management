@@ -54,21 +54,21 @@ function ActionDropdown({ employee, onView, onEdit, onDelete }: any) {
     <div className="relative inline-block">
       <button
         onClick={handleClick}
-        className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-all duration-200 hover:text-slate-900"
+        className="p-2 rounded-lg text-muted-foreground hover:bg-muted transition-all duration-200 hover:text-foreground"
       >
         <MoreVertical className="h-4 w-4" />
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 z-10 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-48 bg-card rounded-lg shadow-lg border border-border z-10 overflow-hidden">
           <Link href={`/admin/employees/${employee.id}`}>
             <button
               onClick={() => {
                 onView?.(employee);
                 setIsOpen(false);
               }}
-              className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors duration-200"
+              className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center gap-2 transition-colors duration-200"
             >
-              <Eye className="h-4 w-4 text-blue-600" />
+              <Eye className="h-4 w-4 text-primary" />
               View Details
             </button>
           </Link>
@@ -77,9 +77,9 @@ function ActionDropdown({ employee, onView, onEdit, onDelete }: any) {
               onEdit?.(employee);
               setIsOpen(false);
             }}
-            className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors duration-200 border-t border-slate-200"
+            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center gap-2 transition-colors duration-200 border-t border-border"
           >
-            <Edit2 className="h-4 w-4 text-amber-600" />
+            <Edit2 className="h-4 w-4 text-amber-500" />
             Edit
           </button>
           <button
@@ -87,9 +87,9 @@ function ActionDropdown({ employee, onView, onEdit, onDelete }: any) {
               onDelete?.(employee);
               setIsOpen(false);
             }}
-            className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-red-50 flex items-center gap-2 transition-colors duration-200 border-t border-slate-200"
+            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-destructive/10 flex items-center gap-2 transition-colors duration-200 border-t border-border"
           >
-            <Trash2 className="h-4 w-4 text-red-600" />
+            <Trash2 className="h-4 w-4 text-destructive" />
             Delete
           </button>
         </div>
@@ -236,20 +236,20 @@ export function EmployeeTable({
 
   return (
     <Card className="flex flex-col h-full w-full overflow-hidden border-0 shadow-sm sm:border sm:shadow">
-      <div className="p-4 border-b border-slate-200 flex items-center justify-between shrink-0">
-        <h2 className="text-lg font-semibold text-slate-900">Employees</h2>
+      <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+        <h2 className="text-lg font-semibold text-foreground">Employees</h2>
         <Link href="/admin/employees/upload">
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white text-sm">
+          <Button className="text-sm">
             + Add New Employee
           </Button>
         </Link>
       </div>
 
       {/* Filters */}
-      <div className="p-4 border-b border-slate-200 shrink-0 bg-white dark:bg-black">
+      <div className="p-4 border-b border-border shrink-0 bg-background">
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end w-full ">
           <div className="flex-1 w-full min-w-0 space-y-1.5 ">
-            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Search</label>
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Search</label>
             <Input
               placeholder="Search by name, email, or ID..."
               value={searchTerm}
@@ -257,12 +257,12 @@ export function EmployeeTable({
                 setSearchTerm(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full bg-white transition-all duration-200 focus-visible:ring-blue-500"
+              className="w-full bg-background transition-all duration-200 focus-visible:ring-primary"
             />
           </div>
 
           <div className="w-full sm:w-48 shrink-0 space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Department
             </label>
             <Select
@@ -272,7 +272,7 @@ export function EmployeeTable({
                 setCurrentPage(1);
               }}
             >
-              <SelectTrigger className="w-full bg-white transition-all duration-200 focus-visible:ring-blue-500">
+              <SelectTrigger className="w-full bg-background transition-all duration-200 focus-visible:ring-primary">
                 <SelectValue placeholder="All Departments" />
               </SelectTrigger>
               <SelectContent>
@@ -304,15 +304,15 @@ export function EmployeeTable({
       </div>
 
       {/* Table Area */}
-      <div className="flex-1 min-h-0 relative bg-white">
+      <div className="flex-1 min-h-0 relative bg-background">
         <div className="absolute inset-0 overflow-auto">
           <Table className="w-full">
-            <TableHeader className="sticky top-0 bg-slate-100 z-10 shadow-sm">
-              <TableRow className="border-b border-slate-200">
+            <TableHeader className="sticky top-0 bg-muted z-10 shadow-sm">
+              <TableRow className="border-b border-border">
                 <TableHead className="w-[45%] sm:w-[35%] py-3">
                 <button
                   onClick={() => toggleSort("name")}
-                  className="font-semibold hover:text-slate-900 transition-colors duration-200 cursor-pointer"
+                  className="font-semibold hover:text-foreground transition-colors duration-200 cursor-pointer"
                 >
                   Employee
                 </button>
@@ -320,7 +320,7 @@ export function EmployeeTable({
               <TableHead className="w-[25%] sm:w-[20%] py-3">
                 <button
                   onClick={() => toggleSort("department")}
-                  className="font-semibold hover:text-slate-900 transition-colors duration-200 cursor-pointer"
+                  className="font-semibold hover:text-foreground transition-colors duration-200 cursor-pointer"
                 >
                   Department
                 </button>
@@ -330,12 +330,12 @@ export function EmployeeTable({
               <TableHead className="w-[10%] text-right py-3 pr-4">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-slate-100">
+          <TableBody className="divide-y divide-border">
             {paginatedEmployees.map((employee, idx) => (
               <TableRow
                 key={employee.id}
                 onClick={() => router.push(`/admin/employees/${employee.id}`)}
-                className="cursor-pointer hover:bg-slate-50 transition-colors duration-200"
+                className="cursor-pointer hover:bg-muted/50 transition-colors duration-200"
               >
                 <TableCell className="py-4 pl-4 min-w-0">
                   <div className="flex items-center gap-3">
@@ -345,36 +345,36 @@ export function EmployeeTable({
                       {getInitials(employee.name)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-slate-900 truncate">
+                      <p className="font-semibold text-foreground truncate">
                         {employee.name}
                       </p>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">{employee.email}</p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{employee.email}</p>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="py-4">
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium truncate max-w-[120px]">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-muted text-muted-foreground text-xs font-medium truncate max-w-[120px]">
                     {employee.department}
                   </span>
                 </TableCell>
-                <TableCell className="py-4 text-slate-600 truncate text-sm hidden sm:table-cell">
+                <TableCell className="py-4 text-muted-foreground truncate text-sm hidden sm:table-cell">
                   {employee.designation}
                 </TableCell>
                 <TableCell className="py-4 hidden md:table-cell">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 whitespace-nowrap ${employee.status === "active"
-                      ? "bg-emerald-100 text-emerald-700"
+                      ? "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                       : employee.status === "on-leave"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-rose-100 text-rose-700"
+                        ? "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                        : "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300"
                       }`}
                   >
                     <span
                       className={`h-2 w-2 rounded-full ${employee.status === "active"
-                        ? "bg-emerald-600"
+                        ? "bg-emerald-600 dark:bg-emerald-400"
                         : employee.status === "on-leave"
-                          ? "bg-amber-600"
-                          : "bg-rose-600"
+                          ? "bg-amber-600 dark:bg-amber-400"
+                          : "bg-rose-600 dark:bg-rose-400"
                         }`}
                     />
                     {(employee.status || "").charAt(0).toUpperCase() +
@@ -397,11 +397,11 @@ export function EmployeeTable({
       </div>
 
       {/* Pagination */}
-      <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-slate-200 shrink-0 bg-white gap-3 sm:gap-0">
-        <p className="text-xs sm:text-sm text-slate-600 shrink-0">
-          Showing <span className="font-medium text-slate-900">{startIndex + 1}</span> to{" "}
-          <span className="font-medium text-slate-900">{Math.min(startIndex + ITEMS_PER_PAGE, filtered.length)}</span> of{" "}
-          <span className="font-medium text-slate-900">{filtered.length}</span> employees
+      <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-border shrink-0 bg-background gap-3 sm:gap-0">
+        <p className="text-xs sm:text-sm text-muted-foreground shrink-0">
+          Showing <span className="font-medium text-foreground">{startIndex + 1}</span> to{" "}
+          <span className="font-medium text-foreground">{Math.min(startIndex + ITEMS_PER_PAGE, filtered.length)}</span> of{" "}
+          <span className="font-medium text-foreground">{filtered.length}</span> employees
         </p>
         <div className="flex gap-1 items-center">
           <Button
@@ -437,7 +437,7 @@ export function EmployeeTable({
             
             return pages.map((page, idx) =>
               page === "ellipsis" ? (
-                <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 text-sm">…</span>
+                <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground text-sm">…</span>
               ) : (
                 <Button
                   key={page}

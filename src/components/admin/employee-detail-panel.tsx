@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Save, AlertCircle, Mail, Users, Calendar, BarChart3 } from "lucide-react";
+import { Save, AlertCircle, Mail, Users, Calendar, BarChart3, Gift } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
 import Link from "next/link";
 
@@ -105,6 +105,18 @@ const FIELD_SECTIONS = [
       { key: "shiftAllowance", label: "Shift Allowance", type: "number" },
       { key: "grossSalary", label: "Gross Salary", type: "number" },
       { key: "netSalary", label: "Net Salary", type: "number" },
+    ],
+  },
+  {
+    id: "incentive",
+    title: "Incentive & Bonuses",
+    fields: [
+      { key: "incentiveAmount", label: "Base Incentive", type: "number" },
+      { key: "performanceBonus", label: "Performance Bonus", type: "number" },
+      { key: "referralBonus", label: "Referral Bonus", type: "number" },
+      { key: "festivalBonus", label: "Festival Bonus", type: "number" },
+      { key: "retentionBonus", label: "Retention Bonus", type: "number" },
+      { key: "totalIncentive", label: "Total Incentive", type: "number" },
     ],
   },
   {

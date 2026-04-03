@@ -106,10 +106,10 @@ export function EditEmployeeModal({
       <Card className="w-full max-w-md mx-4 shadow-xl">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-slate-900">Edit Employee</h2>
+            <h2 className="text-2xl font-bold text-foreground">Edit Employee</h2>
             <button
               onClick={onClose}
-              className="text-slate-600 hover:text-slate-900 transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="h-6 w-6" />
             </button>
@@ -118,7 +118,7 @@ export function EditEmployeeModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Full Name
               </label>
               <Input
@@ -133,7 +133,7 @@ export function EditEmployeeModal({
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Email
               </label>
               <Input
@@ -148,7 +148,7 @@ export function EditEmployeeModal({
 
             {/* Department */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Department
               </label>
               <Select
@@ -172,7 +172,7 @@ export function EditEmployeeModal({
 
             {/* Role */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Role
               </label>
               <Select
@@ -194,7 +194,7 @@ export function EditEmployeeModal({
 
             {/* Status */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Status
               </label>
               <Select
@@ -221,7 +221,7 @@ export function EditEmployeeModal({
 
             {/* Join Date */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Join Date
               </label>
               <Input
@@ -235,7 +235,7 @@ export function EditEmployeeModal({
 
             {/* Salary */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Salary
               </label>
               <Input
