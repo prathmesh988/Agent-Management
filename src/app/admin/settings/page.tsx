@@ -92,7 +92,7 @@ export default function SettingsPage() {
               </label>
               <Input
                 type="text"
-                placeholder="John Doe"
+                placeholder={user?.email.split('@')[0] || 'Your Name'}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="transition-colors focus-visible:ring-blue-500"
