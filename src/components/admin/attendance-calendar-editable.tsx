@@ -24,13 +24,13 @@ interface AttendanceDay {
 }
 
 const STATUS_COLORS: Record<AttendanceStatus, { bg: string; text: string; label: string; border: string }> = {
-  P: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Present", border: "border-emerald-400" },
-  A: { bg: "bg-red-100", text: "text-red-700", label: "Absent", border: "border-red-400" },
-  L: { bg: "bg-blue-100", text: "text-blue-700", label: "Leave", border: "border-blue-400" },
-  H: { bg: "bg-amber-100", text: "text-amber-700", label: "Half Day", border: "border-amber-400" },
-  WO: { bg: "bg-slate-100", text: "text-slate-600", label: "Week Off", border: "border-slate-400" },
-  HO: { bg: "bg-purple-100", text: "text-purple-700", label: "Holiday", border: "border-purple-400" },
-  "-": { bg: "bg-gray-50", text: "text-gray-400", label: "No Data", border: "border-gray-300" },
+  P: { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400", label: "Present", border: "border-emerald-400 dark:border-emerald-800" },
+  A: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", label: "Absent", border: "border-red-400 dark:border-red-800" },
+  L: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-400", label: "Leave", border: "border-blue-400 dark:border-blue-800" },
+  H: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400", label: "Half Day", border: "border-amber-400 dark:border-amber-800" },
+  WO: { bg: "bg-slate-100 dark:bg-slate-800/80", text: "text-slate-600 dark:text-slate-300", label: "Week Off", border: "border-slate-400 dark:border-slate-600" },
+  HO: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-400", label: "Holiday", border: "border-purple-400 dark:border-purple-800" },
+  "-": { bg: "bg-gray-50 dark:bg-slate-800/40", text: "text-gray-400 dark:text-gray-500", label: "No Data", border: "border-gray-300 dark:border-slate-700" },
 };
 
 const STATUS_CYCLE: AttendanceStatus[] = ["P", "A", "L", "H", "WO", "HO", "-"];
@@ -171,20 +171,20 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate, onSave 
   const editCount = Object.keys(editedFields).length;
 
   return (
-    <Card className="p-6 border border-slate-200 shadow-sm rounded-lg">
+    <Card className="p-6 border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg bg-card text-card-foreground">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Editable Attendance - {monthYear}</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Editable Attendance - {monthYear}</h3>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCurrentDate(new Date(year, month - 2))}
               className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
               title="Previous month"
             >
-              <ChevronLeft className="h-5 w-5 text-slate-600" />
+              <ChevronLeft className="h-5 w-5 text-slate-600 dark:text-slate-300" />
             </button>
-            <span className="text-sm font-semibold text-slate-600 min-w-[130px] text-center">
+            <span className="text-sm font-semibold text-slate-600 min-w-[130px] dark:text-slate-300 text-center">
               {monthYear}
             </span>
             <button
@@ -192,7 +192,7 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate, onSave 
               className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
               title="Next month"
             >
-              <ChevronRight className="h-5 w-5 text-slate-600" />
+              <ChevronRight className="h-5 w-5 text-slate-600 dark:text-slate-300" />
             </button>
           </div>
         </div>
@@ -211,13 +211,13 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate, onSave 
         )}
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-3 pb-4 border-b border-slate-200">
+        <div className="flex flex-wrap gap-3 pb-4 border-b border-slate-200 dark:border-slate-700">
           {(["P", "A", "L", "H", "WO", "HO"] as AttendanceStatus[]).map((status) => {
             const colors = STATUS_COLORS[status];
             return (
               <div key={status} className="flex items-center gap-2">
                 <div className={`w-4 h-4 rounded ${colors.bg} border ${colors.border}`} />
-                <span className="text-sm text-slate-700">
+                <span className="text-sm text-slate-700 dark:text-slate-300">
                   <span className="font-semibold">{status}</span> ({statusCounts[status]})
                 </span>
               </div>
@@ -236,7 +236,7 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate, onSave 
             {/* Day headers */}
             <div className="grid grid-cols-7 gap-2">
               {DAY_NAMES.map((d) => (
-                <div key={d} className="p-2 text-center text-xs font-bold text-slate-700 uppercase bg-slate-50 rounded">
+                <div key={d} className="p-2 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800/50 rounded">
                   {d}
                 </div>
               ))}
@@ -256,7 +256,7 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate, onSave 
                       className={`p-4 rounded-lg text-center border-2 transition-all hover:shadow-md transform hover:-translate-y-0.5 active:scale-95 cursor-pointer ${colors.bg} ${colors.border} ${isEdited ? "ring-2 ring-blue-500" : ""}`}
                       title={`Click to cycle - Currently: ${colors.label}`}
                     >
-                      <div className="text-lg font-bold text-slate-900">{day.date}</div>
+                      <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{day.date}</div>
                       <div className={`text-sm font-bold mt-2 ${colors.text}`}>
                         {day.status === "-" ? "—" : day.status}
                       </div>
@@ -269,8 +269,8 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate, onSave 
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-200">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 flex-1">
+        <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs text-blue-800 dark:text-blue-300 flex-1">
             <p className="font-semibold mb-1">💡 How to use:</p>
             <p>Click any day to cycle: P → A → L → H → WO → HO → (empty)</p>
           </div>

@@ -21,13 +21,13 @@ interface AttendanceDay {
 }
 
 const STATUS_COLORS: Record<AttendanceStatus, { bg: string; text: string; label: string; border: string }> = {
-  P: { bg: "bg-emerald-50", text: "text-emerald-700", label: "Present", border: "border-emerald-200" },
-  A: { bg: "bg-red-50", text: "text-red-700", label: "Absent", border: "border-red-200" },
-  L: { bg: "bg-blue-50", text: "text-blue-700", label: "Leave", border: "border-blue-200" },
-  H: { bg: "bg-amber-50", text: "text-amber-700", label: "Half Day", border: "border-amber-200" },
-  WO: { bg: "bg-slate-100", text: "text-slate-600", label: "Week Off", border: "border-slate-300" },
-  HO: { bg: "bg-purple-50", text: "text-purple-700", label: "Holiday", border: "border-purple-200" },
-  "-": { bg: "bg-gray-50", text: "text-gray-400", label: "No Data", border: "border-gray-200" },
+  P: { bg: "bg-emerald-100 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400", label: "Present", border: "border-emerald-400 dark:border-emerald-800" },
+  A: { bg: "bg-red-100 dark:bg-red-900/30", text: "text-red-700 dark:text-red-400", label: "Absent", border: "border-red-400 dark:border-red-800" },
+  L: { bg: "bg-blue-100 dark:bg-blue-900/30", text: "text-blue-700 dark:text-blue-400", label: "Leave", border: "border-blue-400 dark:border-blue-800" },
+  H: { bg: "bg-amber-100 dark:bg-amber-900/30", text: "text-amber-700 dark:text-amber-400", label: "Half Day", border: "border-amber-400 dark:border-amber-800" },
+  WO: { bg: "bg-slate-100 dark:bg-slate-800/80", text: "text-slate-600 dark:text-slate-300", label: "Week Off", border: "border-slate-400 dark:border-slate-600" },
+  HO: { bg: "bg-purple-100 dark:bg-purple-900/30", text: "text-purple-700 dark:text-purple-400", label: "Holiday", border: "border-purple-400 dark:border-purple-800" },
+  "-": { bg: "bg-gray-50 dark:bg-slate-800/40", text: "text-gray-400 dark:text-gray-500", label: "No Data", border: "border-gray-300 dark:border-slate-700" },
 };
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -101,22 +101,22 @@ export function MonthlyAttendanceOverview({ employee, refreshKey }: MonthlyAtten
   const monthYear = currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   return (
-    <Card className="p-6 border border-slate-200 shadow-sm rounded-lg">
+    <Card className="p-6 border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg bg-card text-card-foreground">
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Monthly Attendance Overview - {monthYear}</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Monthly Attendance Overview - {monthYear}</h3>
           {isLoading && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 pb-4 border-b border-slate-200">
+        <div className="flex flex-wrap gap-4 pb-4 border-b border-slate-200 dark:border-slate-700">
           {(["P", "A", "L", "H", "WO", "HO"] as AttendanceStatus[]).map((status) => {
             const colors = STATUS_COLORS[status];
             return (
               <div key={status} className="flex items-center gap-2">
                 <div className={`w-4 h-4 rounded ${colors.bg} border ${colors.border}`} />
-                <span className="text-sm text-slate-700">
+                <span className="text-sm text-slate-700 dark:text-slate-300">
                   <span className="font-semibold">{status}</span> ({statusCounts[status]})
                 </span>
               </div>
@@ -134,7 +134,7 @@ export function MonthlyAttendanceOverview({ employee, refreshKey }: MonthlyAtten
           <div className="space-y-4">
             <div className="grid grid-cols-7 gap-2 mb-2">
               {DAY_NAMES.map((day) => (
-                <div key={day} className="p-2 text-center text-xs font-bold text-slate-700 uppercase bg-slate-50 rounded">
+                <div key={day} className="p-2 text-center text-xs font-bold text-slate-700 dark:text-slate-300 uppercase bg-slate-50 dark:bg-slate-800/50 rounded">
                   {day}
                 </div>
               ))}
@@ -151,7 +151,7 @@ export function MonthlyAttendanceOverview({ employee, refreshKey }: MonthlyAtten
                       className={`p-4 rounded-lg text-center border-2 transition-all ${colors.bg} ${colors.border}`}
                       title={colors.label}
                     >
-                      <div className="text-lg font-bold text-slate-900">{day.date}</div>
+                      <div className="text-lg font-bold text-slate-900 dark:text-slate-100">{day.date}</div>
                       <div className={`text-sm font-bold mt-2 ${colors.text}`}>
                         {day.status === "-" ? "—" : day.status}
                       </div>
@@ -165,7 +165,7 @@ export function MonthlyAttendanceOverview({ employee, refreshKey }: MonthlyAtten
         )}
 
         {/* Info Box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm text-blue-800 dark:text-blue-300">
           <p className="font-semibold mb-2">📋 Attendance Status Guide:</p>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <p><span className="font-semibold">P</span> – Present</p>

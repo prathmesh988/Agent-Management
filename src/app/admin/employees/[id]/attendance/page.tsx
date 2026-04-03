@@ -32,11 +32,11 @@ const SUMMARY_CARDS = [
 ] as const;
 
 const CARD_STYLES = {
-  emerald: { border: "border-emerald-200 bg-emerald-50", text: "text-emerald-700" },
-  red:     { border: "border-red-200 bg-red-50",         text: "text-red-700"     },
-  blue:    { border: "border-blue-200 bg-blue-50",       text: "text-blue-700"    },
-  amber:   { border: "border-amber-200 bg-amber-50",     text: "text-amber-700"   },
-  slate:   { border: "border-slate-200 bg-slate-50",     text: "text-slate-700"   },
+  emerald: { border: "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/30", text: "text-emerald-700 dark:text-emerald-400" },
+  red:     { border: "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/30",         text: "text-red-700 dark:text-red-400"     },
+  blue:    { border: "border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/30",       text: "text-blue-700 dark:text-blue-400"    },
+  amber:   { border: "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/30",     text: "text-amber-700 dark:text-amber-400"   },
+  slate:   { border: "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/80",     text: "text-slate-700 dark:text-slate-300"   },
 };
 
 export default function AttendanceOverviewPage({
@@ -125,8 +125,8 @@ export default function AttendanceOverviewPage({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Attendance Overview</h1>
-          <p className="text-slate-600 mt-1">{currentEmployee.name}</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Attendance Overview</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">{currentEmployee.name}</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <Button onClick={handleDownloadReport} variant="outline" size="lg" className="shadow-md">
@@ -149,13 +149,13 @@ export default function AttendanceOverviewPage({
           return (
             <Card key={key} className={`border-2 ${styles.border}`}>
               <CardHeader className="pb-2 pt-4 px-4">
-                <CardTitle className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <CardTitle className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   {label}
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <div className={`text-4xl font-bold ${styles.text}`}>{counts[key] ?? 0}</div>
-                <p className="text-xs text-slate-400 mt-1">Auto-calculated</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Auto-calculated</p>
               </CardContent>
             </Card>
           );
