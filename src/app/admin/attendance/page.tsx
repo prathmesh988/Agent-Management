@@ -23,6 +23,14 @@ const ATTENDANCE_CODES = ["P", "A", "WO", "HD", "LC", "CL", "L", ""] as const;
 export default function AttendancePage() {
   const { employees, updateEmployee, isLoading } = useEmployees();
   const [searchTerm, setSearchTerm] = useState("");
+  const [toastMessage, setToastMessage] = useState<{show: boolean, msg: string}>({show: false, msg: ""});
+
+  const showToast = useCallback((msg: string) => {
+    setToastMessage({show: true, msg});
+    setTimeout(() => {
+      setToastMessage(prev => ({ ...prev, show: false }));
+    }, 150);
+  }, []);
 
   const handleUpdate = useCallback(async (employee: Employee, dayKey: string, nextCode: string) => {
     const updatedEmp = { ...employee, [dayKey]: nextCode } as Employee;
@@ -124,7 +132,8 @@ export default function AttendancePage() {
                               employee={emp} 
                               dayKey={key} 
                               initialCode={(emp[key as keyof Employee] as string) || ""} 
-                              onUpdate={handleUpdate} 
+                              onUpdate={handleUpdate}
+                              showToast={showToast}
                            />
                         ))}
                         <TableCell className="text-right font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20">
@@ -139,6 +148,14 @@ export default function AttendancePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Ephemeral Toast */}
+      {toastMessage.show && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-emerald-500/90 text-white font-medium px-4 py-2 rounded-full shadow-lg text-sm z-50 pointer-events-none transition-opacity duration-150 flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+          {toastMessage.msg}
+        </div>
+      )}
     </div>
   );
 }
@@ -147,12 +164,14 @@ function AttendanceCell({
   employee, 
   dayKey, 
   initialCode, 
-  onUpdate 
+  onUpdate,
+  showToast
 }: { 
   employee: Employee, 
   dayKey: string, 
   initialCode: string, 
-  onUpdate: (emp: Employee, dayKey: string, nextCode: string) => Promise<void> 
+  onUpdate: (emp: Employee, dayKey: string, nextCode: string) => Promise<void>,
+  showToast: (msg: string) => void
 }) {
   const [code, setCode] = useState(initialCode);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -174,6 +193,7 @@ function AttendanceCell({
     
     try {
       await onUpdate(employee, dayKey, nextCode);
+      showToast("Saved!");
     } catch {
       // revert on fail
       setCode(initialCode);
@@ -197,7 +217,7 @@ function AttendanceCell({
       onClick={handleClick}
     >
       <div className={`flex items-center justify-center h-10 w-full hover:bg-slate-200/50 dark:hover:bg-slate-700/50 font-medium text-xs ${textColor}`}>
-        {code || "-"}
+        {isUpdating ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : (code || "-")}
       </div>
     </TableCell>
   );
