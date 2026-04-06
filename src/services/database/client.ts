@@ -37,5 +37,7 @@ export const DB_CONFIG = {
   EMPLOYEES_COLLECTION_ID: process.env.APPWRITE_COLLECTION_ID || "rydr_db",
   EMPLOYEES_COLLECTION_NAME: process.env.APPWRITE_COLLECTION_NAME || "rydr_db",
   INCENTIVE_COLLECTION_ID: process.env.APPWRITE_INCENTIVE_COLLECTION_ID || "incentive",
+  LEAVE_COLLECTION_ID: process.env.APPWRITE_LEAVE_COLLECTION_ID || "leave_management",
+  LEAVE_BUCKET_ID: process.env.APPWRITE_LEAVE_BUCKET_ID || "leave_documents",
   // Certificates data comes from the same employees table
 };

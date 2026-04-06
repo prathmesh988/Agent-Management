@@ -117,3 +117,25 @@ export interface AdminUser {
   createdAt: string;
   status: 'active' | 'inactive';
 }
+
+export type LeaveStatus = 'pending' | 'approved' | 'rejected';
+
+export type LeaveType = 'casual' | 'sick' | 'earned' | 'unpaid' | 'other';
+
+export interface LeaveRequest {
+  $id?: string;
+  id?: string;
+  employeeId: string;
+  employeeName: string;
+  leaveType: LeaveType;
+  startDate: string;       // YYYY-MM-DD
+  endDate: string;         // YYYY-MM-DD
+  totalDays: number;
+  reason?: string;
+  status: LeaveStatus;
+  appliedOn?: string;      // ISO datetime
+  reviewedBy?: string;
+  reviewedOn?: string;     // ISO datetime
+  remarks?: string;
+  attachmentIds?: string;  // comma-separated file IDs from storage bucket
+}
