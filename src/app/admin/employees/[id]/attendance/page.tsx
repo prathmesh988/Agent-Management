@@ -7,9 +7,9 @@ import { Employee } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ArrowLeft, Download, AlertCircle } from "lucide-react";
+import { ArrowLeft, Download, AlertCircle, Calendar } from "lucide-react";
 import { getEmployee } from "@/app/(actions)/employees";
-import { getMonthlyAttendanceAction } from "@/app/(actions)/attendance";
+import { getMonthlyAttendanceAction, isEmployeeActiveInMonthAction } from "@/app/(actions)/attendance";
 import { MonthlyAttendanceOverview } from "@/components/admin/monthly-attendance-overview";
 import { AttendanceCalendarEditable } from "@/components/admin/attendance-calendar-editable";
 import { AttendanceAnalytics } from "@/components/admin/attendance-analytics";
@@ -50,11 +50,19 @@ export default function AttendanceOverviewPage({
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  
+  // Month/Year selection for summary display
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [isEmployeeActive, setIsEmployeeActive] = useState(true);
+  const [activeCheckMessage, setActiveCheckMessage] = useState("");
   const [overviewRefreshKey, setOverviewRefreshKey] = useState(0);
 
-  // Counts calculated from live monthly_attendance data
+  // Counts calculated from monthly_attendance
   const [counts, setCounts] = useState<Record<string, number>>({ P: 0, A: 0, L: 0, H: 0, WO: 0, HO: 0 });
 
+  // Load employee
   useEffect(() => {
     const loadEmployee = async () => {
       try {
@@ -70,33 +78,60 @@ export default function AttendanceOverviewPage({
     loadEmployee();
   }, [resolvedParams.id]);
 
-  // Fetch monthly attendance and calculate counts
+  // Check if employee is active in selected month
+  useEffect(() => {
+    const checkActive = async () => {
+      if (!currentEmployee) return;
+      const result = await isEmployeeActiveInMonthAction(
+        currentEmployee.employeeId,
+        selectedYear,
+        selectedMonth
+      );
+      setIsEmployeeActive(result.active);
+      setActiveCheckMessage(result.message);
+    };
+    checkActive();
+  }, [currentEmployee, selectedYear, selectedMonth]);
+
+  // Fetch attendance for selected month and calculate counts
   const recalculate = useCallback(async () => {
     if (!currentEmployee) return;
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
     try {
-      const result = await getMonthlyAttendanceAction(currentEmployee.employeeId, year, month);
-      if (!result.success) return;
+      const result = await getMonthlyAttendanceAction(
+        currentEmployee.employeeId,
+        selectedYear,
+        selectedMonth
+      );
+      if (!result.success) {
+        setCounts({ P: 0, A: 0, L: 0, H: 0, WO: 0, HO: 0 });
+        return;
+      }
+
+      // Count statuses from calendar keys
       const fresh: Record<string, number> = { P: 0, A: 0, L: 0, H: 0, WO: 0, HO: 0 };
-      Object.values(result.data).forEach((raw) => {
-        const status = STATUS_MAP[raw as string];
-        if (status && status !== "-" && status in fresh) fresh[status]++;
+      Object.values(result.data).forEach((status) => {
+        if (status && status !== "-" && status in fresh) {
+          fresh[status]++;
+        }
       });
       setCounts(fresh);
-    } catch {}
-  }, [currentEmployee]);
+    } catch (e) {
+      console.error("Error recalculating:", e);
+    }
+  }, [currentEmployee, selectedYear, selectedMonth]);
 
-  // Recalculate on first load and after every save
-  useEffect(() => { recalculate(); }, [recalculate, overviewRefreshKey]);
+  useEffect(() => {
+    recalculate();
+  }, [recalculate]);
 
   const handleDownloadReport = () => {
     if (!currentEmployee) return;
+    const monthName = new Date(selectedYear, selectedMonth - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
     const rows = [
-      ["Attendance Overview Report"],
+      ["Attendance Report"],
       ["Employee Name", currentEmployee.name],
       ["Employee ID", currentEmployee.id || ""],
+      ["Month", monthName],
       [],
       ["Status", "Count"],
       ...SUMMARY_CARDS.map(({ key, label }) => [label, counts[key] ?? 0]),
@@ -104,7 +139,7 @@ export default function AttendanceOverviewPage({
     const csv = rows.map((r) => r.join(",")).join("\n");
     const a = document.createElement("a");
     a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = `${currentEmployee.name}_attendance_report.csv`;
+    a.download = `${currentEmployee.name}_${selectedYear}-${String(selectedMonth).padStart(2, "0")}_attendance.csv`;
     a.click();
   };
 
@@ -118,6 +153,10 @@ export default function AttendanceOverviewPage({
       <Link href="/admin/employees"><Button>Back to Employees</Button></Link>
     </div>
   );
+
+  // Month/Year selector
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const years = Array.from({ length: 3 }, (_, i) => now.getFullYear() - 1 + i);
 
   return (
     <div className="space-y-6">
@@ -141,7 +180,54 @@ export default function AttendanceOverviewPage({
         </div>
       </div>
 
-      {/* Auto-calculated summary cards (read-only) */}
+      {/* Month/Year Selector */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Select Month & Year
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-slate-700">Month:</label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {months.map((m) => (
+                <option key={m} value={m}>
+                  {new Date(selectedYear, m - 1).toLocaleDateString("en-US", { month: "long" })}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-slate-700">Year:</label>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Active Status Alert */}
+      {!isEmployeeActive && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Not Active in Selected Period</AlertTitle>
+          <AlertDescription>{activeCheckMessage}</AlertDescription>
+        </Alert>
+      )}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
         {SUMMARY_CARDS.map(({ key, label, color }) => {
           const styles = CARD_STYLES[color as keyof typeof CARD_STYLES];
@@ -162,17 +248,21 @@ export default function AttendanceOverviewPage({
       </div>
 
       {/* Monthly Attendance Overview */}
-      <MonthlyAttendanceOverview
-        employee={currentEmployee}
-        refreshKey={overviewRefreshKey}
-      />
+      {isEmployeeActive && (
+        <MonthlyAttendanceOverview
+          employee={currentEmployee}
+          refreshKey={overviewRefreshKey}
+        />
+      )}
 
       {/* Editable Attendance Calendar */}
-      <AttendanceCalendarEditable
-        employee={currentEmployee}
-        onEmployeeUpdate={(updated) => setCurrentEmployee(updated)}
-        onSave={() => setOverviewRefreshKey((k) => k + 1)}
-      />
+      {isEmployeeActive && (
+        <AttendanceCalendarEditable
+          employee={currentEmployee}
+          onEmployeeUpdate={(updated) => setCurrentEmployee(updated)}
+          onSave={() => setOverviewRefreshKey((k) => k + 1)}
+        />
+      )}
 
       {/* Analytics */}
       <AttendanceAnalytics employee={currentEmployee} />
