@@ -11,7 +11,7 @@ interface ExcelUploadComponentProps {
 }
 
 const MONTHS = [
-  "All Months", "January", "February", "March", "April", "May", "June",
+  "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
 
@@ -33,6 +33,7 @@ export function ExcelUploadComponent({
   const [successSummary, setSuccessSummary] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState<number>(defaults.month);
   const [selectedYear, setSelectedYear] = useState<number>(defaults.year);
+  const [isSingleSheet, setIsSingleSheet] = useState<boolean>(true);
 
   // Year range: 5 years back to 2 years ahead
   const currentYear = new Date().getFullYear();
@@ -106,9 +107,14 @@ export function ExcelUploadComponent({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("month", String(selectedMonth));
-      formData.append("monthName", MONTHS[selectedMonth - 1]);
-      formData.append("year", String(selectedYear));
+      formData.append("isSingleSheet", String(isSingleSheet));
+      if (isSingleSheet) {
+        formData.append("month", String(selectedMonth));
+        formData.append("year", String(selectedYear));
+      } else {
+        // For multiple sheets, still pass current month as fallback but API will detect from Excel
+        formData.append("monthName", MONTHS[selectedMonth - 1]);
+      }
 
       // Simulate progress
       const interval = setInterval(() => {
@@ -168,36 +174,81 @@ export function ExcelUploadComponent({
 
   return (
     <Card className="p-8 bg-background">
-      {/* Month / Year Selector */}
-      <div className="mb-8">
-        <p className="text-sm font-semibold text-foreground mb-3">
-          Select the payroll month this sheet covers
+      {/* Sheet Type Selector */}
+      <div className="mb-8 space-y-4">
+        <p className="text-sm font-semibold text-foreground">
+          How many months are in your sheet?
         </p>
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <label className="text-xs text-muted-foreground mb-1 block">Month</label>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {MONTHS.map((name, i) => (
-                <option key={i + 1} value={i + 1}>{name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex-1">
-            <label className="text-xs text-muted-foreground mb-1 block">Year</label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {yearOptions.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
+        
+        {/* Single Month Option */}
+        <div className="border border-border rounded-lg p-4 bg-card">
+          <label className="flex items-center gap-3 cursor-pointer mb-4">
+            <input
+              type="radio"
+              name="sheetType"
+              value="single"
+              checked={isSingleSheet}
+              onChange={() => setIsSingleSheet(true)}
+              className="w-4 h-4"
+            />
+            <span className="text-sm font-medium text-foreground">Single Month Sheet</span>
+          </label>
+          
+          {/* Month/Year selectors for single sheet */}
+          {isSingleSheet && (
+            <div className="ml-7 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Select the payroll month this sheet covers:
+              </p>
+              <div className="flex gap-3 flex-wrap">
+                <div className="flex-1 min-w-[140px]">
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Month</label>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {MONTHS.map((name, i) => (
+                      <option key={i + 1} value={i + 1}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1 min-w-[140px]">
+                  <label className="text-xs font-medium text-muted-foreground mb-2 block">Year</label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {yearOptions.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground/80 mt-2">
+                💡 <span className="font-medium">Pro tip:</span> The system will first try to auto-detect the month from your file's sheet name (e.g., "March 2026"), then use these selections as fallback if detection fails.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Multiple Months Option */}
+        <div className="border border-border rounded-lg p-4 bg-card">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="sheetType"
+              value="multiple"
+              checked={!isSingleSheet}
+              onChange={() => setIsSingleSheet(false)}
+              className="w-4 h-4"
+            />
+            <span className="text-sm font-medium text-foreground">Multiple Months (Auto-detect from file)</span>
+          </label>
+          <p className="text-xs text-muted-foreground mt-2 ml-7">
+            System will detect month and year from each sheet's name in your Excel file.
+          </p>
         </div>
       </div>
 
