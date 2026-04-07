@@ -140,7 +140,7 @@ export function EmployeeForm({
             <label className="text-sm font-medium text-slate-700">Status</label>
             <Select
               value={formData.status || "active"}
-              onValueChange={(value) => handleChange("status", value as any)}
+              onValueChange={(value) => handleChange("status", value as "active" | "inactive" | "on-leave")}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />

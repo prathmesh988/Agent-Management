@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ATTENDANCE } from '@/lib/constants';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useEmployees } from '@/hooks/useEmployees';
 import { Employee } from '@/lib/types';
@@ -18,7 +19,8 @@ const DAY_KEYS = [
 ] as const;
 
 // Types of attendance
-const ATTENDANCE_CODES = ["P", "A", "WO", "HD", "LC", "CL", "L", ""] as const;
+const ATTENDANCE_CODES = ATTENDANCE.CODES;
+type AttendanceCode = typeof ATTENDANCE.CODES[number];
 
 export default function AttendancePage() {
   const { employees, updateEmployee, isLoading } = useEmployees();
@@ -32,7 +34,7 @@ export default function AttendancePage() {
     }, 150);
   }, []);
 
-  const handleUpdate = useCallback(async (employee: Employee, dayKey: string, nextCode: string) => {
+  const handleUpdate = useCallback(async (employee: Employee, dayKey: string, nextCode: AttendanceCode) => {
     const updatedEmp = { ...employee, [dayKey]: nextCode } as Employee;
     await updateEmployee(updatedEmp);
   }, [updateEmployee]);
@@ -170,21 +172,28 @@ function AttendanceCell({
   employee: Employee, 
   dayKey: string, 
   initialCode: string, 
-  onUpdate: (emp: Employee, dayKey: string, nextCode: string) => Promise<void>,
+  onUpdate: (emp: Employee, dayKey: string, nextCode: AttendanceCode) => Promise<void>,
   showToast: (msg: string) => void
 }) {
-  const [code, setCode] = useState(initialCode);
+  const [code, setCode] = useState<AttendanceCode>(
+    (initialCode && ATTENDANCE_CODES.includes(initialCode as AttendanceCode)) 
+      ? (initialCode as AttendanceCode)
+      : ''
+  );
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    setCode(initialCode);
+    const validCode = (initialCode && ATTENDANCE_CODES.includes(initialCode as AttendanceCode))
+      ? (initialCode as AttendanceCode)
+      : '';
+    setCode(validCode);
   }, [initialCode]);
 
   const handleClick = async () => {
     if (isUpdating) return;
     
-    const currentIndex = ATTENDANCE_CODES.indexOf(code as any);
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % ATTENDANCE_CODES.length;
+    const currentIndex = ATTENDANCE_CODES.indexOf(code);
+    const nextIndex = (currentIndex + 1) % ATTENDANCE_CODES.length;
     const nextCode = ATTENDANCE_CODES[nextIndex];
     
     // immediate visual update
@@ -196,7 +205,7 @@ function AttendanceCell({
       showToast("Saved!");
     } catch {
       // revert on fail
-      setCode(initialCode);
+      setCode(code);
     } finally {
       setIsUpdating(false);
     }

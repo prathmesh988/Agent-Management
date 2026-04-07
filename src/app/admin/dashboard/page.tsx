@@ -7,6 +7,7 @@ import { useEmployees } from "@/hooks/useEmployees";
 import { mockAdmins } from "@/lib/data/mock-data";
 import { Users, UserCheck, Shield, TrendingUp, ArrowRight } from "lucide-react";
 import { PageLoader, SkeletonTable } from "@/components/ui/page-loader";
+import { getInitials, getAvatarColor } from "@/lib/avatar-utils";
 import {
   Table,
   TableBody,
@@ -81,26 +82,6 @@ export default function DashboardPage() {
   ];
 
   const recentEmployees = employees.slice(0, 5);
-
-  // Generate avatar with initials
-  function getInitials(name: string) {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  }
-
-  function getAvatarColor(index: number) {
-    const colors = [
-      "bg-blue-500",
-      "bg-emerald-500",
-      "bg-purple-500",
-      "bg-amber-500",
-      "bg-rose-500",
-    ];
-    return colors[index % colors.length];
-  }
 
   return (
     <div className="space-y-8">
