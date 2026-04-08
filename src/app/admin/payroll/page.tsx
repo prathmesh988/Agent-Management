@@ -7,10 +7,17 @@ import { PayrollSummaryCards } from '@/components/admin/payroll-summary-cards';
 import { PayrollTable } from '@/components/admin/payroll-table';
 import type { MonthlyPayrollRecord, PayrollSummary } from '@/services/database/monthly-payroll';
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
 export default function PayrollPage() {
   const [payrollData, setPayrollData] = useState<MonthlyPayrollRecord[]>([]);
   const [summary, setSummary] = useState<PayrollSummary | null>(null);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   const handleDataChange = (data: {
     payrollData: MonthlyPayrollRecord[];
@@ -21,6 +28,13 @@ export default function PayrollPage() {
     setSummary(data.summary);
     setMessage(data.message);
   };
+
+  const handleMonthYearChange = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+  };
+
+  const monthYearLabel = `${MONTHS[selectedMonth - 1]} ${selectedYear}`;
 
   return (
     <div className="space-y-8">
@@ -33,7 +47,10 @@ export default function PayrollPage() {
       </div>
 
       {/* Controls */}
-      <PayrollControls onDataChange={handleDataChange} />
+      <PayrollControls 
+        onDataChange={handleDataChange}
+        onMonthYearChange={handleMonthYearChange}
+      />
 
       {/* Message */}
       {message.text && (
@@ -54,7 +71,13 @@ export default function PayrollPage() {
       {summary && <PayrollSummaryCards summary={summary} />}
 
       {/* Payroll Table */}
-      {payrollData.length > 0 && <PayrollTable payrollData={payrollData} />}
+      {payrollData.length > 0 && (
+        <PayrollTable 
+          payrollData={payrollData} 
+          summary={summary}
+          monthYear={monthYearLabel}
+        />
+      )}
 
       {payrollData.length === 0 && message.type !== 'error' && (
         <Card className="p-8 bg-card text-center">

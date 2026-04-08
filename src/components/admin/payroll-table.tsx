@@ -1,16 +1,54 @@
 import { Card } from '@/components/ui/card';
-import type { MonthlyPayrollRecord } from '@/services/database/monthly-payroll';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
+import { exportPayrollToExcel, exportPayrollToCSV } from '@/lib/payroll-export';
+import type { MonthlyPayrollRecord, PayrollSummary } from '@/services/database/monthly-payroll';
 
 interface PayrollTableProps {
   payrollData: MonthlyPayrollRecord[];
+  summary?: PayrollSummary | null;
+  monthYear?: string;
 }
 
-export function PayrollTable({ payrollData }: PayrollTableProps) {
+export function PayrollTable({ payrollData, summary = null, monthYear = '' }: PayrollTableProps) {
   if (payrollData.length === 0) return null;
+
+  const handleExportExcel = () => {
+    exportPayrollToExcel(payrollData, summary, {
+      fileName: 'Payroll',
+      monthYear: monthYear || 'Report',
+    });
+  };
+
+  const handleExportCSV = () => {
+    exportPayrollToCSV(payrollData, monthYear || 'Report');
+  };
 
   return (
     <Card className="p-6 bg-card overflow-x-auto">
-      <h2 className="text-lg font-semibold text-foreground mb-4">Payroll Details</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-foreground">Payroll Details</h2>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export Excel
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportCSV}
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
+      </div>
 
       <table className="w-full text-sm">
         <thead className="border-b border-border bg-muted/50">

@@ -33,15 +33,28 @@ interface PayrollControlsProps {
     summary: PayrollSummary | null;
     message: { type: string; text: string };
   }) => void;
+  onMonthYearChange?: (month: number, year: number) => void;
 }
 
-export function PayrollControls({ onDataChange }: PayrollControlsProps) {
+export function PayrollControls({ onDataChange, onMonthYearChange }: PayrollControlsProps) {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(false);
 
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
+  // Notify parent when month changes
+  const handleMonthChange = (month: number) => {
+    setSelectedMonth(month);
+    onMonthYearChange?.(month, selectedYear);
+  };
+
+  // Notify parent when year changes
+  const handleYearChange = (year: number) => {
+    setSelectedYear(year);
+    onMonthYearChange?.(selectedMonth, year);
+  };
 
   const handleGeneratePayroll = async () => {
     setIsLoading(true);
@@ -144,7 +157,7 @@ export function PayrollControls({ onDataChange }: PayrollControlsProps) {
             <label className="text-sm font-medium text-foreground mb-2 block">Month</label>
             <select
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              onChange={(e) => handleMonthChange(Number(e.target.value))}
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {MONTHS.map((name, i) => (
@@ -159,7 +172,7 @@ export function PayrollControls({ onDataChange }: PayrollControlsProps) {
             <label className="text-sm font-medium text-foreground mb-2 block">Year</label>
             <select
               value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              onChange={(e) => handleYearChange(Number(e.target.value))}
               className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
               {yearOptions.map((y) => (
