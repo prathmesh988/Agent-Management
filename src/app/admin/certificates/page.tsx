@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useEmployees } from "@/hooks/useEmployees";
 import { Employee } from "@/lib/types";
+import { getInitials, getAvatarColor } from "@/lib/avatar-utils";
+import { UI } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,31 +19,10 @@ import {
 } from "@/components/ui/table";
 import { Download, FileText, Trash2, ChevronLeft, ChevronRight, Mail, Loader2 } from "lucide-react";
 import { PageLoader } from "@/components/ui/page-loader";
-
-const ITEMS_PER_PAGE = 10;
 import { sendCertificatesToMultiple, checkCertificatesInBucketAction } from "@/app/(actions)/send-certificate";
 import { getExactCertificateHTML } from "@/lib/pdf-generator";
 
-// Helper function to get initials
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
-
-// Helper function to get avatar color
-function getAvatarColor(index: number) {
-  const colors = [
-    "bg-blue-500",
-    "bg-emerald-500",
-    "bg-purple-500",
-    "bg-amber-500",
-    "bg-rose-500",
-  ];
-  return colors[index % colors.length];
-}
+const ITEMS_PER_PAGE = UI.PAGINATION.ITEMS_PER_PAGE;
 
 export default function CertificatesPage() {
   const router = useRouter();

@@ -1,7 +1,7 @@
 "use client";
 
 import { AdminTable } from "@/components/admin/admin-table";
-import { useAdmins } from "@/hooks/useAdmins";
+import { useAdmins, type AdminUser } from "@/hooks/useAdmins";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useState } from "react";
 import { Eye, Shield, AlertCircle } from "lucide-react";
@@ -35,7 +35,7 @@ export default function AdminsPage() {
     }
   };
 
-  const handleDeleteAdmin = (admin: any) => {
+  const handleDeleteAdmin = (admin: AdminUser) => {
     // Check if current user is admin
     if (currentUser?.role !== 'admin') {
       setUpdateError('Only admins can delete users');

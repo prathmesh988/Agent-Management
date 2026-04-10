@@ -14,6 +14,11 @@ import {
   X,
   FileText,
   ChevronLeft,
+  Calendar,
+  Clock,
+  BookOpen,
+  Banknote,
+  BarChart3,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +27,11 @@ import { useSidebar } from './sidebar-context';
 const navItems = [
   { title: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { title: 'Employees', href: '/admin/employees', icon: Users },
+  { title: 'Attendance', href: '/admin/attendance', icon: Calendar },
+  { title: 'Leave', href: '/admin/leave', icon: Clock },
+  { title: 'Payroll', href: '/admin/payroll', icon: Banknote },
+  // { title: 'HR Policy', href: '/admin/hr-policy', icon: BookOpen },
+  // { title: 'Reports', href: '/admin/reports', icon: BarChart3 },
   { title: 'Upload Employees', href: '/admin/employees/upload', icon: Upload },
   { title: 'Certificates', href: '/admin/certificates', icon: FileText },
   { title: 'Admins', href: '/admin/admins', icon: Shield },

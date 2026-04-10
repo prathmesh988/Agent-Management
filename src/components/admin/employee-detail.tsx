@@ -1,6 +1,7 @@
 "use client";
 
 import { Employee } from "@/lib/types";
+import { getInitials, getAvatarColorByHash } from "@/lib/avatar-utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Edit2, Trash2, ArrowLeft, Mail, Briefcase, Calendar, Users, BarChart3 } from "lucide-react";
@@ -11,30 +12,6 @@ interface EmployeeProfileProps {
   onEdit?: () => void;
   onDelete?: () => void;
   employeeId?: string;
-}
-
-// Helper function to get initials
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-// Helper function to get avatar background color based on name
-function getAvatarColor(name: string): string {
-  const colors = [
-    "bg-blue-500",
-    "bg-emerald-500",
-    "bg-purple-500",
-    "bg-amber-500",
-    "bg-rose-500",
-    "bg-indigo-500",
-    "bg-teal-500",
-  ];
-  return colors[name.charCodeAt(0) % colors.length];
 }
 
 // Helper to format dates
@@ -82,7 +59,7 @@ export function EmployeeProfile({
           <div className="flex gap-6 flex-1">
             {/* Avatar */}
             <div
-              className={`h-24 w-24 rounded-full ${getAvatarColor(employee.name)} flex items-center justify-center text-white text-4xl font-bold flex-shrink-0`}
+              className={`h-24 w-24 rounded-full ${getAvatarColorByHash(employee.name)} flex items-center justify-center text-white text-4xl font-bold flex-shrink-0`}
             >
               {getInitials(employee.name)}
             </div>

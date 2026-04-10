@@ -42,3 +42,16 @@ export {
   getCertificateCount,
   updateCertificate,
 } from "./certificates";
+
+// Leave exports
+export {
+  fetchAllLeaves,
+  fetchAllLeavesPaginated,
+  fetchLeavesByStatus,
+  fetchLeavesByEmployee,
+  createLeaveRequest,
+  updateLeaveStatus,
+  deleteLeaveRequest,
+  getLeaveCountByStatus,
+  searchLeaves,
+} from "./leaves";

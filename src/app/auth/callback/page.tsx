@@ -39,9 +39,10 @@ function AuthCallbackContent() {
         setTimeout(() => {
           router.push('/admin/dashboard');
         }, 1500);
-      } catch (error: any) {
+      } catch (error: unknown) {
         setStatus('error');
-        setErrorMessage(error.message || 'Failed to verify login link. It may have expired.');
+        const message = error instanceof Error ? error.message : 'Failed to verify login link. It may have expired.';
+        setErrorMessage(message);
       }
     };
 

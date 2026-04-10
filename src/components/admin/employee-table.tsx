@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Employee } from "@/lib/types";
+import { getInitials, getAvatarColor } from "@/lib/avatar-utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,14 @@ interface EmployeeTableProps {
 const ITEMS_PER_PAGE = 10;
 
 // Dropdown menu component
-function ActionDropdown({ employee, onView, onEdit, onDelete }: any) {
+interface ActionDropdownProps {
+  employee: Employee;
+  onView?: (employee: Employee) => void;
+  onEdit?: (employee: Employee) => void;
+  onDelete?: (employee: Employee) => void;
+}
+
+function ActionDropdown({ employee, onView, onEdit, onDelete }: ActionDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -96,25 +104,6 @@ function ActionDropdown({ employee, onView, onEdit, onDelete }: any) {
       )}
     </div>
   );
-}
-
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
-
-function getAvatarColor(index: number) {
-  const colors = [
-    "bg-blue-500",
-    "bg-emerald-500",
-    "bg-purple-500",
-    "bg-amber-500",
-    "bg-rose-500",
-  ];
-  return colors[index % colors.length];
 }
 
 export function EmployeeTable({
