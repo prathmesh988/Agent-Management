@@ -43,9 +43,9 @@ export default function LoginPage() {
       const redirectUrl = `${window.location.origin}/auth/callback`;
       await sendMagicLink(email, redirectUrl);
       setIsSubmitted(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      const errorMessage = err.message || 'Login failed. Please try again.';
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
