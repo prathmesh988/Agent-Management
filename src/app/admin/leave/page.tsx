@@ -216,6 +216,10 @@ function ApplyLeaveModal({
     if (!employeeId || !startDate || !endDate || totalDays < 1) return;
     setIsSubmitting(true);
     try {
+      // Generate a unique leaveId to use for file naming
+      const { ID } = await import("node-appwrite");
+      const leaveId = ID.unique();
+
       let attachmentIds = "";
 
       // Upload files first if any
@@ -224,7 +228,7 @@ function ApplyLeaveModal({
         const formData = new FormData();
         attachedFiles.forEach((file) => formData.append("files", file));
 
-        const uploadRes = await fetch("/api/leave/upload", {
+        const uploadRes = await fetch(`/api/leave/upload?leaveId=${leaveId}`, {
           method: "POST",
           body: formData,
         });
@@ -760,10 +764,12 @@ function LeaveTable({
                       {leave.attachmentIds.split(",").map((entry, idx) => {
                         const [fileId, ...nameParts] = entry.trim().split(":");
                         const fileName = nameParts.join(":") || `File ${idx + 1}`;
+                        // Construct Appwrite bucket download URL
+                        const downloadUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/69b7cf9e001384db23f9/files/${fileId}/download?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
                         return (
                           <a
                             key={fileId}
-                            href={`/api/leave/upload?fileId=${fileId}`}
+                            href={downloadUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"

@@ -186,3 +186,97 @@ export async function deleteCertificateFromBucket(employeeId: string) {
 }
 
 export { BUCKET_ID };
+
+/**
+ * ============================================================================
+ * Leave Document Storage Functions
+ * ============================================================================
+ * Naming scheme: leave_{leaveId}.{extension} or leave_{leaveId}_{index}.{extension}
+ * Used for storing employee leave evidence (PDFs, images, documents)
+ */
+
+/**
+ * Get download URL for a leave document in bucket
+ * Uses the file ID from the leave upload system
+ */
+export function getLeaveDocumentDownloadUrl(fileId: string): string {
+  return `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/download?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+}
+
+/**
+ * Check if leave documents exist for a specific leave request
+ * Returns boolean indicating if any documents are found
+ */
+export async function checkIfLeaveDocumentsExist(leaveId: string): Promise<boolean> {
+  try {
+    const storage = getStorageClient();
+    const { Query } = await import("node-appwrite");
+
+    // Query for files matching the pattern: leave_{leaveId}*
+    const response = await storage.listFiles(BUCKET_ID, [
+      Query.startsWith("$id", `leave_${leaveId}`),
+    ]);
+
+    return response.files.length > 0;
+  } catch (error) {
+    console.warn(`No documents found in bucket for leave ${leaveId}`);
+    return false;
+  }
+}
+
+/**
+ * Get all documents for a specific leave request
+ * Returns array of file objects
+ */
+export async function getLeaveDocumentsFromBucket(leaveId: string) {
+  try {
+    const storage = getStorageClient();
+    const { Query } = await import("node-appwrite");
+
+    const response = await storage.listFiles(BUCKET_ID, [
+      Query.startsWith("$id", `leave_${leaveId}`),
+      Query.limit(100), // Max 100 files per leave request
+    ]);
+
+    return response.files;
+  } catch (error) {
+    console.error(`✗ Error getting leave documents for ${leaveId}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Delete a specific leave document from bucket
+ */
+export async function deleteLeaveDocumentFromBucket(fileId: string) {
+  try {
+    const storage = getStorageClient();
+    await storage.deleteFile(BUCKET_ID, fileId);
+    console.log(`✓ Leave document deleted from bucket: ${fileId}`);
+    return { success: true };
+  } catch (error) {
+    console.error(`✗ Error deleting leave document ${fileId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Delete all documents for a specific leave request
+ * Useful when a leave request is deleted
+ */
+export async function deleteAllLeaveDocuments(leaveId: string) {
+  try {
+    const documents = await getLeaveDocumentsFromBucket(leaveId);
+    const storage = getStorageClient();
+
+    for (const doc of documents) {
+      await storage.deleteFile(BUCKET_ID, doc.$id);
+    }
+
+    console.log(`✓ Deleted ${documents.length} documents for leave ${leaveId}`);
+    return { success: true, deletedCount: documents.length };
+  } catch (error) {
+    console.error(`✗ Error deleting leave documents for ${leaveId}:`, error);
+    throw error;
+  }
+}

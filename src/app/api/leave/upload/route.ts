@@ -6,12 +6,19 @@ import { DB_CONFIG } from "@/services/database/client";
 /**
  * POST /api/leave/upload
  * Accepts multipart form data with files and uploads them to the leave documents bucket.
- * Returns an array of { fileId, fileName, mimeType, size } for each uploaded file.
+ * Files are named using the scheme: leave_{leaveId}.{fileExtension}
+ * 
+ * Query parameters:
+ * - leaveId (optional): The leave request ID to use in the file naming scheme
+ *   If not provided, a unique ID is generated
  *
- * Cross-platform compatible — uses standard FormData API (web, mobile, desktop).
+ * Returns an array of { fileId, fileName, mimeType, size } for each uploaded file.
  */
 export async function POST(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const leaveId = searchParams.get("leaveId") || ID.unique();
+
     const client = new Client()
       .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
       .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
@@ -36,6 +43,7 @@ export async function POST(request: NextRequest) {
       size: number;
     }[] = [];
 
+    let fileIndex = 0;
     for (const file of files) {
       // Validate file size (max 30 MB)
       if (file.size > 30 * 1024 * 1024) {
@@ -45,12 +53,20 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Get file extension from the original file name
+      const fileExtension = file.name.split('.').pop() || 'bin';
+      
+      // Create file ID using naming scheme: leave_{leaveId}_{index}.{extension}
+      // Use index to support multiple files per leave request
+      const fileId = fileIndex === 0 
+        ? `leave_${leaveId}.${fileExtension}`
+        : `leave_${leaveId}_${fileIndex}.${fileExtension}`;
+
       // Convert File to Buffer for node-appwrite InputFile
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const inputFile = InputFile.fromBuffer(buffer, file.name);
 
-      const fileId = ID.unique();
       const result = await storage.createFile(
         DB_CONFIG.LEAVE_BUCKET_ID,
         fileId,
@@ -63,9 +79,15 @@ export async function POST(request: NextRequest) {
         mimeType: file.type,
         size: file.size,
       });
+
+      fileIndex++;
     }
 
-    return NextResponse.json({ success: true, files: uploaded });
+    return NextResponse.json({ 
+      success: true, 
+      files: uploaded,
+      leaveId // Return the leaveId so client can use it when creating the leave
+    });
   } catch (error) {
     console.error("Error uploading leave documents:", error);
     return NextResponse.json(
