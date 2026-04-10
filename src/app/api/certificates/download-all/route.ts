@@ -3,7 +3,7 @@ import puppeteer from "puppeteer";
 import archiver from "archiver";
 import { Readable } from "stream";
 import { uploadCertificateToBucket, checkIfCertificateExists, getPdfFromBucket } from "@/lib/appwrite-storage";
-import { getExactCertificateHTML } from "@/lib/pdf-generator";
+import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
 
 interface CertificateData {
   id: string;

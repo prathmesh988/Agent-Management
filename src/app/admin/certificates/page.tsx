@@ -20,7 +20,7 @@ import {
 import { Download, FileText, Trash2, ChevronLeft, ChevronRight, Mail, Loader2 } from "lucide-react";
 import { PageLoader } from "@/components/ui/page-loader";
 import { sendCertificatesToMultiple, checkCertificatesInBucketAction } from "@/app/(actions)/send-certificate";
-import { getExactCertificateHTML } from "@/lib/pdf-generator";
+import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
 
 const ITEMS_PER_PAGE = UI.PAGINATION.ITEMS_PER_PAGE;
 
@@ -142,7 +142,7 @@ export default function CertificatesPage() {
         employeeName: emp.name,
         jobTitle: emp.designation,
         department: emp.department,
-        startDate: emp.dateOfJoining,
+        startDate: emp.dateOfJoining ? String(emp.dateOfJoining) : undefined,
         salary: `₹${emp.ctc}`,
         certificateId: `CERT-${emp.employeeId}`,
       };
@@ -188,7 +188,7 @@ export default function CertificatesPage() {
         employeeName: emp.name,
         jobTitle: emp.designation,
         department: emp.department,
-        startDate: emp.dateOfJoining,
+        startDate: emp.dateOfJoining ? String(emp.dateOfJoining) : undefined,
         salary: `₹${emp.ctc}`,
         certificateId: `CERT-${emp.employeeId}`,
       }));
@@ -282,7 +282,7 @@ export default function CertificatesPage() {
       // Prepare email data
       const emailParams = selectedEmps.map((emp) => ({
         employeeId: emp.employeeId,
-        employeeEmail: emp.email!,
+        senderEmail: emp.email!,
         employeeName: emp.name!,
         certificateId: `CERT-${emp.employeeId}`, // Kept for compatibility but download uses employeeId
       }));
@@ -394,7 +394,7 @@ export default function CertificatesPage() {
                 Generate Certificates ({filteredEmployees.length})
               </h2>
               <div className="flex gap-2">
-                <Button
+                {/* <Button
                   onClick={handleGenerateSelected}
                   className="w-full sm:w-auto gap-2 transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white font-500"
                   disabled={selectedIds.size === 0 || isGenerating}
@@ -433,7 +433,7 @@ export default function CertificatesPage() {
                   {isSendingEmails
                     ? "Sending..."
                     : `Send to Mail (${selectedIds.size})`}
-                </Button>
+                </Button> */}
               </div>
             </div>
             

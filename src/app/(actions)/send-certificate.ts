@@ -18,7 +18,7 @@ const transporter = nodemailer.createTransport({
 
 interface SendCertificateEmailParams {
     employeeId: string;
-    employeeEmail: string;
+    senderEmail: string;
     employeeName: string;
     certificateId: string;
 }
@@ -30,13 +30,13 @@ export async function sendCertificateEmail(
     params: SendCertificateEmailParams
 ) {
     try {
-        const { employeeEmail, employeeName, certificateId, employeeId } = params;
+        const { senderEmail, employeeName, certificateId, employeeId } = params;
 
         // Validate email
-        if (!employeeEmail || !employeeEmail.includes('@')) {
+        if (!senderEmail || !senderEmail.includes('@')) {
             return {
                 success: false,
-                error: `Invalid email for ${employeeName}: ${employeeEmail}`,
+                error: `Invalid email for ${employeeName}: ${senderEmail}`,
             };
         }
 
@@ -46,8 +46,8 @@ export async function sendCertificateEmail(
         // Email content
         const mailOptions = {
             from: process.env.GMAIL_FROM,
-            //   to: employeeEmail,
-            to: 'prathmeshgawade41@gmail.com',
+            //   to: senderEmail,
+            to: senderEmail,
             subject: `Your Employment Certificate - ${employeeName}`,
             html: `
         <html>
@@ -88,10 +88,10 @@ export async function sendCertificateEmail(
         // Send email
         const info = await transporter.sendMail(mailOptions);
 
-        console.log(`✓ Certificate email sent to ${employeeEmail}:`, info.response);
+        console.log(`✓ Certificate email sent to ${senderEmail}:`, info.response);
         return {
             success: true,
-            message: `Email sent to ${employeeName} (${employeeEmail})`,
+            message: `Email sent to ${employeeName} (${senderEmail})`,
             info,
         };
     } catch (error) {
@@ -117,7 +117,7 @@ export async function sendCertificatesToMultiple(
             const result = await sendCertificateEmail(params);
             results.push({
                 employeeName: params.employeeName,
-                email: params.employeeEmail,
+                email: params.senderEmail,
                 ...result,
             });
         }
