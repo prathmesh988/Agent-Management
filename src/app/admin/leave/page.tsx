@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {LeaveRequestActions} from "@/components/admin/leave-request-actions";
 import {
   Select,
   SelectContent,
@@ -1126,44 +1127,6 @@ export default function LeaveManagementPage() {
         action={remarksModal.action}
         leaveName={remarksModal.leave?.employeeName || ""}
       />
-    </div>
-  );
-}
-
-/**
- * Server Component: Render approval queue table
- */
-function LeaveApprovalQueueTable({ requests }: { requests: LeaveRequest[] }) {
-  return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Employee</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Dates (Duration)</TableHead>
-            <TableHead>Reason</TableHead>
-            <TableHead className="text-right">Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {requests.map((request) => (
-            <TableRow key={request.$id}>
-              <TableCell className="font-medium">{request.employeeName}</TableCell>
-              <TableCell>{LEAVE_TYPE_LABELS[request.leaveType]}</TableCell>
-              <TableCell>
-                {new Date(request.startDate).toLocaleDateString('en-IN')} -{' '}
-                {new Date(request.endDate).toLocaleDateString('en-IN')} ({request.duration}{' '}
-                Days)
-              </TableCell>
-              <TableCell className="text-muted-foreground truncate">{request.reason}</TableCell>
-              <TableCell className="text-right">
-                <LeaveRequestActions request={request} />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
     </div>
   );
 }
