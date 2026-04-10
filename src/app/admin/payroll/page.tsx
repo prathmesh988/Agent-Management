@@ -1,94 +1,125 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Pagination } from '@/components/ui/pagination';
+import { PayrollControls } from '@/components/admin/payroll-controls';
+import { PayrollSummaryCards } from '@/components/admin/payroll-summary-cards';
+import { PayrollTable } from '@/components/admin/payroll-table';
+import { getMonthPayrollAction } from '@/app/(actions)/payroll';
+import type { MonthlyPayrollRecord, PayrollSummary } from '@/services/database/monthly-payroll';
 
-export default function PayrollProcessingPage() {
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+
+export default function PayrollPage() {
+  const [payrollData, setPayrollData] = useState<MonthlyPayrollRecord[]>([]);
+  const [summary, setSummary] = useState<PayrollSummary | null>(null);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isLoadingPage, setIsLoadingPage] = useState(false);
+
+  const handleDataChange = (data: {
+    payrollData: MonthlyPayrollRecord[];
+    summary: PayrollSummary | null;
+    message: { type: string; text: string };
+    total?: number;
+    pages?: number;
+  }) => {
+    setPayrollData(data.payrollData);
+    setSummary(data.summary);
+    setMessage(data.message);
+    setCurrentPage(1); // Reset to first page when new data arrives
+    setTotalPages(data.pages || 0);
+  };
+
+  const handleMonthYearChange = (month: number, year: number) => {
+    setSelectedMonth(month);
+    setSelectedYear(year);
+  };
+
+  const handlePageChange = async (page: number) => {
+    setIsLoadingPage(true);
+    try {
+      const result = await getMonthPayrollAction(selectedYear, selectedMonth, page, 20);
+      setPayrollData(result.records);
+      setCurrentPage(page);
+      setTotalPages(result.pages);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to load page';
+      setMessage({ type: 'error', text: `❌ ${msg}` });
+    } finally {
+      setIsLoadingPage(false);
+    }
+  };
+
+  const monthYearLabel = `${MONTHS[selectedMonth - 1]} ${selectedYear}`;
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Payroll Processing</h1>
-        <div className="flex gap-2">
-           <Button variant="outline">Bank Export (NEFT/RTGS)</Button>
-           <Button variant="default" className="bg-primary">Run Automated Payroll</Button>
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground mb-2">Payroll Management</h1>
+        <p className="text-muted-foreground">
+          Generate, approve, and process monthly payroll for all employees
+        </p>
+      </div>
+
+      {/* Controls */}
+      <PayrollControls 
+        onDataChange={handleDataChange}
+        onMonthYearChange={handleMonthYearChange}
+      />
+
+      {/* Message */}
+      {message.text && (
+        <div
+          className={`p-4 rounded-lg border ${
+            message.type === 'success'
+              ? 'bg-green-50 border-green-200 text-green-900 dark:bg-green-950 dark:border-green-800 dark:text-green-200'
+              : message.type === 'warning'
+                ? 'bg-yellow-50 border-yellow-200 text-yellow-900 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-200'
+                : 'bg-red-50 border-red-200 text-red-900 dark:bg-red-950 dark:border-red-800 dark:text-red-200'
+          }`}
+        >
+          {message.text}
         </div>
-      </div>
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-         <Card className="lg:col-span-2">
-            <CardHeader>
-               <CardTitle>Recent Payroll Runs</CardTitle>
-               <CardDescription>View status of automated and manual payroll runs.</CardDescription>
-            </CardHeader>
-            <CardContent>
-               <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Month</TableHead>
-                        <TableHead>Processed Employees</TableHead>
-                        <TableHead>Total Gross</TableHead>
-                        <TableHead>Total Net Pay</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">October 2026</TableCell>
-                        <TableCell>145</TableCell>
-                        <TableCell>₹ 8,450,000</TableCell>
-                        <TableCell>₹ 7,820,000</TableCell>
-                        <TableCell>
-                           <span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">Completed</span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                           <Button size="sm" variant="ghost">View Details</Button>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-               </div>
-            </CardContent>
-         </Card>
+      {/* Summary Cards */}
+      {summary && <PayrollSummaryCards summary={summary} />}
 
-         <Card>
-            <CardHeader>
-               <CardTitle>Manual Adjustments</CardTitle>
-               <CardDescription>Arrears, advances, and penalties.</CardDescription>
-            </CardHeader>
-            <CardContent>
-               <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed rounded-md text-muted-foreground text-sm">
-                  Adjustment Entry Form
-               </div>
-            </CardContent>
-         </Card>
+      {/* Payroll Table */}
+      {payrollData.length > 0 && (
+        <>
+          <PayrollTable 
+            payrollData={payrollData} 
+            summary={summary}
+            monthYear={monthYearLabel}
+          />
+          {totalPages > 1 && (
+            <Pagination 
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              isLoading={isLoadingPage}
+            />
+          )}
+        </>
+      )}
 
-         <Card className="lg:col-span-3">
-            <CardHeader>
-               <CardTitle>Payslips & Reports Generator</CardTitle>
-            </CardHeader>
-            <CardContent>
-               <div className="flex gap-4">
-                  <Card className="flex-1 bg-slate-50 dark:bg-slate-900">
-                     <CardContent className="pt-6 text-center space-y-4">
-                        <div className="font-semibold text-lg">Generate Payslips</div>
-                        <p className="text-sm text-muted-foreground">Batch export payslips as PDF for all employees.</p>
-                        <Button variant="outline" className="w-full">Generate PDFs</Button>
-                     </CardContent>
-                  </Card>
-                  <Card className="flex-1 bg-slate-50 dark:bg-slate-900">
-                     <CardContent className="pt-6 text-center space-y-4">
-                        <div className="font-semibold text-lg">PF/ESIC/TDS Reports</div>
-                        <p className="text-sm text-muted-foreground">Download compliance reports for auditory filing.</p>
-                        <Button variant="outline" className="w-full">Download Reports</Button>
-                     </CardContent>
-                  </Card>
-               </div>
-            </CardContent>
-         </Card>
-      </div>
+      {payrollData.length === 0 && message.type !== 'error' && (
+        <Card className="p-8 bg-card text-center">
+          <p className="text-muted-foreground">
+            Select a month and click "Generate Payroll" to get started
+          </p>
+        </Card>
+      )}
     </div>
   );
 }

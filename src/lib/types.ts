@@ -1,3 +1,10 @@
+// Attendance status type - aligned with ATTENDANCE.CODES from constants
+// Codes: P=Present, A=Absent, WO=Week Off, HD=Half Day, LC=Late Coming, CL=Casual Leave, L=Leave, ''=Not Marked
+export type AttendanceStatus = "P" | "A" | "WO" | "HD" | "LC" | "CL" | "L" | "";
+
+// Helper type for attendance records (day keys like "1Sun", "2Mon", etc.)
+export type AttendanceRecord = Record<string, AttendanceStatus | undefined>;
+
 export interface Employee {
   id: string;
   status?: "active" | "inactive" | "on-leave";
@@ -16,6 +23,9 @@ export interface Employee {
   ifscCode?: string;
   bankName?: string;
   paymentMode?: string;
+  // Attendance data - structured as Record for type safety
+  attendance?: AttendanceRecord;
+  // Legacy support - individual day keys (deprecated, use attendance instead)
   "1Sun"?: string;
   "2Mon"?: string;
   "3Tue"?: string;

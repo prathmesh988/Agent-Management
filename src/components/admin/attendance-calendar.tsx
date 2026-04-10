@@ -4,13 +4,14 @@ import { Employee } from "@/lib/types";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { ATTENDANCE } from "@/lib/constants";
 
 interface AttendanceCalendarProps {
   employee: Employee;
-  onAttendanceChange?: (dayKey: string, status: AttendanceStatus, updatedMetrics: AttendanceMetrics) => void;
+  onAttendanceChange?: (dayKey: string, status: AttendanceCode, updatedMetrics: AttendanceMetrics) => void;
 }
 
-export type AttendanceStatus = "P" | "A" | "L" | "H" | "WO" | "HO" | "-";
+type AttendanceCode = typeof ATTENDANCE.CODES[number];
 
 export interface AttendanceMetrics {
   presentDays: number;
@@ -24,22 +25,54 @@ export interface AttendanceMetrics {
 interface AttendanceDay {
   date: number;
   day: string;
-  status: AttendanceStatus;
+  status: AttendanceCode;
   dayKey: string;
 }
 
-const STATUS_COLORS: Record<AttendanceStatus, { bg: string; text: string; label: string }> = {
+const STATUS_COLORS: Record<AttendanceCode, { bg: string; text: string; label: string }> = {
   P: { bg: "bg-emerald-100", text: "text-emerald-700", label: "Present" },
   A: { bg: "bg-red-100", text: "text-red-700", label: "Absent" },
   L: { bg: "bg-blue-100", text: "text-blue-700", label: "Leave" },
-  H: { bg: "bg-amber-100", text: "text-amber-700", label: "Half Day" },
+  HD: { bg: "bg-amber-100", text: "text-amber-700", label: "Half Day" },
   WO: { bg: "bg-slate-100", text: "text-slate-700", label: "Week Off" },
-  HO: { bg: "bg-purple-100", text: "text-purple-700", label: "Holiday" },
-  "-": { bg: "bg-gray-50", text: "text-gray-500", label: "No Data" },
+  CL: { bg: "bg-indigo-100", text: "text-indigo-700", label: "Casual Leave" },
+  LC: { bg: "bg-orange-100", text: "text-orange-700", label: "Late Coming" },
+  "": { bg: "bg-gray-50", text: "text-gray-500", label: "Not Marked" },
 };
 
 // Cycle through statuses when clicked
-const STATUS_CYCLE: AttendanceStatus[] = ["P", "A", "L", "H", "WO", "HO", "-"];
+const STATUS_CYCLE: AttendanceCode[] = ATTENDANCE.CODES as unknown as AttendanceCode[];
+
+/**
+ * Safely get attendance value from employee object
+ * Supports both legacy individual day keys and new attendance record
+ */
+function getAttendanceValue(employee: Employee, dayKey: string): string | undefined {
+  // Try new attendance record first
+  if (employee.attendance?.[dayKey]) {
+    return employee.attendance[dayKey];
+  }
+
+  // Fall back to legacy keys (using key-value iteration to avoid unsafe casting)
+  const value = Object.entries(employee).find(([key]) => key === dayKey)?.[1] as string | undefined;
+  return value;
+}
+
+/**
+ * Safely set attendance value on employee object
+ * Updates the attendance record with the new status
+ */
+function setAttendanceValue(employee: Employee, dayKey: string, status: AttendanceCode): void {
+  // Initialize attendance record if it doesn't exist
+  if (!employee.attendance) {
+    employee.attendance = {};
+  }
+  // Update the attendance record
+  employee.attendance[dayKey] = status;
+  
+  // Also update legacy key for backward compatibility
+  (employee as unknown as Record<string, unknown>)[dayKey] = status;
+}
 
 export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -51,16 +84,17 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
   }, [employee]);
 
   // Parse attendance data from employee record
-  const getattendanceStatus = (dayKey: string, emp: Employee = localEmployee): AttendanceStatus => {
-    const value = (emp as any)[dayKey];
-    if (!value) return "-";
+  const getattendanceStatus = (dayKey: string, emp: Employee = localEmployee): AttendanceCode => {
+    const value = getAttendanceValue(emp, dayKey);
+    if (!value) return '';
     if (value === "P") return "P";
     if (value === "A") return "A";
     if (value === "L" || value === "LWP") return "L";
-    if (value === "H" || value === "0.5") return "H";
+    if (value === "H" || value === "0.5" || value === "HD") return "HD";
     if (value === "WO") return "WO";
-    if (value === "HO") return "HO";
-    return "-";
+    if (value === "CL") return "CL";
+    if (value === "LC") return "LC";
+    return '';
   };
 
   // Compute attendance metrics from all daily statuses
@@ -89,16 +123,15 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
           absentDays++;
           break;
         case "L":
+        case "CL":
           leaveDays++;
           break;
-        case "H":
+        case "HD":
+        case "LC":
           halfDays++;
           break;
         case "WO":
           weekOffDays++;
-          break;
-        case "HO":
-          holidayDays++;
           break;
       }
     }
@@ -130,7 +163,7 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
     return days;
   }, [localEmployee, currentDate]);
 
-  const handleDayClick = (dayKey: string, currentStatus: AttendanceStatus) => {
+  const handleDayClick = (dayKey: string, currentStatus: AttendanceCode) => {
     // Find next status in cycle
     const currentIndex = STATUS_CYCLE.indexOf(currentStatus);
     const nextIndex = (currentIndex + 1) % STATUS_CYCLE.length;
@@ -138,7 +171,7 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
 
     // Update local employee state
     const updatedEmployee = { ...localEmployee };
-    (updatedEmployee as any)[dayKey] = nextStatus;
+    setAttendanceValue(updatedEmployee, dayKey, nextStatus);
     setLocalEmployee(updatedEmployee);
 
     // Compute new metrics
@@ -242,7 +275,7 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
                   >
                     <div className="text-sm font-bold text-slate-900">{day.date}</div>
                     <div className={`text-xs font-semibold mt-1 ${colors.text}`}>
-                      {day.status === "-" ? "—" : day.status}
+                      {day.status === "" ? "—" : day.status}
                     </div>
                   </button>
                 );
@@ -254,7 +287,7 @@ export function AttendanceCalendar({ employee, onAttendanceChange }: AttendanceC
         {/* Note */}
         <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
           <p className="font-semibold mb-1">Attendance Status Guide:</p>
-          <p><span className="font-semibold">P</span> - Present | <span className="font-semibold">A</span> - Absent | <span className="font-semibold">L</span> - Leave | <span className="font-semibold">H</span> - Half Day | <span className="font-semibold">WO</span> - Week Off | <span className="font-semibold">HO</span> - Holiday</p>
+          <p><span className="font-semibold">P</span> - Present | <span className="font-semibold">A</span> - Absent | <span className="font-semibold">L</span> - Leave | <span className="font-semibold">CL</span> - Casual Leave | <span className="font-semibold">HD</span> - Half Day | <span className="font-semibold">LC</span> - Late Coming | <span className="font-semibold">WO</span> - Week Off</p>
           <p className="mt-2 text-blue-600"><span className="font-semibold">💡 Tip:</span> Click on any day to cycle through attendance statuses. Metrics update automatically.</p>
         </div>
       </div>

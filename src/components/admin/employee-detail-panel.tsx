@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Employee } from "@/lib/types";
 import { getIncentiveByEmployeeIdAction, saveIncentiveAction } from "@/app/(actions)/incentives";
+import { getInitials, getAvatarColorByHash } from "@/lib/avatar-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,32 +18,8 @@ interface EmployeeDetailPanelProps {
   employeeId: string;
 }
 
-// Helper function to get initials
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-// Helper function to get avatar background color based on name
-function getAvatarColor(name: string): string {
-  const colors = [
-    "bg-blue-500",
-    "bg-emerald-500",
-    "bg-purple-500",
-    "bg-amber-500",
-    "bg-rose-500",
-    "bg-indigo-500",
-    "bg-teal-500",
-  ];
-  return colors[name.charCodeAt(0) % colors.length];
-}
-
 // Helper to parse dates correctly from possible Excel serial number or Unix timestamp
-function parseDateValue(value: any): Date | null {
+function parseDateValue(value: unknown): Date | null {
   if (!value) return null;
   const numValue = Number(value);
   
@@ -56,14 +33,14 @@ function parseDateValue(value: any): Date | null {
   }
   
   // If we couldn't parse it as a number, try parsing as an ISO string
-  const strDate = new Date(value);
+  const strDate = new Date(String(value));
   if (!isNaN(strDate.getTime())) return strDate;
   
   return null;
 }
 
 // Helper to format dates
-function formatDate(timestamp?: any): string {
+function formatDate(timestamp?: unknown): string {
   const dateObj = parseDateValue(timestamp);
   if (!dateObj) return "N/A";
   
@@ -232,19 +209,19 @@ export function EmployeeDetailPanel({
   ]);
 
   const handleFieldChange = useCallback(
-    (key: string, value: any) => {
+    (key: string, value: unknown) => {
       // Convert dates to timestamps
-      let finalValue: string | number | undefined = value;
+      let finalValue: string | number | undefined = value as string | number | undefined;
       
       if (key === "dateOfJoining" && value) {
-        finalValue = new Date(value).getTime();
+        finalValue = new Date(String(value)).getTime();
       } else if (value === "") {
         finalValue = undefined;
       }
 
       setEmployee((prev) => {
         const updated = { ...prev };
-        (updated as any)[key] = finalValue;
+        (updated as Record<string, unknown>)[key] = finalValue;
         return updated;
       });
 
@@ -300,7 +277,7 @@ export function EmployeeDetailPanel({
     }
   };
 
-  const formatDateForInput = (timestamp?: any): string => {
+  const formatDateForInput = (timestamp?: unknown): string => {
     const date = parseDateValue(timestamp);
     if (!date) return "";
     try {
@@ -310,7 +287,13 @@ export function EmployeeDetailPanel({
     }
   };
 
-  const renderField = (field: { key: string; label: string; type: string }, value: any) => {
+  interface FieldDefinition {
+    key: string;
+    label: string;
+    type: string;
+  }
+
+  const renderField = (field: FieldDefinition, value: unknown) => {
     const isEdited = editedFields.has(field.key);
     const isDisabled = field.key === "totalIncentive";
 
@@ -327,13 +310,14 @@ export function EmployeeDetailPanel({
     }
 
     if (field.type === "number") {
+      const numValue = typeof value === "number" ? value : (typeof value === "string" ? parseFloat(value) : "");
       return (
         <Input
           type="number"
           step="0.01"
           min="0"
           disabled={isDisabled}
-          value={value ?? ""}
+          value={numValue === "" ? "" : numValue}
           onKeyDown={(e) => {
             // Prevent entering negative signs and scientific notations
             if (["-", "e", "E", "+"].includes(e.key)) {
@@ -360,7 +344,7 @@ export function EmployeeDetailPanel({
       <Input
         type="text"
         disabled={isDisabled}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : (typeof value === "number" ? value.toString() : "")}
         onChange={(e) => handleFieldChange(field.key, e.target.value)}
         className={isEdited ? "border-primary bg-primary/5" : ""}
       />
@@ -385,7 +369,7 @@ export function EmployeeDetailPanel({
           <div className="flex gap-6 flex-1">
             {/* Avatar */}
             <div
-              className={`h-24 w-24 rounded-full ${getAvatarColor(employee.name)} flex items-center justify-center text-white text-4xl font-bold shrink-0`}
+              className={`h-24 w-24 rounded-full ${getAvatarColorByHash(employee.name)} flex items-center justify-center text-white text-4xl font-bold shrink-0`}
             >
               {getInitials(employee.name)}
             </div>

@@ -1,11 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client, Databases, ID, Query, AppwriteException } from 'node-appwrite';
+import * as XLSX from 'xlsx';
 import { initializeEmployeesTable, tableExists, DATABASE_ID, COLLECTION_ID } from '@/lib/initialize-table';
 import { processExcelFileFromBuffer, TransformedEmployee } from '@/lib/excel-import';
 import { saveMonthlyAttendance } from '@/services/database/monthly-attendance';
 
-
 const CHUNK_SIZE = 100;
+
+// Month names for detection
+const MONTH_NAMES = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+];
+
+/**
+ * Extract month number from Excel sheet name (e.g., "March 2026" -> 3)
+ */
+function detectMonthFromSheetName(sheetName: string): number | null {
+  const normalized = sheetName.toLowerCase().trim();
+  for (let i = 0; i < MONTH_NAMES.length; i++) {
+    const monthName = MONTH_NAMES[i];
+    if (normalized.includes(monthName) || normalized.includes(monthName.substring(0, 3))) {
+      return i + 1;
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract year from Excel sheet name (e.g., "March 2026" -> 2026)
+ */
+function detectYearFromSheetName(sheetName: string): number | null {
+  const yearMatch = sheetName.match(/\b(20\d{2})\b/);
+  return yearMatch ? parseInt(yearMatch[1], 10) : null;
+}
+
+/**
+ * Get sheet names from Excel buffer
+ */
+function getSheetNames(buffer: Buffer): string[] {
+  try {
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    return workbook.SheetNames;
+  } catch (error) {
+    console.error('Error reading sheet names:', error);
+    return [];
+  }
+}
 
 // Day-column keys as stored in TransformedEmployee (e.g. "1Sun", "2Mon", ...)
 // Map them to monthly_attendance day keys (day1, day2, ..., day28)
@@ -21,6 +62,23 @@ function extractDayColumns(employee: TransformedEmployee): Record<string, string
         }
     }
     return result;
+}
+
+/**
+ * Remove all day columns from employee record before saving to employees collection.
+ * This keeps the employees table clean and separate from attendance data.
+ */
+function cleanEmployeeRecord(employee: TransformedEmployee): TransformedEmployee {
+    const cleaned: any = { ...employee };
+    
+    // Remove all day columns (1Sun–31Sat pattern)
+    Object.keys(cleaned).forEach((key) => {
+        if (key.match(/^\d+[A-Za-z]+$/)) {
+            delete cleaned[key];
+        }
+    });
+    
+    return cleaned;
 }
 
 /**
@@ -68,11 +126,12 @@ async function insertEmployeesBatch(
             if (exists) {
                 skipped++;
             } else {
+                const cleanedEmployee = cleanEmployeeRecord(employee);
                 await databases.createDocument({
                     databaseId: DATABASE_ID,
                     collectionId: COLLECTION_ID,
                     documentId: ID.unique(),
-                    data: employee,
+                    data: cleanedEmployee,
                 });
                 inserted++;
             }
@@ -110,26 +169,24 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData();
         const file = formData.get('file') as File;
+        const isSingleSheetRaw = formData.get('isSingleSheet');
         const monthRaw = formData.get('month');
         const monthNameRaw = formData.get('monthName');
         const yearRaw = formData.get('year');
+
+        console.log('📥 Form data received:', {
+            isSingleSheet: isSingleSheetRaw,
+            monthRaw,
+            yearRaw,
+            monthNameRaw,
+            fileName: file?.name,
+        });
 
         if (!file) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        const month = monthRaw ? parseInt(String(monthRaw), 10) : NaN;
-        const year = yearRaw ? parseInt(String(yearRaw), 10) : NaN;
-        const monthName = monthNameRaw ? String(monthNameRaw) : undefined;
-
-        if (isNaN(month) || month < 1 || month > 12) {
-            return NextResponse.json({ error: 'Invalid or missing month (must be 1–12)' }, { status: 400 });
-        }
-        if (isNaN(year) || year < 2000 || year > 2100) {
-            return NextResponse.json({ error: 'Invalid or missing year' }, { status: 400 });
-        }
-
-        // Validate file type
+        // Validate file type first
         const validTypes = [
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'application/vnd.ms-excel',
@@ -146,8 +203,76 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'File size exceeds 5MB limit' }, { status: 400 });
         }
 
+        // Read buffer ONCE at the beginning
         const buffer = await file.arrayBuffer();
         const fileBuffer = Buffer.from(buffer);
+
+        const isSingleSheet = isSingleSheetRaw === 'true';
+        let month = NaN;
+        let year = NaN;
+        let monthName: string | undefined = undefined;
+
+        if (isSingleSheet) {
+            // For single sheet: USER SELECTION takes priority, auto-detect is fallback
+            console.log('Single sheet detected.');
+            
+            // Check if user provided month/year in UI (prioritize user selection)
+            const userMonth = monthRaw ? parseInt(String(monthRaw), 10) : NaN;
+            const userYear = yearRaw ? parseInt(String(yearRaw), 10) : NaN;
+
+            console.log('🔍 Month parsing:', {
+                monthRaw,
+                parsed: userMonth,
+                isNaN: isNaN(userMonth),
+                isValid: !isNaN(userMonth) && userMonth >= 1 && userMonth <= 12,
+            });
+
+            if (!isNaN(userMonth) && userMonth >= 1 && userMonth <= 12) {
+                month = userMonth;
+                console.log(`✅ Using user-selected month: ${month}`);
+            } else {
+                // User didn't select month, try to auto-detect from file
+                console.log('❌ No valid month from user, trying auto-detect...');
+                const sheetNames = getSheetNames(fileBuffer);
+                console.log('Sheet names:', sheetNames);
+
+                if (sheetNames.length > 0) {
+                    const firstSheet = sheetNames[0];
+                    const detectedMonth = detectMonthFromSheetName(firstSheet);
+                    if (detectedMonth) {
+                        month = detectedMonth;
+                        console.log(`Auto-detected month: ${month} from sheet "${firstSheet}"`);
+                    }
+                }
+            }
+
+            if (!isNaN(userYear) && userYear >= 2000 && userYear <= 2100) {
+                year = userYear;
+                console.log(`✅ Using user-selected year: ${year}`);
+            } else {
+                // User didn't select year, try to auto-detect from file
+                console.log('❌ No valid year from user, trying auto-detect...');
+                const sheetNames = getSheetNames(fileBuffer);
+                if (sheetNames.length > 0) {
+                    const firstSheet = sheetNames[0];
+                    const detectedYear = detectYearFromSheetName(firstSheet);
+                    if (detectedYear) {
+                        year = detectedYear;
+                        console.log(`Auto-detected year: ${year} from sheet "${firstSheet}"`);
+                    }
+                }
+            }
+
+            if (isNaN(month) || month < 1 || month > 12) {
+                return NextResponse.json({ error: 'Could not detect month from file. Please select manually.' }, { status: 400 });
+            }
+            if (isNaN(year) || year < 2000 || year > 2100) {
+                return NextResponse.json({ error: 'Could not detect year from file. Please select manually.' }, { status: 400 });
+            }
+        } else {
+            // For multiple sheets, month/year will be detected from Excel content
+            monthName = monthNameRaw ? String(monthNameRaw) : undefined;
+        }
 
         console.log('Processing Excel file from buffer...');
 
