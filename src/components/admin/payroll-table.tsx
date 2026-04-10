@@ -64,8 +64,8 @@ export function PayrollTable({ payrollData, summary = null, monthYear = '' }: Pa
           </tr>
         </thead>
         <tbody>
-          {payrollData.map((record) => (
-            <tr key={record.$id} className="border-b border-border hover:bg-muted/50">
+          {payrollData.map((record, index) => (
+            <tr key={record.$id || `${record.employeeId}-${record.year}-${record.month}`} className="border-b border-border hover:bg-muted/50">
               <td className="py-3 px-4 text-foreground">{record.employeeId}</td>
               <td className="py-3 px-4 text-right text-foreground">
                 ₹{Number(record.grossSalary).toLocaleString('en-IN')}

@@ -32,6 +32,8 @@ interface PayrollControlsProps {
     payrollData: MonthlyPayrollRecord[];
     summary: PayrollSummary | null;
     message: { type: string; text: string };
+    total?: number;
+    pages?: number;
   }) => void;
   onMonthYearChange?: (month: number, year: number) => void;
 }
@@ -60,7 +62,6 @@ export function PayrollControls({ onDataChange, onMonthYearChange }: PayrollCont
     setIsLoading(true);
     try {
       const result = await generateMonthPayrollAction(selectedYear, selectedMonth);
-      const payroll = await getMonthPayrollAction(selectedYear, selectedMonth);
 
       const message = result.errors.length > 0 ? {
         type: 'warning',
@@ -71,9 +72,11 @@ export function PayrollControls({ onDataChange, onMonthYearChange }: PayrollCont
       };
 
       onDataChange({
-        payrollData: payroll,
+        payrollData: result.records || [],
         summary: result.summary || null,
         message,
+        total: result.total,
+        pages: result.pages,
       });
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Failed to generate payroll';
@@ -102,7 +105,7 @@ export function PayrollControls({ onDataChange, onMonthYearChange }: PayrollCont
       };
 
       onDataChange({
-        payrollData: payroll,
+        payrollData: payroll.records,
         summary: null,
         message,
       });
@@ -133,7 +136,7 @@ export function PayrollControls({ onDataChange, onMonthYearChange }: PayrollCont
       };
 
       onDataChange({
-        payrollData: payroll,
+        payrollData: payroll.records,
         summary: null,
         message,
       });

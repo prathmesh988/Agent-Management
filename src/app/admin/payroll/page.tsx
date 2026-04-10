@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { Pagination } from '@/components/ui/pagination';
 import { PayrollControls } from '@/components/admin/payroll-controls';
 import { PayrollSummaryCards } from '@/components/admin/payroll-summary-cards';
 import { PayrollTable } from '@/components/admin/payroll-table';
+import { getMonthPayrollAction } from '@/app/(actions)/payroll';
 import type { MonthlyPayrollRecord, PayrollSummary } from '@/services/database/monthly-payroll';
 
 const MONTHS = [
@@ -18,20 +20,42 @@ export default function PayrollPage() {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isLoadingPage, setIsLoadingPage] = useState(false);
 
   const handleDataChange = (data: {
     payrollData: MonthlyPayrollRecord[];
     summary: PayrollSummary | null;
     message: { type: string; text: string };
+    total?: number;
+    pages?: number;
   }) => {
     setPayrollData(data.payrollData);
     setSummary(data.summary);
     setMessage(data.message);
+    setCurrentPage(1); // Reset to first page when new data arrives
+    setTotalPages(data.pages || 0);
   };
 
   const handleMonthYearChange = (month: number, year: number) => {
     setSelectedMonth(month);
     setSelectedYear(year);
+  };
+
+  const handlePageChange = async (page: number) => {
+    setIsLoadingPage(true);
+    try {
+      const result = await getMonthPayrollAction(selectedYear, selectedMonth, page, 20);
+      setPayrollData(result.records);
+      setCurrentPage(page);
+      setTotalPages(result.pages);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to load page';
+      setMessage({ type: 'error', text: `❌ ${msg}` });
+    } finally {
+      setIsLoadingPage(false);
+    }
   };
 
   const monthYearLabel = `${MONTHS[selectedMonth - 1]} ${selectedYear}`;
@@ -72,11 +96,21 @@ export default function PayrollPage() {
 
       {/* Payroll Table */}
       {payrollData.length > 0 && (
-        <PayrollTable 
-          payrollData={payrollData} 
-          summary={summary}
-          monthYear={monthYearLabel}
-        />
+        <>
+          <PayrollTable 
+            payrollData={payrollData} 
+            summary={summary}
+            monthYear={monthYearLabel}
+          />
+          {totalPages > 1 && (
+            <Pagination 
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+              isLoading={isLoadingPage}
+            />
+          )}
+        </>
       )}
 
       {payrollData.length === 0 && message.type !== 'error' && (

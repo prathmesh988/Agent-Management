@@ -4,6 +4,7 @@ import {
   getMonthlyPayroll,
   saveMonthlyPayroll,
   getMonthPayrollForAllEmployees,
+  getMonthPayrollPage,
   updatePayrollStatus,
   deleteMonthlyPayroll,
   getPayrollSummary,
@@ -13,15 +14,17 @@ import {
 import {
   getMonthlyAttendance,
   getMonthAttendanceForAllEmployees,
+  type MonthlyAttendanceRecord,
 } from "@/services/database/monthly-attendance";
-import { fetchAllEmployees } from "@/services/database/employees";
+import { fetchAllEmployeesPaginated } from "@/services/database/employees";
 
 /**
- * Generate payroll for a specific month.
+ * Generate payroll for a specific month (calculate only, don't save to DB).
  * - Fetches all employees
  * - Gets their attendance for the month
  * - Calculates: deductions, TDS, net salary
- * - Saves to monthly_payroll collection
+ * - Returns calculated payroll without saving (like employees page)
+ * - User can then save individual records if needed
  */
 export async function generateMonthPayrollAction(
   year: number,
@@ -30,18 +33,46 @@ export async function generateMonthPayrollAction(
   generated: number;
   errors: string[];
   summary?: PayrollSummary;
+  records?: MonthlyPayrollRecord[];
+  total?: number;
+  pages?: number;
 }> {
   try {
     console.log(`📊 Generating payroll for ${year}-${String(month).padStart(2, "0")}...`);
 
-    const result = await fetchAllEmployees();
-    const employees = result.employees || [];
+    // Fetch ALL employees across all pages (not just 100)
+    const employees = await fetchAllEmployeesPaginated();
+    
     if (!employees || employees.length === 0) {
       return { generated: 0, errors: ["No employees found"] };
     }
 
+    console.log(`📋 Found ${employees.length} employees, fetching attendance records...`);
+
+    // CRITICAL OPTIMIZATION: Fetch ALL attendance records at once instead of per-employee
+    // This reduces API calls from N (one per employee) to 1 bulk call
+    let allAttendanceRecords: MonthlyAttendanceRecord[] = [];
+    let page = 1;
+    let hasMore = true;
+    const pageSize = 100;
+
+    while (hasMore) {
+      const records = await getMonthAttendanceForAllEmployees(year, month, pageSize, (page - 1) * pageSize);
+      allAttendanceRecords = allAttendanceRecords.concat(records);
+      hasMore = records.length === pageSize;
+      page++;
+    }
+
+    // Create a map for fast lookup: employeeId -> attendance
+    const attendanceMap = new Map(
+      allAttendanceRecords.map(record => [record.employeeId, record])
+    );
+
+    console.log(`📅 Fetched attendance for ${allAttendanceRecords.length} employees, calculating payroll...`);
+
     const errors: string[] = [];
     let generated = 0;
+    const calculatedPayroll: MonthlyPayrollRecord[] = [];
 
     for (const employee of employees) {
       try {
@@ -51,12 +82,8 @@ export async function generateMonthPayrollAction(
           continue;
         }
 
-        // Get employee's attendance for this month
-        const attendance = await getMonthlyAttendance(
-          employee.employeeId,
-          year,
-          month
-        );
+        // Get employee's attendance from the pre-fetched map (O(1) lookup instead of API call)
+        const attendance = attendanceMap.get(employee.employeeId);
 
         if (!attendance) {
           errors.push(
@@ -111,8 +138,11 @@ export async function generateMonthPayrollAction(
         const totalWorkingDays =
           presentDays + absentDays + leaveDays; // exclude holidays & WO
 
-        // Save payroll
-        await saveMonthlyPayroll(employee.employeeId, year, month, {
+        // Add to calculated payroll (don't save to DB yet)
+        calculatedPayroll.push({
+          employeeId: employee.employeeId,
+          year,
+          month,
           presentDays,
           absentDays,
           leaveDays,
@@ -125,24 +155,56 @@ export async function generateMonthPayrollAction(
           tdsDeducted: String(tdsDeducted.toFixed(2)),
           netSalary: String(netSalary.toFixed(2)),
           status: "draft",
+          createdAt: new Date().toISOString(),
         });
 
         generated++;
       } catch (error) {
         const msg = error instanceof Error ? error.message : "Unknown error";
         errors.push(`${employee.employeeId}: ${msg}`);
-        console.error(`Error generating payroll for ${employee.employeeId}:`, error);
+        console.error(`Error calculating payroll for ${employee.employeeId}:`, error);
       }
     }
 
-    // Get summary (this returns just aggregated numbers, should be serializable)
-    const summary = await getPayrollSummary(year, month);
+    // Calculate summary from calculated payroll
+    console.log(`📊 Calculating payroll summary...`);
+    const summary: PayrollSummary = {
+      totalEmployees: calculatedPayroll.length,
+      totalGross: 0,
+      totalDeductions: 0,
+      totalTDS: 0,
+      totalNetPaid: 0,
+      averageNetSalary: 0,
+      presentDaysTotal: 0,
+      absentDaysTotal: 0,
+    };
+
+    // Loop through calculated payroll to get summary totals
+    for (const record of calculatedPayroll) {
+      summary.totalGross += Number(record.grossSalary) || 0;
+      summary.totalDeductions += Number(record.deductedAmount) || 0;
+      summary.totalTDS += Number(record.tdsDeducted) || 0;
+      summary.totalNetPaid += Number(record.netSalary) || 0;
+      summary.presentDaysTotal += record.presentDays || 0;
+      summary.absentDaysTotal += record.absentDays || 0;
+    }
+
+    if (calculatedPayroll.length > 0) {
+      summary.averageNetSalary = summary.totalNetPaid / calculatedPayroll.length;
+    }
 
     console.log(
-      `✅ Generated payroll for ${generated} employees, ${errors.length} errors`
+      `✅ Calculated payroll for ${generated} employees, ${errors.length} errors`
     );
 
-    return { generated, errors, summary };
+    // Return first page of calculated payroll (like employees page)
+    console.log(`📄 Returning first page of payroll...`);
+    const responsePageSize = 20;
+    const firstPage = calculatedPayroll.slice(0, responsePageSize);
+    const totalPages = Math.ceil(calculatedPayroll.length / responsePageSize);
+    
+    console.log(`✅ Returning first page (${firstPage.length} records) with total ${calculatedPayroll.length}`);
+    return { generated, errors, summary, records: firstPage, total: calculatedPayroll.length, pages: totalPages };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in generateMonthPayrollAction:", error);
@@ -191,67 +253,90 @@ export async function getMonthlyPayrollAction(
 
 /**
  * Fetch payroll for all employees for a specific month.
+ * Returns first page (20 records) by default for performance.
+ * Use pagination in the UI for additional pages.
  */
 export async function getMonthPayrollAction(
   year: number,
-  month: number
-): Promise<MonthlyPayrollRecord[]> {
+  month: number,
+  page: number = 1,
+  pageSize: number = 20
+): Promise<{
+  records: MonthlyPayrollRecord[];
+  total: number;
+  pages: number;
+}> {
   try {
-    const records = await getMonthPayrollForAllEmployees(year, month);
+    const { records, total, pages } = await getMonthPayrollPage(year, month, page, pageSize);
     // Strip Appwrite metadata before sending to client
-    return records.map((record) => ({
-      $id: record.$id,
-      employeeId: record.employeeId,
-      year: record.year,
-      month: record.month,
-      presentDays: record.presentDays,
-      absentDays: record.absentDays,
-      leaveDays: record.leaveDays,
-      holidayDays: record.holidayDays,
-      weeklyOffDays: record.weeklyOffDays,
-      totalWorkingDays: record.totalWorkingDays,
-      grossSalary: record.grossSalary,
-      perDayRate: record.perDayRate,
-      deductedAmount: record.deductedAmount,
-      tdsDeducted: record.tdsDeducted,
-      netSalary: record.netSalary,
-      status: record.status,
-      createdAt: record.createdAt,
-      approvedAt: record.approvedAt,
-      processedAt: record.processedAt,
-    }));
+    return {
+      records: records.map((record) => ({
+        $id: record.$id,
+        employeeId: record.employeeId,
+        year: record.year,
+        month: record.month,
+        presentDays: record.presentDays,
+        absentDays: record.absentDays,
+        leaveDays: record.leaveDays,
+        holidayDays: record.holidayDays,
+        weeklyOffDays: record.weeklyOffDays,
+        totalWorkingDays: record.totalWorkingDays,
+        grossSalary: record.grossSalary,
+        perDayRate: record.perDayRate,
+        deductedAmount: record.deductedAmount,
+        tdsDeducted: record.tdsDeducted,
+        netSalary: record.netSalary,
+        status: record.status,
+        createdAt: record.createdAt,
+        approvedAt: record.approvedAt,
+        processedAt: record.processedAt,
+      })),
+      total,
+      pages,
+    };
   } catch (error) {
     console.error("Error fetching month payroll:", error);
-    return [];
+    return { records: [], total: 0, pages: 0 };
   }
 }
 
 /**
  * Approve all payroll records for a month (status: draft -> approved).
+ * Fetches records in chunks to avoid loading all at once.
  */
 export async function approveMonthPayrollAction(
   year: number,
   month: number
 ): Promise<{ approved: number; errors: string[] }> {
   try {
-    const records = await getMonthPayrollForAllEmployees(year, month, 999);
-
     let approved = 0;
     const errors: string[] = [];
+    let page = 1;
+    let hasMore = true;
+    const pageSize = 100;
 
-    for (const record of records) {
-      try {
-        await updatePayrollStatus(
-          record.employeeId,
-          year,
-          month,
-          "approved"
-        );
-        approved++;
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : "Unknown error";
-        errors.push(`${record.employeeId}: ${msg}`);
+    while (hasMore) {
+      const { records, pages } = await getMonthPayrollPage(year, month, page, pageSize);
+      
+      if (records.length === 0) break;
+
+      for (const record of records) {
+        try {
+          await updatePayrollStatus(
+            record.employeeId,
+            year,
+            month,
+            "approved"
+          );
+          approved++;
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : "Unknown error";
+          errors.push(`${record.employeeId}: ${msg}`);
+        }
       }
+
+      hasMore = page < pages;
+      page++;
     }
 
     console.log(
@@ -268,37 +353,48 @@ export async function approveMonthPayrollAction(
 
 /**
  * Process payroll (lock it: approved -> processed).
+ * Fetches records in chunks to avoid loading all at once.
  */
 export async function processMonthPayrollAction(
   year: number,
   month: number
 ): Promise<{ processed: number; errors: string[] }> {
   try {
-    const records = await getMonthPayrollForAllEmployees(year, month, 999);
-
     let processed = 0;
     const errors: string[] = [];
+    let page = 1;
+    let hasMore = true;
+    const pageSize = 100;
 
-    for (const record of records) {
-      try {
-        if (record.status !== "approved") {
-          errors.push(
-            `${record.employeeId}: Not in approved state (current: ${record.status})`
+    while (hasMore) {
+      const { records, pages } = await getMonthPayrollPage(year, month, page, pageSize);
+      
+      if (records.length === 0) break;
+
+      for (const record of records) {
+        try {
+          if (record.status !== "approved") {
+            errors.push(
+              `${record.employeeId}: Not in approved state (current: ${record.status})`
+            );
+            continue;
+          }
+
+          await updatePayrollStatus(
+            record.employeeId,
+            year,
+            month,
+            "processed"
           );
-          continue;
+          processed++;
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : "Unknown error";
+          errors.push(`${record.employeeId}: ${msg}`);
         }
-
-        await updatePayrollStatus(
-          record.employeeId,
-          year,
-          month,
-          "processed"
-        );
-        processed++;
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : "Unknown error";
-        errors.push(`${record.employeeId}: ${msg}`);
       }
+
+      hasMore = page < pages;
+      page++;
     }
 
     console.log(
@@ -346,19 +442,36 @@ export async function deletePayrollAction(
 
 /**
  * Regenerate payroll for a month (delete all, then regenerate).
+ * Deletes and regenerates in chunks to avoid memory issues.
  */
 export async function regenerateMonthPayrollAction(
   year: number,
   month: number
 ): Promise<{ regenerated: number; errors: string[] }> {
   try {
-    // Delete all payroll for this month
-    const records = await getMonthPayrollForAllEmployees(year, month, 999);
-    for (const record of records) {
-      await deleteMonthlyPayroll(record.employeeId, year, month);
+    console.log("🗑️ Deleting existing payroll records...");
+    
+    // Delete all payroll for this month in chunks
+    let deletedCount = 0;
+    let page = 1;
+    let hasMore = true;
+    const pageSize = 100;
+
+    while (hasMore) {
+      const { records, pages } = await getMonthPayrollPage(year, month, page, pageSize);
+      
+      if (records.length === 0) break;
+
+      for (const record of records) {
+        await deleteMonthlyPayroll(record.employeeId, year, month);
+        deletedCount++;
+      }
+
+      hasMore = page < pages;
+      page++;
     }
 
-    console.log(`🗑️  Deleted ${records.length} payroll records`);
+    console.log(`🗑️  Deleted ${deletedCount} payroll records`);
 
     // Regenerate
     const result = await generateMonthPayrollAction(year, month);

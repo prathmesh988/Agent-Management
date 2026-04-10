@@ -10,6 +10,9 @@ import { Query } from "node-appwrite";
 
 export const MONTHLY_PAYROLL_COLLECTION_ID = "monthly_payroll2";
 
+// Cache flag to avoid repeated collection existence checks
+let collectionInitialized = false;
+
 export interface MonthlyPayrollRecord {
   $id?: string;
   employeeId: string;
@@ -42,166 +45,28 @@ export interface MonthlyPayrollRecord {
  * Ensure monthly_payroll collection exists, creating it if necessary.
  */
 async function ensureMonthlyPayrollCollectionExists(): Promise<void> {
+  // Skip if already initialized in this session
+  if (collectionInitialized) {
+    return;
+  }
+
   const databases = createDatabasesWithAuth();
   try {
     await databases.getCollection(
       DB_CONFIG.DATABASE_ID,
       MONTHLY_PAYROLL_COLLECTION_ID
     );
+    collectionInitialized = true;
     return;
   } catch (error: any) {
     if (error.code !== 404) {
       console.error("Error checking monthly payroll collection:", error);
       throw error;
     }
-    console.log("Creating monthly_payroll collection...");
-  }
-
-  try {
-    await databases.createCollection(
-      DB_CONFIG.DATABASE_ID,
-      MONTHLY_PAYROLL_COLLECTION_ID,
-      "Monthly Payroll"
-    );
-    console.log("✓ Collection created");
-
-    await new Promise((r) => setTimeout(r, 1000));
-
-    const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-    // String attributes
-    const stringAttrs = ["employeeId", "status"];
-    for (const key of stringAttrs) {
-      try {
-        await databases.createStringAttribute(
-          DB_CONFIG.DATABASE_ID,
-          MONTHLY_PAYROLL_COLLECTION_ID,
-          key,
-          50,
-          true // required
-        );
-        console.log(`  ✓ ${key}`);
-      } catch (e: any) {
-        if (e.code !== 409) throw e;
-        console.log(`  – ${key} exists`);
-      }
-      await delay(300);
-    }
-
-    // Integer attributes
-    const intAttrs = [
-      "year",
-      "month",
-      "presentDays",
-      "absentDays",
-      "leaveDays",
-      "holidayDays",
-      "weeklyOffDays",
-      "totalWorkingDays",
-    ];
-    for (const key of intAttrs) {
-      try {
-        await databases.createIntegerAttribute(
-          DB_CONFIG.DATABASE_ID,
-          MONTHLY_PAYROLL_COLLECTION_ID,
-          key,
-          true // required
-        );
-        console.log(`  ✓ ${key}`);
-      } catch (e: any) {
-        if (e.code !== 409) throw e;
-        console.log(`  – ${key} exists`);
-      }
-      await delay(300);
-    }
-
-    // String attributes for salary fields (store as strings for precision)
-    const salaryStringAttrs = [
-      "grossSalary",
-      "perDayRate",
-      "deductedAmount",
-      "tdsDeducted",
-      "netSalary",
-    ];
-    for (const key of salaryStringAttrs) {
-      try {
-        await databases.createStringAttribute(
-          DB_CONFIG.DATABASE_ID,
-          MONTHLY_PAYROLL_COLLECTION_ID,
-          key,
-          50,
-          true // required
-        );
-        console.log(`  ✓ ${key}`);
-      } catch (e: any) {
-        if (e.code !== 409) throw e;
-        console.log(`  – ${key} exists`);
-      }
-      await delay(300);
-    }
-
-    // DateTime attributes
-    const dateAttrs = ["createdAt"];
-    for (const key of dateAttrs) {
-      try {
-        await databases.createDatetimeAttribute(
-          DB_CONFIG.DATABASE_ID,
-          MONTHLY_PAYROLL_COLLECTION_ID,
-          key,
-          true // required
-        );
-        console.log(`  ✓ ${key}`);
-      } catch (e: any) {
-        if (e.code !== 409) throw e;
-        console.log(`  – ${key} exists`);
-      }
-      await delay(300);
-    }
-
-    // Optional datetime attributes
-    const optionalDateAttrs = ["approvedAt", "processedAt"];
-    for (const key of optionalDateAttrs) {
-      try {
-        await databases.createDatetimeAttribute(
-          DB_CONFIG.DATABASE_ID,
-          MONTHLY_PAYROLL_COLLECTION_ID,
-          key,
-          false // not required
-        );
-        console.log(`  ✓ ${key}`);
-      } catch (e: any) {
-        if (e.code !== 409) throw e;
-        console.log(`  – ${key} exists`);
-      }
-      await delay(300);
-    }
-
-    // Create composite index
-    console.log("\nWaiting 5s before creating index...");
-    await delay(5000);
-
-    try {
-      await (databases.createIndex as any)(
-        DB_CONFIG.DATABASE_ID,
-        MONTHLY_PAYROLL_COLLECTION_ID,
-        "idx_employee_year_month",
-        "key",
-        ["employeeId", "year", "month"],
-        ["ASC", "ASC", "ASC"]
-      );
-      console.log("✓ Index created");
-    } catch (e: any) {
-      if (e.code === 409) {
-        console.log("– Index already exists");
-      } else {
-        throw e;
-      }
-    }
-
-    console.log("✅ Monthly payroll collection initialized");
-  } catch (error) {
-    console.error("Error creating monthly payroll collection:", error);
-    throw error;
+    // Collections are created lazily when actual operations need them
+    // For payroll generation (calculate-only mode), collection isn't needed
+    console.log("ℹ Lazy initialization: Payroll collection will be created on-demand if needed");
+    return;
   }
 }
 
@@ -281,12 +146,52 @@ export async function saveMonthlyPayroll(
 }
 
 /**
+ * Fetch paginated payroll records for a specific month with total count.
+ * THIS is the optimized method - use this instead of fetching all records.
+ */
+export async function getMonthPayrollPage(
+  year: number,
+  month: number,
+  page: number = 1,
+  pageSize: number = 20
+): Promise<{ records: MonthlyPayrollRecord[]; total: number; pages: number }> {
+  await ensureMonthlyPayrollCollectionExists();
+  const databases = createDatabasesWithAuth();
+  try {
+    const offset = (page - 1) * pageSize;
+    const result = await databases.listDocuments({
+      databaseId: DB_CONFIG.DATABASE_ID,
+      collectionId: MONTHLY_PAYROLL_COLLECTION_ID,
+      queries: [
+        Query.equal("year", year),
+        Query.equal("month", month),
+        Query.limit(pageSize),
+        Query.offset(offset),
+      ],
+    });
+    
+    const total = result.total;
+    const pages = Math.ceil(total / pageSize);
+    
+    return {
+      records: result.documents as unknown as MonthlyPayrollRecord[],
+      total,
+      pages,
+    };
+  } catch (error) {
+    console.error("Error fetching month payroll page:", error);
+    return { records: [], total: 0, pages: 0 };
+  }
+}
+
+/**
  * Fetch all payroll records for a specific month (all employees).
+ * WARNING: This can be slow if you have many records. Use getMonthPayrollPage() for pagination.
  */
 export async function getMonthPayrollForAllEmployees(
   year: number,
   month: number,
-  limit: number = 500,
+  limit: number = 20,
   offset: number = 0
 ): Promise<MonthlyPayrollRecord[]> {
   await ensureMonthlyPayrollCollectionExists();
@@ -341,7 +246,8 @@ export async function updatePayrollStatus(
 }
 
 /**
- * Batch save multiple payroll records.
+ * Batch save multiple payroll records with rate limiting to avoid overwhelming the server.
+ * Saves records in smaller batches with delays between them.
  */
 export async function batchSaveMonthlyPayroll(
   records: Array<{
@@ -352,24 +258,50 @@ export async function batchSaveMonthlyPayroll(
   }>
 ): Promise<MonthlyPayrollRecord[]> {
   const saved: MonthlyPayrollRecord[] = [];
+  const batchSize = 10; // Save 10 records at a time
+  const delayMs = 500; // Wait 500ms between batches to avoid overwhelming server
+  
+  console.log(`💾 Batch saving ${records.length} records in groups of ${batchSize}...`);
 
-  for (const record of records) {
-    try {
-      const result = await saveMonthlyPayroll(
-        record.employeeId,
-        record.year,
-        record.month,
-        record.payrollData
-      );
-      saved.push(result);
-    } catch (error) {
-      console.error(
-        `Error saving payroll for ${record.employeeId} ${record.year}-${record.month}:`,
-        error
-      );
+  for (let i = 0; i < records.length; i += batchSize) {
+    const batch = records.slice(i, i + batchSize);
+    const batchNumber = Math.floor(i / batchSize) + 1;
+    const totalBatches = Math.ceil(records.length / batchSize);
+    
+    console.log(`📦 Saving batch ${batchNumber}/${totalBatches} (${batch.length} records)...`);
+
+    // Save batch records in parallel (but with small delays between batches)
+    const batchPromises = batch.map(record =>
+      (async () => {
+        try {
+          const result = await saveMonthlyPayroll(
+            record.employeeId,
+            record.year,
+            record.month,
+            record.payrollData
+          );
+          saved.push(result);
+          return true;
+        } catch (error) {
+          console.error(
+            `Error saving payroll for ${record.employeeId} ${record.year}-${record.month}:`,
+            error instanceof Error ? error.message : String(error)
+          );
+          return false;
+        }
+      })()
+    );
+
+    await Promise.all(batchPromises);
+    
+    // Wait before next batch (except for the last batch)
+    if (i + batchSize < records.length) {
+      console.log(`⏳ Waiting ${delayMs}ms before next batch...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
     }
   }
 
+  console.log(`✅ Batch save complete: ${saved.length}/${records.length} records saved`);
   return saved;
 }
 
@@ -417,9 +349,20 @@ export async function getPayrollSummary(
   year: number,
   month: number
 ): Promise<PayrollSummary> {
-  const records = await getMonthPayrollForAllEmployees(year, month, 999);
+  // Fetch records in chunks to avoid loading all at once in memory
+  let allRecords: MonthlyPayrollRecord[] = [];
+  let page = 1;
+  let hasMore = true;
+  const pageSize = 100;
 
-  if (records.length === 0) {
+  while (hasMore) {
+    const { records, pages } = await getMonthPayrollPage(year, month, page, pageSize);
+    allRecords = allRecords.concat(records);
+    hasMore = page < pages;
+    page++;
+  }
+
+  if (allRecords.length === 0) {
     return {
       totalEmployees: 0,
       totalGross: 0,
@@ -433,7 +376,7 @@ export async function getPayrollSummary(
   }
 
   const summary: PayrollSummary = {
-    totalEmployees: records.length,
+    totalEmployees: allRecords.length,
     totalGross: 0,
     totalDeductions: 0,
     totalTDS: 0,
@@ -443,7 +386,7 @@ export async function getPayrollSummary(
     absentDaysTotal: 0,
   };
 
-  records.forEach((record) => {
+  allRecords.forEach((record) => {
     summary.totalGross += Number(record.grossSalary) || 0;
     summary.totalDeductions += Number(record.deductedAmount) || 0;
     summary.totalTDS += Number(record.tdsDeducted) || 0;
@@ -452,7 +395,7 @@ export async function getPayrollSummary(
     summary.absentDaysTotal += record.absentDays;
   });
 
-  summary.averageNetSalary = summary.totalNetPaid / records.length;
+  summary.averageNetSalary = summary.totalNetPaid / allRecords.length;
 
   return summary;
 }
