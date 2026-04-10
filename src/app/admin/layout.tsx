@@ -3,7 +3,11 @@
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
 import { SidebarProvider, useSidebar } from '@/components/admin/sidebar-context';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { PageLoader } from '@/components/ui/page-loader';
 
 function AdminContent({ children }: { children: React.ReactNode }) {
   const { collapsed } = useSidebar();
@@ -22,7 +26,27 @@ function AdminContent({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If authentication check is complete and user is not authenticated, redirect to login
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return <PageLoader message="Checking authentication..." className="h-screen" />;
+  }
+
+  // If not authenticated, don't render the admin layout
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <SidebarProvider>
       <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
@@ -31,4 +55,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
     </SidebarProvider>
   );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return <AdminLayoutContent>{children}</AdminLayoutContent>;
 }

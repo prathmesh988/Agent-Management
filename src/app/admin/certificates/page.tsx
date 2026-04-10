@@ -282,7 +282,7 @@ export default function CertificatesPage() {
       // Prepare email data
       const emailParams = selectedEmps.map((emp) => ({
         employeeId: emp.employeeId,
-        senderEmail: emp.email!,
+        employeeEmail: emp.email!,
         employeeName: emp.name!,
         certificateId: `CERT-${emp.employeeId}`, // Kept for compatibility but download uses employeeId
       }));
@@ -394,7 +394,7 @@ export default function CertificatesPage() {
                 Generate Certificates ({filteredEmployees.length})
               </h2>
               <div className="flex gap-2">
-                {/* <Button
+                <Button
                   onClick={handleGenerateSelected}
                   className="w-full sm:w-auto gap-2 transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white font-500"
                   disabled={selectedIds.size === 0 || isGenerating}
@@ -433,7 +433,7 @@ export default function CertificatesPage() {
                   {isSendingEmails
                     ? "Sending..."
                     : `Send to Mail (${selectedIds.size})`}
-                </Button> */}
+                </Button>
               </div>
             </div>
             

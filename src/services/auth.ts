@@ -101,10 +101,14 @@ export const verifyMagicLink = async (userId: string, secret: string) => {
     }
     const session = await account.updateMagicURLSession(userId, secret);
     
-    // Set auth cookie for middleware validation
+    // Set auth cookie for middleware validation - use more secure settings
     if (typeof window !== 'undefined') {
-      document.cookie = 'auth_session=true; path=/; SameSite=Lax';
+      // Set cookie with longer expiration (7 days)
+      const date = new Date();
+      date.setTime(date.getTime() + (7 * 24 * 60 * 60 * 1000));
+      document.cookie = `auth_session=true; path=/; expires=${date.toUTCString()}; SameSite=Lax`;
     }
+    
     return session;
   } catch (error) {
     throw error;

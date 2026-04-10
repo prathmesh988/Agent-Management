@@ -11,6 +11,7 @@ import {
 import { Employee } from "@/lib/types";
 import { Query } from "node-appwrite";
 import { createDatabasesWithAuth, DB_CONFIG } from "@/services/database/client";
+import { requireAuth } from "@/lib/auth-utils";
 
 /**
  * Transform EmployeeRecord from database to Employee interface for UI
@@ -186,11 +187,15 @@ export async function searchEmployeesAction(
 /**
  * Server action: Update an employee
  * Supports all fields in the employee schema for complete persistence
+ * ⚠️ REQUIRES AUTHENTICATION - will throw error if user is not logged in
  */
 export async function updateEmployeeAction(
   employeeId: string,
   updates: Partial<Employee>,
 ): Promise<Employee> {
+  // Verify user is authenticated before allowing updates
+  await requireAuth();
+
   try {
     // All numeric fields from database schema (double type)
     const numericFields = new Set([

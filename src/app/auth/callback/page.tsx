@@ -35,10 +35,10 @@ function AuthCallbackContent() {
       try {
         await verifyMagicLink(userId, secret);
         setStatus('success');
-        // Redirect after a brief success message
+        // Add a small delay to ensure cookies are persisted before redirecting
         setTimeout(() => {
           router.push('/admin/dashboard');
-        }, 1500);
+        }, 500);
       } catch (error: unknown) {
         setStatus('error');
         const message = error instanceof Error ? error.message : 'Failed to verify login link. It may have expired.';
