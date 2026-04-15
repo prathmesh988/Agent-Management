@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -16,32 +16,74 @@ import {
   ChevronLeft,
   Calendar,
   Clock,
-  BookOpen,
   Banknote,
-  BarChart3,
+  Crown,
+  Eye,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from './sidebar-context';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useToast } from '@/components/ui/toast';
 
+// ─── Nav items with optional role restriction ───────────────────────────────
+// requiresAdmin: true → MVP users cannot access this route
 const navItems = [
-  { title: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-  { title: 'Employees', href: '/admin/employees', icon: Users },
-  { title: 'Attendance', href: '/admin/attendance', icon: Calendar },
-  { title: 'Leave', href: '/admin/leave', icon: Clock },
-  { title: 'Payroll', href: '/admin/payroll', icon: Banknote },
-  // { title: 'HR Policy', href: '/admin/hr-policy', icon: BookOpen },
-  // { title: 'Reports', href: '/admin/reports', icon: BarChart3 },
-  { title: 'Upload Employees', href: '/admin/employees/upload', icon: Upload },
-  { title: 'Certificates', href: '/admin/certificates', icon: FileText },
-  { title: 'Admins', href: '/admin/admins', icon: Shield },
-  { title: 'Settings', href: '/admin/settings', icon: Settings },
+  { title: 'Dashboard',        href: '/admin/dashboard',        icon: LayoutDashboard, requiresAdmin: false },
+  { title: 'Employees',        href: '/admin/employees',         icon: Users,           requiresAdmin: false },
+  { title: 'Attendance',       href: '/admin/attendance',        icon: Calendar,        requiresAdmin: false },
+  { title: 'Leave',            href: '/admin/leave',             icon: Clock,           requiresAdmin: false },
+  { title: 'Payroll',          href: '/admin/payroll',           icon: Banknote,        requiresAdmin: false },
+  { title: 'Upload Employees', href: '/admin/employees/upload',  icon: Upload,          requiresAdmin: true  },
+  { title: 'Certificates',     href: '/admin/certificates',      icon: FileText,        requiresAdmin: false },
+  { title: 'Admins',           href: '/admin/admins',            icon: Shield,          requiresAdmin: true  },
+  { title: 'Settings',         href: '/admin/settings',          icon: Settings,        requiresAdmin: false },
 ];
+
+// ─── Role badge config ───────────────────────────────────────────────────────
+const ROLE_CONFIG = {
+  admin: {
+    label: 'Admin',
+    icon: Crown,
+    colors: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-400/30',
+    dot: 'bg-amber-500',
+  },
+  mvp: {
+    label: 'MVP  •  Read only',
+    icon: Eye,
+    colors: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-400/30',
+    dot: 'bg-blue-500',
+  },
+} as const;
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { collapsed, toggle } = useSidebar();
+  const { currentUser } = useCurrentUser();
+  const { toast } = useToast();
+
+  const isAdmin = currentUser?.role === 'admin';
+  const roleKey = (currentUser?.role ?? 'mvp') as 'admin' | 'mvp';
+  const roleCfg = ROLE_CONFIG[roleKey];
+  const RoleIcon = roleCfg.icon;
+
+  const handleNavClick = (
+    e: React.MouseEvent,
+    item: (typeof navItems)[number]
+  ) => {
+    if (item.requiresAdmin && !isAdmin) {
+      e.preventDefault();
+      toast({
+        title: 'Access Denied',
+        description: `"${item.title}" requires Admin role. You currently have MVP (read-only) access.`,
+        variant: 'error',
+      });
+      return;
+    }
+    setMobileOpen(false);
+  };
 
   return (
     <>
@@ -58,23 +100,22 @@ export function AdminSidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 h-screen shadow-lg z-30',
-          // Light: soft white/gray gradient  •  Dark: deep slate gradient
+          'fixed left-0 top-0 h-screen shadow-lg z-30 flex flex-col',
           'bg-gradient-to-b from-slate-50 to-slate-100 text-slate-700',
           'dark:from-slate-950 dark:to-slate-900 dark:text-slate-200',
           'transform transition-all duration-300 ease-in-out',
-          // Desktop: obey collapsed state
           collapsed ? 'md:w-16' : 'md:w-64',
-          // Mobile: slide in/out
           mobileOpen ? 'w-64 translate-x-0' : 'w-64 -translate-x-full md:translate-x-0',
           'pt-16 md:pt-0'
         )}
       >
         {/* Logo + collapse button */}
-        <div className={cn(
-          'flex items-center border-b border-slate-200 dark:border-slate-800',
-          collapsed ? 'justify-center p-4' : 'justify-between p-4 md:p-6'
-        )}>
+        <div
+          className={cn(
+            'flex items-center border-b border-slate-200 dark:border-slate-800',
+            collapsed ? 'justify-center p-4' : 'justify-between p-4 md:p-6'
+          )}
+        >
           {!collapsed && (
             <Image
               src="/airvincble.svg"
@@ -84,7 +125,6 @@ export function AdminSidebar() {
               className="h-8 w-auto dark:invert"
             />
           )}
-          {/* Desktop collapse toggle */}
           <Button
             variant="ghost"
             size="icon"
@@ -99,31 +139,80 @@ export function AdminSidebar() {
         </div>
 
         {/* Nav */}
-        <nav className="flex flex-col space-y-1 p-2 md:p-3">
+        <nav className="flex flex-col space-y-1 p-2 md:p-3 flex-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const isLocked = item.requiresAdmin && !isAdmin;
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setMobileOpen(false)}
+                onClick={(e) => handleNavClick(e, item)}
                 title={collapsed ? item.title : undefined}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+                  'relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
                   collapsed ? 'justify-center' : '',
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-md'
+                    : isLocked
+                    ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
                     : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
                 )}
               >
                 <Icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && <span className="truncate">{item.title}</span>}
+                {!collapsed && (
+                  <span className="truncate flex-1">{item.title}</span>
+                )}
+                {/* Lock icon badge for restricted items when expanded */}
+                {!collapsed && isLocked && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
+                    ADMIN
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
+
+        {/* ── Role Indicator (bottom of sidebar) ── */}
+        {currentUser && (
+          <div
+            className={cn(
+              'border-t border-slate-200 dark:border-slate-800',
+              collapsed ? 'p-3' : 'p-4'
+            )}
+          >
+            {collapsed ? (
+              /* Collapsed: just a colored dot with tooltip */
+              <div
+                className="flex justify-center"
+                title={`${currentUser.name} • ${roleCfg.label}`}
+              >
+                <div className={cn('w-2.5 h-2.5 rounded-full', roleCfg.dot)} />
+              </div>
+            ) : (
+              /* Expanded: full role card */
+              <div
+                className={cn(
+                  'flex items-center gap-2.5 rounded-xl px-3 py-2.5 w-full',
+                  roleCfg.colors
+                )}
+              >
+                <RoleIcon className="h-4 w-4 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold leading-tight truncate">
+                    {currentUser.name || 'User'}
+                  </p>
+                  <p className="text-[10px] font-medium opacity-80 mt-0.5 truncate">
+                    {roleCfg.label}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </aside>
 
       {/* Mobile overlay */}

@@ -3,6 +3,7 @@
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
 import { SidebarProvider, useSidebar } from '@/components/admin/sidebar-context';
+import { ToastProvider } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -48,12 +49,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
-        <AdminSidebar />
-        <AdminContent>{children}</AdminContent>
-      </div>
-    </SidebarProvider>
+    <ToastProvider>
+      <SidebarProvider>
+        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+          <AdminSidebar />
+          <AdminContent>{children}</AdminContent>
+        </div>
+      </SidebarProvider>
+    </ToastProvider>
   );
 }
 
