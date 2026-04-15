@@ -40,23 +40,21 @@ const CertificateOfEmployment: React.FC<CertificateOfEmploymentProps> = ({
   employeePostalCode,
   companyName = 'Company Name',
   certificateId = 'XXX XXX XXX',
-  certifierName = 'SUTTON CLAIRE',
+  certifierName = 'Amit Khandelwal',
   certifierTitle = 'Company President',
-  contactPhone = '+12 123 456 789',
-  contactEmail = 'hr@companyname.com',
-  contactAddressLine1 = '123 Street, Country',
+  contactEmail = 'hr@airvincible.com',
   contactAddressLine2 = '',
 }) => {
   return (
     // Outer container with a light gray background for contrast
-    <div className="min-h-screen bg-gray-100 p-4 flex justify-center items-center font-sans">
+    <div className="min-h-screen p-4 flex justify-center items-center font-sans">
       {/* 
         Certificate Paper Container:
         - Fixed maximum width to simulate paper size.
         - White background, shadow, and padding.
         - 'relative' and 'overflow-hidden' are for positioning the top-right corner graphic.
       */}
-      <div className="bg-white w-full max-w-[800px] p-8 md:p-12 shadow-xl relative overflow-hidden">
+      <div className="w-full max-w-[800px] p-8 md:p-12 shadow-xl relative overflow-hidden" style={{ backgroundColor: '#ffffff', color: '#1f2937' }}>
         
         {/* --- Top Right Corner Graphic --- */}
         <div className="absolute top-0 right-0 pointer-events-none">
@@ -80,17 +78,17 @@ const CertificateOfEmployment: React.FC<CertificateOfEmploymentProps> = ({
                 <Image src={AirvincibleLogo} alt="Company Logo" className="w-full h-full " />                                    
             </div>
           </div>
-          <p className="text-gray-600">Certificate ID: {certificateId}</p>
+          <p style={{ color: '#4b5563' }}>Certificate ID: {certificateId}</p>
         </div>
 
         {/* --- Main Title --- */}
         {/* Using a serif font for the title to match the image's style */}
-        <h2 className="text-3xl md:text-4xl font-serif text-center text-gray-900 mb-12 uppercase tracking-wider">
+        <h2 className="text-3xl md:text-4xl font-serif text-center mb-12 uppercase tracking-wider" style={{ color: '#111827' }}>
           Certificate of Employment
         </h2>
 
         {/* --- Body Content --- */}
-        <div className="text-gray-800 leading-relaxed space-y-6">
+        <div className="leading-relaxed space-y-6" style={{ color: '#1f2937' }}>
           
           {/* Date and Employee Address Block */}
           <div className="mb-8">
@@ -110,21 +108,21 @@ const CertificateOfEmployment: React.FC<CertificateOfEmploymentProps> = ({
           {/* Details Grid */}
           {/* Using CSS Grid for aligned key-value pairs */}
           <div className="mt-8 grid grid-cols-[auto_1fr] gap-x-4 gap-y-3">
-            <div className="font-medium text-gray-700">Employee position:</div>
+            <div className="font-medium" style={{ color: '#374151' }}>Employee position:</div>
             <div>{jobTitle}</div>
 
-            <div className="font-medium text-gray-700">Department:</div>
+            <div className="font-medium" style={{ color: '#374151' }}>Department:</div>
             <div>{departmentName}</div>
 
-            <div className="font-medium text-gray-700">Hiring date:</div>
+            <div className="font-medium" style={{ color: '#374151' }}>Hiring date:</div>
             <div>{startDate}</div>
 
          
 
-            <div className="font-medium text-gray-700">Annual salary:</div>
+            <div className="font-medium" style={{ color: '#374151' }}>Annual salary:</div>
             <div>{salaryAmount}</div>
 
-            <div className="font-medium text-gray-700">Average number of work hours:</div>
+            <div className="font-medium" style={{ color: '#374151' }}>Average number of work hours:</div>
             <div>{workHoursPerWeek}</div>
           </div>
 
@@ -139,7 +137,7 @@ const CertificateOfEmployment: React.FC<CertificateOfEmploymentProps> = ({
           
           {/* Left Side: Certification & Signature */}
           <div className="mb-10 md:mb-0">
-            <p className="text-gray-700 mb-6">Certified by:</p>
+            <p className="mb-6" style={{ color: '#374151' }}>Certified by:</p>
             
             {/* Signature Placeholder */}
             <div className="mb-2">
@@ -152,26 +150,22 @@ const CertificateOfEmployment: React.FC<CertificateOfEmploymentProps> = ({
             </div>
             
             {/* Name and Title with top border */}
-            <div className="border-t border-gray-300 pt-2 w-64">
-              <p className="text-lg font-bold text-gray-900 uppercase">{certifierName}</p>
-              <p className="text-gray-600">{certifierTitle}</p>
+            <div className="pt-2 w-64" style={{ borderTop: '1px solid #d1d5db' }}>
+              <p className="text-lg font-bold uppercase" style={{ color: '#111827' }}>{certifierName}</p>
+              <p style={{ color: '#4b5563' }}>{certifierTitle}</p>
             </div>
           </div>
 
           {/* Right Side: Contact Information */}
-          <div className="text-gray-700 md:text-right">
-            <p className="mb-1">
-              <span className="font-medium">Phone:</span> {contactPhone}
-            </p>
+          <div className="md:text-right" style={{ color: '#374151' }}>
+            
             <p className="mb-1">
               <span className="font-medium">Email:</span>{' '}
               <a href={`mailto:${contactEmail}`} className="text-blue-600 hover:underline">
                 {contactEmail}
               </a>
             </p>
-            <p className="mb-1">
-              <span className="font-medium">Address:</span> {contactAddressLine1}
-            </p>
+        
             {contactAddressLine2 && <p>{contactAddressLine2}</p>}
           </div>
         </div>

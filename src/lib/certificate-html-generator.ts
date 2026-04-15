@@ -151,9 +151,8 @@ export function getExactCertificateHTML(
           </div>
 
           <div class="text-gray-700 md:text-right">
-            <p class="mb-1"><span class="font-medium">Phone:</span> ${escapeHtml(cert.contactPhone || "+12 123 456 789")}</p>
-            <p class="mb-1"><span class="font-medium">Email:</span> <a href="mailto:${escapeHtml(cert.contactEmail || "hr@companyname.com")}" class="text-blue-600 hover:underline">${escapeHtml(cert.contactEmail || "hr@companyname.com")}</a></p>
-            <p class="mb-1"><span class="font-medium">Address:</span> ${escapeHtml(cert.contactAddressLine1 || "123 Street, Country")}</p>
+            
+            <p class="mb-1"><span class="font-medium">Email:</span> <a href="mailto:${escapeHtml(cert.contactEmail || "hr@airvincible.com")}" class="text-blue-600 hover:underline">${escapeHtml(cert.contactEmail || "hr@airvincible.com")}</a></p>
             ${cert.contactAddressLine2 ? `<p>${escapeHtml(cert.contactAddressLine2)}</p>` : ""}
           </div>
         </div>

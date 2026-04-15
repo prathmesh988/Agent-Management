@@ -166,9 +166,6 @@ export const generateCertificatePDF = async (certificate: Certificate) => {
   }
 };
 
-/**
-};
-
 export const generateMultipleCertificatePDFs = async (
   certificates: Certificate[],
 ) => {

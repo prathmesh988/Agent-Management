@@ -57,11 +57,9 @@ export function generateCertificateHTML(
   const start       = cert.startDate     || "N/A";
   const salary      = cert.salary        || "N/A";
   const hours       = cert.workHoursPerWeek || "40 hours";
-  const signer      = cert.certifierName || "SUTTON CLAIRE";
+  const signer      = cert.certifierName || "Amit Khandelwal";
   const signerTitle = cert.certifierTitle|| "Company President";
-  const phone       = cert.contactPhone  || "+12 123 456 789";
-  const email       = cert.contactEmail  || "hr@companyname.com";
-  const addr1       = cert.contactAddressLine1 || "123 Street, Country";
+  const email       = cert.contactEmail  || "hr@airvincible.com";
   const addr2       = cert.contactAddressLine2 || "";
   const address1    = cert.contactAddressLine1 || "";
 
@@ -253,9 +251,7 @@ export function generateCertificateHTML(
 
     <!-- Contact section -->
     <div class="contact">
-      <p><span class="label">Phone:</span> ${phone}</p>
       <p><span class="label">Email:</span> <a href="mailto:${email}">${email}</a></p>
-      <p><span class="label">Address:</span> ${addr1}</p>
       ${addr2 ? `<p>${addr2}</p>` : ""}
     </div>
   </div>

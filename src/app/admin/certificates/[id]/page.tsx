@@ -3,7 +3,6 @@
 import CertificateOfEmployment from "@/components/certificate/certificate";
 import { EditCertificateModal } from "@/components/certificate/edit-certificate-modal";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   ArrowLeft,
   Download,
@@ -11,6 +10,12 @@ import {
   Mail,
   Share2,
   Edit2,
+  Copy,
+  Check,
+  FileText,
+  User,
+  Building2,
+  Loader2,
 } from "lucide-react";
 import { Certificate } from "@/lib/types";
 import { getEmployee } from "@/app/(actions)/employees";
@@ -21,7 +26,6 @@ import { PageLoader } from "@/components/ui/page-loader";
 import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
 import { getCertificateShareUrl } from "@/app/(actions)/share-certificate";
 import { sendCertificateEmail } from "@/app/(actions)/send-certificate";
-import { Copy, Check } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -52,29 +56,27 @@ export default function CertificateDetailPage({ params }: PageProps) {
     certificateUrl?: string;
   }>({
     open: false,
-    recipientEmail: certificate?.employeeEmail || "",
-    subject: `Your Employment Certificate - ${certificate?.employeeName || ""}`,
-    body: `Dear ${certificate?.employeeName || ""},\n\nPlease find your Certificate of Employment attached.\n\nBest regards,\nHuman Resources Department`,
+    recipientEmail: "",
+    subject: "",
+    body: "",
     loading: false,
   });
 
   useEffect(() => {
     const loadCertificate = async () => {
       try {
-        // Fetch employee data using the ID parameter
         const employee = await getEmployee(resolvedParams.id);
-        
+
         if (!employee) {
           setCertificate(null);
           setPageLoading(false);
           return;
         }
 
-        // Transform employee data to certificate format
         const dateOfJoining = employee.dateOfJoining
           ? new Date(employee.dateOfJoining).toLocaleDateString()
           : "";
-        
+
         const certData: Certificate = {
           id: employee.id,
           employeeId: employee.employeeId,
@@ -87,8 +89,14 @@ export default function CertificateDetailPage({ params }: PageProps) {
           companyName: "Company Name",
           address: "Company Address",
         };
-        
+
         setCertificate(certData);
+        setEmailDialog((prev) => ({
+          ...prev,
+          recipientEmail: certData.employeeEmail || "",
+          subject: `Your Employment Certificate - ${certData.employeeName || ""}`,
+          body: `Dear ${certData.employeeName || ""},\n\nPlease find your Certificate of Employment attached.\n\nBest regards,\nHuman Resources Department`,
+        }));
       } catch (error) {
         console.error("Error loading certificate:", error);
         setCertificate(null);
@@ -101,54 +109,43 @@ export default function CertificateDetailPage({ params }: PageProps) {
   }, [resolvedParams.id]);
 
   if (pageLoading) {
-    return (
-      <PageLoader message="Loading certificate…" className="h-96" />
-    );
+    return <PageLoader message="Loading certificate…" className="h-96" />;
   }
 
   if (!certificate) {
     return (
       <div className="space-y-6">
         <Link href="/admin/certificates">
-          <Button
-            variant="outline"
-            size="sm"
-            className="transition-all duration-200 hover:shadow-md hover:scale-105"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
             Back to Certificates
           </Button>
         </Link>
         <div className="flex flex-col items-center justify-center h-96 gap-4">
-          <p className="text-red-600 font-medium">Certificate not found</p>
-          <p className="text-slate-600 text-sm">ID: {resolvedParams.id}</p>
+          <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
+            <FileText className="h-8 w-8 text-destructive" />
+          </div>
+          <p className="text-foreground font-semibold text-lg">Certificate not found</p>
+          <p className="text-muted-foreground text-sm">ID: {resolvedParams.id}</p>
         </div>
       </div>
     );
   }
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   const handleDownloadPDF = () => {
     try {
       if (!certificate) return;
       setIsDownloading(true);
-      
-      // Create a new window with print-friendly certificate
       const printWindow = window.open("", "_blank");
       if (!printWindow) {
         alert("Please disable popup blocker to download certificate");
         setIsDownloading(false);
         return;
       }
-
-      const htmlContent = getExactCertificateHTML(certificate, true);
-
-      printWindow.document.write(htmlContent);
+      printWindow.document.write(getExactCertificateHTML(certificate, true));
       printWindow.document.close();
-      
       setIsDownloading(false);
     } catch (error) {
       console.error("Error opening print preview:", error);
@@ -159,59 +156,32 @@ export default function CertificateDetailPage({ params }: PageProps) {
 
   const handleEmailCertificate = async () => {
     if (!certificate) return;
-
-    // Open modal and check if we need to generate the URL
-    setEmailDialog((prev) => ({
-      ...prev,
-      open: true,
-      recipientEmail: certificate.employeeEmail || "",
-      subject: `Your Employment Certificate - ${certificate.employeeName || ""}`,
-      body: `Dear ${certificate.employeeName || ""},\n\nPlease find your Certificate of Employment attached.\n\nBest regards,\nHuman Resources Department`,
-      loading: true,
-    }));
-
+    setEmailDialog((prev) => ({ ...prev, open: true, loading: true }));
     try {
-      // Check if we already have a share URL, if not generate one
       let shareUrl = shareDialog.url;
-      
       if (!shareUrl) {
         const result = await getCertificateShareUrl(certificate);
-        if (result.success && result.shareUrl) {
-          shareUrl = result.shareUrl;
-        }
+        if (result.success && result.shareUrl) shareUrl = result.shareUrl;
       }
-
-      setEmailDialog((prev) => ({
-        ...prev,
-        loading: false,
-        certificateUrl: shareUrl,
-      }));
-    } catch (error) {
-      console.error("Error generating certificate URL:", error);
-      setEmailDialog((prev) => ({
-        ...prev,
-        loading: false,
-      }));
+      setEmailDialog((prev) => ({ ...prev, loading: false, certificateUrl: shareUrl }));
+    } catch {
+      setEmailDialog((prev) => ({ ...prev, loading: false }));
     }
   };
 
   const handleShareCertificate = async () => {
     if (!certificate) return;
-
     setShareDialog({ open: true, loading: true, copied: false });
-
     try {
       const result = await getCertificateShareUrl(certificate);
-
       if (result.success && result.shareUrl) {
         setShareDialog({ open: true, url: result.shareUrl, loading: false, copied: false });
       } else {
-        alert(`Failed to generate share URL: ${result.error || 'Unknown error'}`);
+        alert(`Failed to generate share URL: ${result.error || "Unknown error"}`);
         setShareDialog({ open: false, loading: false, copied: false });
       }
-    } catch (error) {
-      console.error('Error sharing certificate:', error);
-      alert('Failed to generate share URL. Please try again.');
+    } catch {
+      alert("Failed to generate share URL. Please try again.");
       setShareDialog({ open: false, loading: false, copied: false });
     }
   };
@@ -221,7 +191,6 @@ export default function CertificateDetailPage({ params }: PageProps) {
       await updateCertificate(updatedCertificate);
       setCertificate(updatedCertificate);
       setIsModalOpen(false);
-      alert("Certificate updated successfully!");
     } catch (error) {
       console.error("Error saving certificate:", error);
       alert("Failed to update certificate. Please try again.");
@@ -233,14 +202,11 @@ export default function CertificateDetailPage({ params }: PageProps) {
       alert("Please enter a recipient email address");
       return;
     }
-
     if (!certificate.employeeId) {
       alert("Employee ID is missing");
       return;
     }
-
     setEmailDialog((prev) => ({ ...prev, loading: true }));
-
     try {
       const result = await sendCertificateEmail({
         employeeId: certificate.employeeId,
@@ -248,121 +214,188 @@ export default function CertificateDetailPage({ params }: PageProps) {
         employeeName: certificate.employeeName || "",
         certificateId: certificate.certificateId || `CERT-${certificate.employeeId}`,
       });
-
       if (result.success) {
         alert(`✓ Email sent successfully to ${emailDialog.recipientEmail}`);
-        setEmailDialog((prev) => ({
-          ...prev,
-          open: false,
-          loading: false,
-        }));
+        setEmailDialog((prev) => ({ ...prev, open: false, loading: false }));
       } else {
         alert(`⚠ Failed to send email: ${result.error || "Unknown error"}`);
         setEmailDialog((prev) => ({ ...prev, loading: false }));
       }
-    } catch (error) {
-      console.error("Error sending email:", error);
+    } catch {
       alert("Failed to send email. Please try again.");
       setEmailDialog((prev) => ({ ...prev, loading: false }));
     }
   };
 
+  const initials = (certificate.employeeName || "?")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
-    <div className="space-y-6">
-      {/* Header with Navigation */}
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/admin/certificates">
-            <Button
-              variant="outline"
-              size="sm"
-              className="transition-all duration-200 hover:shadow-md hover:scale-105"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Certificates
-            </Button>
-          </Link>
-          <h1 className="text-3xl font-bold text-slate-900 mt-4">
-            Certificate of Employment
-          </h1>
-          <p className="mt-2 text-slate-600">{certificate.employeeName}</p>
+    <div className="space-y-6 pb-12">
+      {/* ── Back Navigation ── */}
+      <Link href="/admin/certificates">
+        <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground -ml-1">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Certificates
+        </Button>
+      </Link>
+
+      {/* ── Hero Header ── */}
+      <div className="relative rounded-2xl overflow-hidden border border-border bg-card">
+        {/* gradient band */}
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-accent to-primary opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+
+        <div className="relative px-8 py-7 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+              <span className="text-xl font-bold text-white">{initials}</span>
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-accent rounded-full border-2 border-card flex items-center justify-center">
+              <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Certificate of Employment
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground truncate">
+              {certificate.employeeName}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
+              {certificate.jobTitle && (
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <User className="h-3.5 w-3.5" />
+                  {certificate.jobTitle}
+                </span>
+              )}
+              {certificate.department && (
+                <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5" />
+                  {certificate.department}
+                </span>
+              )}
+              {certificate.employeeId && (
+                <span className="text-xs font-mono bg-muted text-muted-foreground px-2 py-0.5 rounded-md">
+                  {certificate.employeeId}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Status badge */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-accent/10 text-accent border border-accent/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+              Active
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <Card className="p-6">
+      {/* ── Action Panel ── */}
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+          Actions
+        </p>
         <div className="flex flex-wrap gap-3">
+          {/* Primary */}
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="gap-2 transition-all duration-200 hover:shadow-lg hover:scale-105 bg-blue-600"
+            className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-200"
           >
             <Edit2 className="h-4 w-4" />
             Edit Certificate
           </Button>
-          <Button
-            onClick={handlePrint}
-            className="gap-2 transition-all duration-200 hover:shadow-lg hover:scale-105"
-          >
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
-          <Button
-            onClick={handleDownloadPDF}
-            disabled={isDownloading}
-            variant="outline"
-            className="gap-2 transition-all duration-200 hover:shadow-lg hover:scale-105"
-          >
-            <Download className="h-4 w-4" />
-            {isDownloading ? "Downloading..." : "Download PDF"}
-          </Button>
-          <Button
-            onClick={handleEmailCertificate}
-            variant="outline"
-            className="gap-2 transition-all duration-200 hover:shadow-lg hover:scale-105"
-          >
-            <Mail className="h-4 w-4" />
-            Send Email
-          </Button>
-          <Button
-            onClick={handleShareCertificate}
-            variant="outline"
-            className="gap-2 transition-all duration-200 hover:shadow-lg hover:scale-105"
-          >
-            <Share2 className="h-4 w-4" />
-            Share
-          </Button>
-        </div>
-      </Card>
 
-      {/* Certificate Preview */}
-      <div ref={certificateRef} className="print:bg-white">
-        <CertificateOfEmployment
-          date={new Date().toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-          employeeName={certificate.employeeName || ""}
-          startDate={certificate.startDate || ""}
-          jobTitle={certificate.jobTitle || ""}
-          departmentName={certificate.department || ""}
-          typeOfEmployment={certificate.typeOfEmployment || ""}
-          salaryAmount={certificate.salary || ""}
-          workHoursPerWeek={certificate.workHoursPerWeek || ""}
-          employeeAddressLine1={certificate.phone || certificate.address || ""}
-          employeePostalCode={`Email: ${certificate.employeeEmail || ""}`}
-          companyName={certificate.companyName}
-          certificateId={certificate.certificateId}
-          certifierName={certificate.certifierName}
-          certifierTitle={certificate.certifierTitle}
-          contactPhone={certificate.contactPhone}
-          contactEmail={certificate.contactEmail}
-          contactAddressLine1={certificate.contactAddressLine1}
-          contactAddressLine2={certificate.contactAddressLine2}
-        />
+          {/* Secondary group */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              onClick={handlePrint}
+              variant="outline"
+              className="gap-2 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200"
+            >
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+            <Button
+              onClick={handleDownloadPDF}
+              disabled={isDownloading}
+              variant="outline"
+              className="gap-2 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200"
+            >
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isDownloading ? "Opening..." : "Download PDF"}
+            </Button>
+            <Button
+              onClick={handleEmailCertificate}
+              variant="outline"
+              className="gap-2 hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/5 transition-all duration-200"
+            >
+              <Mail className="h-4 w-4" />
+              Send Email
+            </Button>
+            <Button
+              onClick={handleShareCertificate}
+              variant="outline"
+              className="gap-2 hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/5 transition-all duration-200"
+            >
+              <Share2 className="h-4 w-4" />
+              Share Link
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* ── Certificate Preview ── */}
+      <div className="rounded-2xl border border-border overflow-hidden">
+        <div className="px-5 py-3 border-b border-border bg-muted/40 flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Preview</span>
+          <span className="ml-auto text-xs text-muted-foreground">Scroll to view full document</span>
+        </div>
+        <div ref={certificateRef} className="print:bg-white bg-background p-4 sm:p-8">
+          <CertificateOfEmployment
+            date={new Date().toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+            employeeName={certificate.employeeName || ""}
+            startDate={certificate.startDate || ""}
+            jobTitle={certificate.jobTitle || ""}
+            departmentName={certificate.department || ""}
+            typeOfEmployment={certificate.typeOfEmployment || ""}
+            salaryAmount={certificate.salary || ""}
+            workHoursPerWeek={certificate.workHoursPerWeek || ""}
+            employeeAddressLine1={certificate.phone || certificate.address || ""}
+            employeePostalCode={`Email: ${certificate.employeeEmail || ""}`}
+            companyName={certificate.companyName}
+            certificateId={certificate.certificateId}
+            certifierName={certificate.certifierName}
+            certifierTitle={certificate.certifierTitle}
+            contactPhone={certificate.contactPhone}
+            contactEmail={certificate.contactEmail}
+            contactAddressLine1={certificate.contactAddressLine1}
+            contactAddressLine2={certificate.contactAddressLine2}
+          />
+        </div>
+      </div>
+
+      {/* ── Edit Modal ── */}
       <EditCertificateModal
         certificate={certificate}
         isOpen={isModalOpen}
@@ -370,100 +403,85 @@ export default function CertificateDetailPage({ params }: PageProps) {
         onSave={handleEditSave}
       />
 
-      {/* Share URL Dialog */}
+      {/* ── Share Dialog ── */}
       {shareDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShareDialog({ open: false, loading: false, copied: false })}
           />
-          {/* Dialog */}
-          <div className="relative z-10 w-full max-w-lg mx-4 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in zoom-in-95 fade-in duration-200">
+          <div className="relative z-10 w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200">
             {/* Header */}
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <Share2 className="h-4 w-4 text-white" />
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Share2 className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Share Certificate
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Copy the link below to share
-                </p>
+                <h2 className="text-base font-semibold text-foreground">Share Certificate</h2>
+                <p className="text-xs text-muted-foreground">Copy the link below to share</p>
               </div>
+              <button
+                onClick={() => setShareDialog({ open: false, loading: false, copied: false })}
+                className="ml-auto text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted"
+              >
+                ✕
+              </button>
             </div>
 
             {/* Body */}
-            {shareDialog.loading ? (
-              <div className="px-6 py-8 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-8 w-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    Generating shareable link...
-                  </p>
+            <div className="px-6 py-5">
+              {shareDialog.loading ? (
+                <div className="flex flex-col items-center gap-3 py-6">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  <p className="text-sm text-muted-foreground">Generating shareable link…</p>
                 </div>
-              </div>
-            ) : shareDialog.url ? (
-              <div className="px-6 py-5 space-y-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Share Link
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={shareDialog.url}
-                      readOnly
-                      className="flex-1 px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100"
-                    />
-                    <Button
-                      onClick={() => {
-                        navigator.clipboard.writeText(shareDialog.url!);
-                        setShareDialog((prev) => ({ ...prev, copied: true }));
-                        setTimeout(
-                          () =>
-                            setShareDialog((prev) => ({
-                              ...prev,
-                              copied: false,
-                            })),
-                          2000
-                        );
-                      }}
-                      size="sm"
-                      variant="outline"
-                      className="gap-2"
-                    >
-                      {shareDialog.copied ? (
-                        <>
-                          <Check className="h-4 w-4" />
-                          Copied!
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-4 w-4" />
-                          Copy
-                        </>
-                      )}
-                    </Button>
+              ) : shareDialog.url ? (
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Share Link
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={shareDialog.url}
+                        readOnly
+                        className="flex-1 px-3 py-2 text-sm bg-muted border border-border rounded-lg text-foreground font-mono truncate focus:outline-none"
+                      />
+                      <Button
+                        onClick={() => {
+                          navigator.clipboard.writeText(shareDialog.url!);
+                          setShareDialog((p) => ({ ...p, copied: true }));
+                          setTimeout(() => setShareDialog((p) => ({ ...p, copied: false })), 2000);
+                        }}
+                        size="sm"
+                        variant={shareDialog.copied ? "default" : "outline"}
+                        className="gap-2 shrink-0 transition-all duration-200"
+                      >
+                        {shareDialog.copied ? (
+                          <>
+                            <Check className="h-3.5 w-3.5" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            Copy
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-primary/5 border border-primary/15 text-xs text-muted-foreground">
+                    ℹ️ This link is publicly accessible. The certificate PDF will be automatically generated and uploaded if it doesn't already exist.
                   </div>
                 </div>
-
-                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
-                    ℹ️ This link is publicly accessible. The certificate PDF will be automatically generated and uploaded if it doesn't already exist.
-                  </p>
-                </div>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950">
-              <Button
-                variant="outline"
-                onClick={() => setShareDialog({ open: false, loading: false, copied: false })}
-              >
+            <div className="flex justify-end px-6 py-4 border-t border-border bg-muted/30">
+              <Button variant="outline" onClick={() => setShareDialog({ open: false, loading: false, copied: false })}>
                 Close
               </Button>
             </div>
@@ -471,56 +489,53 @@ export default function CertificateDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Email Sender Modal */}
+      {/* ── Email Dialog ── */}
       {emailDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setEmailDialog((prev) => ({ ...prev, open: false }))}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setEmailDialog((p) => ({ ...p, open: false }))}
           />
-          {/* Dialog */}
-          <div className="relative z-10 w-full max-w-2xl mx-4 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden animate-in zoom-in-95 fade-in duration-200">
+          <div className="relative z-10 w-full max-w-2xl bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200">
             {/* Header */}
-            <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30">
-              <div className="p-2 bg-emerald-500 rounded-lg">
-                <Mail className="h-4 w-4 text-white" />
+            <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+              <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
+                <Mail className="h-4 w-4 text-accent" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  Send Certificate via Email
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Customize and send the certificate to {certificate?.employeeName}
+                <h2 className="text-base font-semibold text-foreground">Send Certificate via Email</h2>
+                <p className="text-xs text-muted-foreground">
+                  Sending to {certificate?.employeeName}
                 </p>
               </div>
+              <button
+                onClick={() => setEmailDialog((p) => ({ ...p, open: false }))}
+                className="ml-auto text-muted-foreground hover:text-foreground transition-colors p-1 rounded-lg hover:bg-muted"
+              >
+                ✕
+              </button>
             </div>
 
             {/* Body */}
             <div className="px-6 py-5 space-y-4 max-h-[60vh] overflow-y-auto">
-              {/* Recipient Email */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              {/* Recipient */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Recipient Email
                 </label>
                 <input
                   type="email"
                   value={emailDialog.recipientEmail}
-                  onChange={(e) =>
-                    setEmailDialog((prev) => ({
-                      ...prev,
-                      recipientEmail: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setEmailDialog((p) => ({ ...p, recipientEmail: e.target.value }))}
                   placeholder="employee@example.com"
-                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
 
               {/* Certificate URL */}
               {emailDialog.certificateUrl && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Certificate Link
                   </label>
                   <div className="flex items-center gap-2">
@@ -528,7 +543,7 @@ export default function CertificateDetailPage({ params }: PageProps) {
                       type="text"
                       value={emailDialog.certificateUrl}
                       readOnly
-                      className="flex-1 px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 truncate"
+                      className="flex-1 px-3 py-2 text-sm bg-muted border border-border rounded-lg text-foreground font-mono truncate focus:outline-none"
                     />
                     <Button
                       onClick={() => {
@@ -537,85 +552,69 @@ export default function CertificateDetailPage({ params }: PageProps) {
                       }}
                       size="sm"
                       variant="outline"
-                      className="gap-2"
+                      className="gap-2 shrink-0"
                     >
-                      <Copy className="h-4 w-4" />
+                      <Copy className="h-3.5 w-3.5" />
                       Copy
                     </Button>
                   </div>
                 </div>
               )}
 
-              {emailDialog.loading && (
-                <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 flex items-center gap-2">
-                  <div className="h-4 w-4 border-2 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
-                    Generating certificate URL...
-                  </p>
+              {/* Generating URL spinner */}
+              {emailDialog.loading && !emailDialog.certificateUrl && (
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-primary/5 border border-primary/15">
+                  <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
+                  <p className="text-xs text-muted-foreground">Generating certificate URL…</p>
                 </div>
               )}
 
               {/* Subject */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Subject
                 </label>
                 <input
                   type="text"
                   value={emailDialog.subject}
-                  onChange={(e) =>
-                    setEmailDialog((prev) => ({
-                      ...prev,
-                      subject: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  onChange={(e) => setEmailDialog((p) => ({ ...p, subject: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
 
-              {/* Body Message */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              {/* Body */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Message Body
                 </label>
                 <textarea
                   value={emailDialog.body}
-                  onChange={(e) =>
-                    setEmailDialog((prev) => ({
-                      ...prev,
-                      body: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setEmailDialog((p) => ({ ...p, body: e.target.value }))}
                   rows={6}
-                  className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-slate-100 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-lg text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
 
-              {/* Info Banner */}
-              <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
-                <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                  ℹ️ An email with the certificate will be sent to the recipient. If the certificate hasn't been generated yet, it will be created automatically.
-                </p>
+              {/* Info */}
+              <div className="p-3 rounded-xl bg-accent/5 border border-accent/15 text-xs text-muted-foreground">
+                ℹ️ An email with the certificate will be sent to the recipient. If the certificate hasn't been generated yet, it will be created automatically.
               </div>
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950">
-              <Button
-                variant="outline"
-                onClick={() => setEmailDialog((prev) => ({ ...prev, open: false }))}
-              >
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border bg-muted/30">
+              <Button variant="outline" onClick={() => setEmailDialog((p) => ({ ...p, open: false }))}>
                 Cancel
               </Button>
               <Button
                 onClick={handleSendEmail}
                 disabled={emailDialog.loading || !emailDialog.recipientEmail}
-                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground shadow-md shadow-accent/20 hover:shadow-lg hover:shadow-accent/30 transition-all duration-200"
               >
                 {emailDialog.loading ? (
                   <>
-                    <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Sending...
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sending…
                   </>
                 ) : (
                   <>
@@ -632,15 +631,9 @@ export default function CertificateDetailPage({ params }: PageProps) {
       {/* Print Styles */}
       <style>{`
         @media print {
-          body {
-            background: white;
-          }
-          .print\\:bg-white {
-            background: white;
-          }
-          header, nav, .no-print {
-            display: none;
-          }
+          body { background: white; }
+          .print\\:bg-white { background: white; }
+          header, nav, .no-print { display: none; }
         }
       `}</style>
     </div>
