@@ -234,7 +234,7 @@ export function ExcelUploadComponent({
         </div>
 
         {/* Multiple Months Option */}
-        <div className="border border-border rounded-lg p-4 bg-card">
+        {/* <div className="border border-border rounded-lg p-4 bg-card">
           <label className="flex items-center gap-3 cursor-pointer">
             <input
               type="radio"
@@ -249,7 +249,7 @@ export function ExcelUploadComponent({
           <p className="text-xs text-muted-foreground mt-2 ml-7">
             System will detect month and year from each sheet's name in your Excel file.
           </p>
-        </div>
+        </div> */}
       </div>
 
       {/* Drag and Drop Area */}
