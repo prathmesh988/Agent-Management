@@ -3,6 +3,16 @@
 import { Certificate } from "@/hooks/useCertificates";
 import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
 
+/** Escape special HTML characters to prevent XSS in the generated document. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export const generateCertificatePDF = async (certificate: Certificate) => {
   try {
     // Dynamically import html2pdf only on the client side

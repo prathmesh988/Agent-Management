@@ -282,9 +282,9 @@ export default function CertificatesPage() {
       // Prepare email data
       const emailParams = selectedEmps.map((emp) => ({
         employeeId: emp.employeeId,
-        employeeEmail: emp.email!,
+        senderEmail: emp.email!,
         employeeName: emp.name!,
-        certificateId: `CERT-${emp.employeeId}`, // Kept for compatibility but download uses employeeId
+        certificateId: `CERT-${emp.employeeId}`,
       }));
 
       // Call server action to send emails
