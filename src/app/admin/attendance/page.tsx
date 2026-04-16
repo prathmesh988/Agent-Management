@@ -5,10 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ATTENDANCE } from '@/lib/constants';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useEmployees } from '@/hooks/useEmployees';
 import { Employee } from '@/lib/types';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
+
+// (Branches are derived dynamically from employee data below)
 
 const DAY_KEYS = [
   "1Sun", "2Mon", "3Tue", "4Wed", "5Thu", "6Fri", "7Sat", "8Sun", 
@@ -25,6 +34,8 @@ type AttendanceCode = typeof ATTENDANCE.CODES[number];
 export default function AttendancePage() {
   const { employees, updateEmployee, isLoading } = useEmployees();
   const [searchTerm, setSearchTerm] = useState("");
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [batchFilter, setBatchFilter] = useState("all");
   const [toastMessage, setToastMessage] = useState<{show: boolean, msg: string}>({show: false, msg: ""});
 
   const showToast = useCallback((msg: string) => {
@@ -39,14 +50,49 @@ export default function AttendancePage() {
     await updateEmployee(updatedEmp);
   }, [updateEmployee]);
 
+  // Derive unique branches from employee data
+  const availableBranches = useMemo(() => {
+    const branches = new Set<string>();
+    employees.forEach((emp) => {
+      const branch = emp.process || emp.department;
+      if (branch && branch.trim()) branches.add(branch.trim());
+    });
+    return Array.from(branches).sort();
+  }, [employees]);
+
+  // Derive unique batches from employee data (future-ready)
+  const availableBatches = useMemo(() => {
+    const batches = new Set<string>();
+    employees.forEach((emp) => {
+      // Future: if employees get a "batch" field, add it here
+      // e.g. if ((emp as any).batch) batches.add((emp as any).batch);
+    });
+    return Array.from(batches).sort();
+  }, [employees]);
+
   const filteredEmployees = employees.filter(emp => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      (emp.name && emp.name.toLowerCase().includes(searchLower)) ||
-      (emp.employeeId && emp.employeeId.toLowerCase().includes(searchLower)) ||
-      (emp.process && emp.process.toLowerCase().includes(searchLower))
-    );
+    // Search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        (emp.name && emp.name.toLowerCase().includes(searchLower)) ||
+        (emp.employeeId && emp.employeeId.toLowerCase().includes(searchLower)) ||
+        (emp.process && emp.process.toLowerCase().includes(searchLower));
+      if (!matchesSearch) return false;
+    }
+
+    // Branch filter (maps to process/department field)
+    if (branchFilter !== "all") {
+      const empBranch = (emp.process || emp.department || "").toLowerCase();
+      if (empBranch !== branchFilter.toLowerCase()) return false;
+    }
+
+    // Batch filter (future-ready)
+    if (batchFilter !== "all") {
+      // Future: if ((emp as any).batch !== batchFilter) return false;
+    }
+
+    return true;
   });
 
   return (
@@ -64,18 +110,72 @@ export default function AttendancePage() {
           <CardTitle>Monthly Attendance Grid</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
-            <div className="flex gap-2 items-center flex-1 min-w-[200px] max-w-[300px]">
-              <span className="text-sm font-medium">Search:</span>
-              <Input 
-                type="text" 
-                placeholder="Name or ID..." 
-                className="w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="flex flex-col gap-4 mb-6">
+            {/* Filter Row */}
+            <div className="flex flex-wrap gap-3 items-end">
+              {/* Search */}
+              <div className="flex-1 min-w-[180px] max-w-[280px] space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Search</label>
+                <Input 
+                  type="text" 
+                  placeholder="Name or ID..." 
+                  className="w-full"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              {/* Branch Dropdown */}
+              <div className="w-full sm:w-44 space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Branch</label>
+                <Select value={branchFilter} onValueChange={setBranchFilter}>
+                  <SelectTrigger className="w-full bg-background">
+                    <SelectValue placeholder="All Branches" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Branches</SelectItem>
+                    {availableBranches.map((branch) => (
+                      <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Batch Dropdown */}
+              <div className="w-full sm:w-44 space-y-1">
+                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Batch</label>
+                <Select value={batchFilter} onValueChange={setBatchFilter}>
+                  <SelectTrigger className="w-full bg-background">
+                    <SelectValue placeholder="All Batches" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Batches</SelectItem>
+                    {availableBatches.length === 0 ? (
+                      <SelectItem value="_empty" disabled>No batches available</SelectItem>
+                    ) : (
+                      availableBatches.map((batch) => (
+                        <SelectItem key={batch} value={batch}>{batch}</SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Clear Filters */}
+              {(searchTerm || branchFilter !== "all" || batchFilter !== "all") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 mt-auto"
+                  onClick={() => { setSearchTerm(""); setBranchFilter("all"); setBatchFilter("all"); }}
+                >
+                  Clear
+                </Button>
+              )}
             </div>
-            <div className="text-sm flex gap-2 flex-wrap items-center justify-end text-slate-500">
+
+            {/* Codes Legend */}
+            <div className="text-sm flex gap-2 flex-wrap items-center text-slate-500">
                <span className="font-semibold text-slate-900 dark:text-slate-200">Codes:</span> 
                P (Present), WO (Week Off), CL (Casual Leave), LC (Late Coming), HD (Half Day), L (Leave), A (Absent)
             </div>
