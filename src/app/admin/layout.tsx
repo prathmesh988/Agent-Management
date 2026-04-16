@@ -5,6 +5,7 @@ import { AdminHeader } from '@/components/admin/header';
 import { SidebarProvider, useSidebar } from '@/components/admin/sidebar-context';
 import { ToastProvider } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useRouteProtection } from '@/hooks/useRouteProtection';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,9 @@ function AdminContent({ children }: { children: React.ReactNode }) {
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  
+  // Check route protection
+  useRouteProtection();
 
   useEffect(() => {
     // If authentication check is complete and user is not authenticated, redirect to login

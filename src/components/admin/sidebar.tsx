@@ -25,20 +25,24 @@ import { Button } from '@/components/ui/button';
 import { useSidebar } from './sidebar-context';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/components/ui/toast';
+import { isProtectedRoute } from '@/lib/route-protection';
 
 // ─── Nav items with optional role restriction ───────────────────────────────
-// requiresAdmin: true → MVP users cannot access this route
+// Uses isProtectedRoute utility to determine requiresAdmin status
 const navItems = [
-  { title: 'Dashboard',        href: '/admin/dashboard',        icon: LayoutDashboard, requiresAdmin: false },
-  { title: 'Employees',        href: '/admin/employees',         icon: Users,           requiresAdmin: false },
-  { title: 'Attendance',       href: '/admin/attendance',        icon: Calendar,        requiresAdmin: false },
-  { title: 'Leave',            href: '/admin/leave',             icon: Clock,           requiresAdmin: false },
-  { title: 'Payroll',          href: '/admin/payroll',           icon: Banknote,        requiresAdmin: false },
-  { title: 'Upload Employees', href: '/admin/employees/upload',  icon: Upload,          requiresAdmin: true  },
-  { title: 'Certificates',     href: '/admin/certificates',      icon: FileText,        requiresAdmin: false },
-  { title: 'Admins',           href: '/admin/admins',            icon: Shield,          requiresAdmin: true  },
-  { title: 'Settings',         href: '/admin/settings',          icon: Settings,        requiresAdmin: false },
-];
+  { title: 'Dashboard',        href: '/admin/dashboard',        icon: LayoutDashboard },
+  { title: 'Employees',        href: '/admin/employees',         icon: Users },
+  { title: 'Attendance',       href: '/admin/attendance',        icon: Calendar },
+  { title: 'Leave',            href: '/admin/leave',             icon: Clock },
+  { title: 'Payroll',          href: '/admin/payroll',           icon: Banknote },
+  { title: 'Upload Employees', href: '/admin/employees/upload',  icon: Upload },
+  { title: 'Certificates',     href: '/admin/certificates',      icon: FileText },
+  { title: 'Admins',           href: '/admin/admins',            icon: Shield },
+  { title: 'Settings',         href: '/admin/settings',          icon: Settings },
+].map((item) => ({
+  ...item,
+  requiresAdmin: isProtectedRoute(item.href)?.requiresAdmin ?? false,
+}));
 
 // ─── Role badge config ───────────────────────────────────────────────────────
 const ROLE_CONFIG = {
