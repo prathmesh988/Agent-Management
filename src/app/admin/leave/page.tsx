@@ -644,6 +644,62 @@ function RemarksModal({
 }
 
 // ═════════════════════════════════════════════════════════════════════
+// Attachment Preview Modal
+// ═════════════════════════════════════════════════════════════════════
+function AttachmentPreviewModal({
+  open,
+  onClose,
+  attachment,
+}: {
+  open: boolean;
+  onClose: () => void;
+  attachment: { url: string; name: string } | null;
+}) {
+  if (!open || !attachment) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 text-left">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-4xl h-[85vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 fade-in duration-200">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <File className="h-4 w-4 text-slate-500 shrink-0" />
+            <h3 className="font-medium text-sm text-slate-900 dark:text-slate-100 truncate">
+              {attachment.name}
+            </h3>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-4">
+            <a
+              href={attachment.url.replace('/view?', '/download?')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+              title="Download File"
+            >
+              <Download className="h-4 w-4" />
+            </a>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+              title="Close Preview"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 w-full bg-slate-100 dark:bg-slate-950 p-2">
+          <iframe
+            src={attachment.url}
+            title={attachment.name}
+            className="w-full h-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════
 // Leave Table Component
 // ═════════════════════════════════════════════════════════════════════
 function LeaveTable({
@@ -652,6 +708,7 @@ function LeaveTable({
   onApprove,
   onReject,
   onDelete,
+  onPreviewAttachment,
   emptyMessage,
 }: {
   leaves: LeaveRequest[];
@@ -659,6 +716,7 @@ function LeaveTable({
   onApprove?: (leave: LeaveRequest) => void;
   onReject?: (leave: LeaveRequest) => void;
   onDelete?: (leave: LeaveRequest) => void;
+  onPreviewAttachment?: (attachment: { url: string; name: string }) => void;
   emptyMessage: string;
 }) {
   if (leaves.length === 0) {
@@ -764,20 +822,18 @@ function LeaveTable({
                       {leave.attachmentIds.split(",").map((entry, idx) => {
                         const [fileId, ...nameParts] = entry.trim().split(":");
                         const fileName = nameParts.join(":") || `File ${idx + 1}`;
-                        // Construct Appwrite bucket download URL
-                        const downloadUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/69b7cf9e001384db23f9/files/${fileId}/download?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+                        const viewUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/69b7cf9e001384db23f9/files/${fileId}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
                         return (
-                          <a
+                          <button
                             key={fileId}
-                            href={downloadUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            type="button"
+                            onClick={() => onPreviewAttachment?.({ url: viewUrl, name: fileName })}
                             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                             title={fileName}
                           >
                             <Paperclip className="h-3 w-3" />
                             <span className="max-w-[80px] truncate">{fileName}</span>
-                          </a>
+                          </button>
                         );
                       })}
                     </div>
@@ -840,6 +896,7 @@ export default function LeaveManagementPage() {
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<{ url: string; name: string } | null>(null);
   const [remarksModal, setRemarksModal] = useState<{
     open: boolean;
     action: "approve" | "reject";
@@ -1061,6 +1118,7 @@ export default function LeaveManagementPage() {
                   onApprove={handleApproveClick}
                   onReject={handleRejectClick}
                   onDelete={handleDelete}
+                  onPreviewAttachment={setPreviewAttachment}
                   emptyMessage="No pending leave requests"
                 />
               </CardContent>
@@ -1082,6 +1140,7 @@ export default function LeaveManagementPage() {
                 <LeaveTable
                   leaves={approvedLeaves}
                   onDelete={handleDelete}
+                  onPreviewAttachment={setPreviewAttachment}
                   emptyMessage="No approved leave requests"
                 />
               </CardContent>
@@ -1103,6 +1162,7 @@ export default function LeaveManagementPage() {
                 <LeaveTable
                   leaves={rejectedLeaves}
                   onDelete={handleDelete}
+                  onPreviewAttachment={setPreviewAttachment}
                   emptyMessage="No rejected leave requests"
                 />
               </CardContent>
@@ -1132,6 +1192,13 @@ export default function LeaveManagementPage() {
         onConfirm={handleConfirmAction}
         action={remarksModal.action}
         leaveName={remarksModal.leave?.employeeName || ""}
+      />
+
+      {/* Attachment Preview Modal */}
+      <AttachmentPreviewModal
+        open={!!previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+        attachment={previewAttachment}
       />
     </div>
   );
