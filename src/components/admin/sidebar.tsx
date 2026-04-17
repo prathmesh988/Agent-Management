@@ -53,10 +53,22 @@ const ROLE_CONFIG = {
     dot: 'bg-amber-500',
   },
   viewer: {
-    label: 'viewer  •  Read only',
+    label: 'Viewer  •  Read only',
     icon: Eye,
     colors: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-400/30',
     dot: 'bg-blue-500',
+  },
+  mvp: {
+    label: 'MVP  •  Approved',
+    icon: Eye,
+    colors: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-400/30',
+    dot: 'bg-emerald-500',
+  },
+  new_user: {
+    label: 'Pending Approval',
+    icon: Eye,
+    colors: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-400/30',
+    dot: 'bg-orange-500',
   },
 } as const;
 
@@ -69,8 +81,8 @@ export function AdminSidebar() {
   const { toast } = useToast();
 
   const isAdmin = currentUser?.role === 'admin';
-  const roleKey = (currentUser?.role ?? 'viewer') as 'admin' | 'viewer';
-  const roleCfg = ROLE_CONFIG[roleKey];
+  const roleKey = (currentUser?.role ?? 'new_user') as keyof typeof ROLE_CONFIG;
+  const roleCfg = ROLE_CONFIG[roleKey] ?? ROLE_CONFIG['viewer'];
   const RoleIcon = roleCfg.icon;
 
   const handleNavClick = (

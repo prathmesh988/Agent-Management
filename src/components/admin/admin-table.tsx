@@ -19,11 +19,12 @@ import { PageLoader } from "@/components/ui/page-loader";
 interface AdminTableProps {
   admins: AdminUser[];
   loading?: boolean;
-  currentUserRole?: 'admin' | 'viewer' | null;
+  currentUserRole?: 'admin' | 'viewer' | 'mvp' | 'new_user' | null;
   onAddAdmin?: () => void;
   onEditAdmin?: (admin: AdminUser) => void;
   onDeleteAdmin?: (admin: AdminUser) => void;
-  onUpdateRole?: (adminId: string, role: 'admin' | 'viewer') => Promise<void>;
+  onUpdateRole?: (adminId: string, role: 'admin' | 'viewer' | 'mvp' | 'new_user') => Promise<void>;
+  onApproveUser?: (adminId: string) => Promise<void>;
 }
 
 const permissionColors: Record<string, string> = {
@@ -34,6 +35,13 @@ const permissionColors: Record<string, string> = {
 };
 
 
+const roleStyles: Record<string, string> = {
+  admin: 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
+  mvp: 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
+  viewer: 'bg-muted text-muted-foreground border border-border',
+  new_user: 'bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800',
+};
+
 export function AdminTable({
   admins,
   loading = false,
@@ -42,12 +50,13 @@ export function AdminTable({
   onEditAdmin,
   onDeleteAdmin,
   onUpdateRole,
+  onApproveUser,
 }: AdminTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const canEditRoles = currentUserRole === 'admin';
 
-  const handleRoleChange = async (adminId: string, role: 'admin' | 'viewer') => {
+  const handleRoleChange = async (adminId: string, role: 'admin' | 'viewer' | 'mvp') => {
     if (!onUpdateRole) return;
     try {
       setUpdatingId(adminId);
@@ -111,12 +120,10 @@ export function AdminTable({
                     <TableCell>
                       <span
                         className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                          admin.role === 'admin'
-                            ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
-                            : 'bg-muted text-muted-foreground border border-border'
+                          roleStyles[admin.role] || 'bg-muted text-muted-foreground border border-border'
                         }`}
                       >
-                        {admin.role.charAt(0).toUpperCase() + admin.role.slice(1)}
+                        {admin.role === 'new_user' ? '⏳ Pending' : admin.role.charAt(0).toUpperCase() + admin.role.slice(1)}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -136,7 +143,22 @@ export function AdminTable({
                  
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {canEditRoles && (
+                        {/* Approve button for pending users */}
+                        {canEditRoles && admin.role === 'new_user' && (
+                          <button
+                            onClick={async () => {
+                              if (!onApproveUser) return;
+                              setUpdatingId(admin.id);
+                              try { await onApproveUser(admin.id); } finally { setUpdatingId(null); }
+                            }}
+                            disabled={updatingId === admin.id}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-all duration-200 disabled:opacity-50"
+                            title="Approve user"
+                          >
+                            {updatingId === admin.id ? 'Approving…' : '✓ Approve'}
+                          </button>
+                        )}
+                        {canEditRoles && admin.role !== 'new_user' && (
                           <>
                             <button
                               onClick={() => setEditingAdmin(admin)}

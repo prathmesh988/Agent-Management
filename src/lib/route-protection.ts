@@ -34,7 +34,7 @@ export function isProtectedRoute(pathname: string): ProtectedRoute | null {
  */
 export function canAccessRoute(
   pathname: string,
-  userRole: 'admin' | 'viewer' | null | undefined
+  userRole: 'admin' | 'viewer' | 'mvp' | 'new_user' | null | undefined
 ): boolean {
   const protectedRoute = isProtectedRoute(pathname);
 

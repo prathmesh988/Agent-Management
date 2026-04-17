@@ -9,7 +9,7 @@ interface EditRoleModalProps {
   isOpen: boolean;
   isUpdating: boolean;
   onClose: () => void;
-  onRoleChange: (role: 'admin' | 'viewer') => Promise<void>;
+  onRoleChange: (role: 'admin' | 'viewer' | 'mvp') => Promise<void>;
 }
 
 export function EditRoleModal({
@@ -19,7 +19,9 @@ export function EditRoleModal({
   onClose,
   onRoleChange,
 }: EditRoleModalProps) {
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'viewer'>(admin.role);
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'viewer' | 'mvp'>(
+    admin.role === 'new_user' ? 'mvp' : admin.role as 'admin' | 'viewer' | 'mvp'
+  );
 
   const handleSave = async () => {
     if (selectedRole !== admin.role) {
@@ -55,13 +57,36 @@ export function EditRoleModal({
               name="role"
               value="admin"
               checked={selectedRole === 'admin'}
-              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'viewer')}
+              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'viewer' | 'mvp')}
               className="w-4 h-4 text-amber-600 accent-amber-600"
               disabled={isUpdating}
             />
             <div className="ml-3">
               <p className="font-semibold text-foreground">👤 Admin</p>
               <p className="text-xs text-muted-foreground">Full Access - Can manage all users and data</p>
+            </div>
+          </label>
+
+          {/* MVP Role Option */}
+          <label
+            className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+              selectedRole === 'mvp'
+                ? 'border-emerald-500 dark:border-emerald-400 bg-emerald-50 dark:bg-emerald-950/40'
+                : 'border-border bg-transparent hover:bg-muted/50'
+            }`}
+          >
+            <input
+              type="radio"
+              name="role"
+              value="mvp"
+              checked={selectedRole === 'mvp'}
+              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'viewer' | 'mvp')}
+              className="w-4 h-4 text-emerald-600 accent-emerald-600"
+              disabled={isUpdating}
+            />
+            <div className="ml-3">
+              <p className="font-semibold text-foreground">🚀 MVP</p>
+              <p className="text-xs text-muted-foreground">Approved user — full read access to the system</p>
             </div>
           </label>
 
@@ -78,7 +103,7 @@ export function EditRoleModal({
               name="role"
               value="viewer"
               checked={selectedRole === 'viewer'}
-              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'viewer')}
+              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'viewer' | 'mvp')}
               className="w-4 h-4 text-blue-600 accent-blue-600"
               disabled={isUpdating}
             />

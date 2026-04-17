@@ -17,16 +17,23 @@ export async function GET(request: NextRequest) {
     // Transform users to include role/permission information based on labels
     const formattedUsers = response.users.map((user: any) => {
       // Determine role based on labels
-      let role = 'viewer'; // default role
-      if (user.labels?.includes('admin')) {
+      const userLabels: string[] = user.labels || [];
+      let role = 'new_user'; // default — no label means awaiting approval
+      if (userLabels.includes('admin')) {
         role = 'admin';
-      } else if (user.labels?.includes('viewer')) {
+      } else if (userLabels.includes('mvp')) {
+        role = 'mvp';
+      } else if (userLabels.includes('viewer')) {
         role = 'viewer';
+      } else if (userLabels.includes('new_user')) {
+        role = 'new_user';
       }
 
       // Map role to permissions
-      const permissions = role === 'admin' 
-        ? ['READ', 'WRITE', 'UPDATE', 'DELETE'] 
+      const permissions = role === 'admin'
+        ? ['READ', 'WRITE', 'UPDATE', 'DELETE']
+        : role === 'new_user'
+        ? []
         : ['READ'];
 
       return {

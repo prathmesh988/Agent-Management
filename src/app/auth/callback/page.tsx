@@ -34,6 +34,20 @@ function AuthCallbackContent() {
     const handleVerification = async () => {
       try {
         await verifyMagicLink(userId, secret);
+
+        // Auto-assign 'new_user' label if this is the first login (no role label yet)
+        // We need the verified user's ID — re-read it from Appwrite client-side
+        try {
+          const { account: appwriteAccount } = await import('@/services/auth');
+          const verifiedUser = await appwriteAccount.get();
+          await fetch(`/api/admin/users/${verifiedUser.$id}/check-or-init`, {
+            method: 'POST',
+          });
+        } catch (initErr) {
+          // Non-fatal — the layout will handle role enforcement
+          console.warn('[Auth Callback] check-or-init failed:', initErr);
+        }
+
         setStatus('success');
         // Add a small delay to ensure cookies are persisted before redirecting
         setTimeout(() => {

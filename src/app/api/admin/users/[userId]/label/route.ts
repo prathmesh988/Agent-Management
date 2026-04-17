@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Client, Users } from 'node-appwrite';
 
 interface UpdateLabelRequest {
-  role: 'admin' | 'viewer';
+  role: 'admin' | 'viewer' | 'mvp' | 'new_user';
 }
 
 export async function PATCH(
@@ -34,7 +34,7 @@ export async function PATCH(
 
     // Remove old role labels
     let newLabels = currentLabels.filter(
-      (label: string) => !['admin', 'viewer'].includes(label)
+      (label: string) => !['admin', 'viewer', 'mvp', 'new_user'].includes(label)
     );
 
     // Add new role label
@@ -46,6 +46,8 @@ export async function PATCH(
     // Map role to permissions
     const permissions = body.role === 'admin'
       ? ['READ', 'WRITE', 'UPDATE', 'DELETE']
+      : body.role === 'new_user'
+      ? []
       : ['READ'];
 
     return NextResponse.json(

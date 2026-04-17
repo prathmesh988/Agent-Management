@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useRouteProtection } from '@/hooks/useRouteProtection';
 import { canAccessRoute, isProtectedRoute } from '@/lib/route-protection';
+import { PendingApprovalScreen } from '@/components/admin/pending-approval-screen';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -33,7 +34,8 @@ function AdminContent({ children }: { children: React.ReactNode }) {
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const { currentUser } = useCurrentUser();
+  // Always call hooks at the top level — never conditionally
+  const { currentUser, loading: currentUserLoading } = useCurrentUser();
   const pathname = usePathname();
   
   // Check route protection
@@ -56,8 +58,22 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return null;
   }
 
+  // Wait until we know the user's role before rendering
+  if (currentUserLoading) {
+    return <PageLoader message="Loading your profile..." className="h-screen" />;
+  }
+
+  // Block new_user accounts — show waiting-for-approval screen
+  if (currentUser?.role === 'new_user') {
+    return (
+      <PendingApprovalScreen
+        userEmail={currentUser.email}
+        userName={currentUser.name}
+      />
+    );
+  }
+
   // Check if current route requires access the user doesn't have
-  // If so, show loading while redirect happens
   const hasAccess = canAccessRoute(pathname, currentUser?.role);
   const protectedRoute = isProtectedRoute(pathname);
   
