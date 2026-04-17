@@ -7,25 +7,67 @@ import { ATTENDANCE } from '@/lib/constants';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useEmployees } from '@/hooks/useEmployees';
 import { Employee } from '@/lib/types';
-import { useState, useEffect, useCallback } from 'react';
-import { Loader2 } from 'lucide-react';
-
-const DAY_KEYS = [
-  "1Sun", "2Mon", "3Tue", "4Wed", "5Thu", "6Fri", "7Sat", "8Sun", 
-  "9Mon", "10Tue", "11Wed", "12Thu", "13Fri", "14Sat", "15Sun", 
-  "16Mon", "17Tue", "18Wed", "19Thu", "20Fri", "21Sat", "22Sun", 
-  "23Mon", "24Tue", "25Wed", "26Thu", "27Fri", "28Sat", "29Sun", 
-  "30Mon", "31Tue"
-] as const;
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { saveBulkAttendanceAction, getBulkMonthlyAttendanceAction } from '@/app/(actions)/attendance';
 
 // Types of attendance
 const ATTENDANCE_CODES = ATTENDANCE.CODES;
 type AttendanceCode = typeof ATTENDANCE.CODES[number];
 
+// Helper to generate day keys for a specific month
+function generateDayKeysForMonth(year: number, month: number): string[] {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const keys: string[] = [];
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month - 1, day);
+    const dayName = dayNames[date.getDay()];
+    keys.push(`${day}${dayName}`);
+  }
+  
+  return keys;
+}
+
 export default function AttendancePage() {
-  const { employees, updateEmployee, isLoading } = useEmployees();
+  const { employees, updateEmployee, isLoading: employeesLoading } = useEmployees();
   const [searchTerm, setSearchTerm] = useState("");
   const [toastMessage, setToastMessage] = useState<{show: boolean, msg: string}>({show: false, msg: ""});
+  
+  // Month/Year navigation
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  
+  // Fetch monthly attendance data from monthly_attendance2 collection
+  const [monthlyAttendanceData, setMonthlyAttendanceData] = useState<Record<string, Record<string, string>>>({});
+  const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
+  
+  // Generate day keys for selected month
+  const DAY_KEYS = useMemo(() => generateDayKeysForMonth(selectedYear, selectedMonth), [selectedYear, selectedMonth]);
+
+  // Fetch attendance data when month/year changes
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      setIsLoadingAttendance(true);
+      try {
+        const result = await getBulkMonthlyAttendanceAction(selectedYear, selectedMonth);
+        if (result.success) {
+          setMonthlyAttendanceData(result.data);
+        } else {
+          setMonthlyAttendanceData({});
+        }
+      } catch (error) {
+        console.error("Error fetching bulk attendance:", error);
+        setMonthlyAttendanceData({});
+      } finally {
+        setIsLoadingAttendance(false);
+      }
+    };
+    
+    fetchAttendance();
+  }, [selectedYear, selectedMonth]);
 
   const showToast = useCallback((msg: string) => {
     setToastMessage({show: true, msg});
@@ -37,7 +79,19 @@ export default function AttendancePage() {
   const handleUpdate = useCallback(async (employee: Employee, dayKey: string, nextCode: AttendanceCode) => {
     const updatedEmp = { ...employee, [dayKey]: nextCode } as Employee;
     await updateEmployee(updatedEmp);
-  }, [updateEmployee]);
+    
+    // Also save to monthly_attendance2 collection for sync with individual attendance pages
+    await saveBulkAttendanceAction(employee.employeeId, dayKey, nextCode, selectedYear, selectedMonth);
+    
+    // Update local state
+    setMonthlyAttendanceData(prev => ({
+      ...prev,
+      [employee.employeeId]: {
+        ...prev[employee.employeeId],
+        [dayKey]: nextCode
+      }
+    }));
+  }, [updateEmployee, selectedYear, selectedMonth]);
 
   const filteredEmployees = employees.filter(emp => {
     if (!searchTerm) return true;
@@ -48,6 +102,27 @@ export default function AttendancePage() {
       (emp.process && emp.process.toLowerCase().includes(searchLower))
     );
   });
+  
+  const handlePrevMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedYear(selectedYear - 1);
+      setSelectedMonth(12);
+    } else {
+      setSelectedMonth(selectedMonth - 1);
+    }
+  };
+  
+  const handleNextMonth = () => {
+    if (selectedMonth === 12) {
+      setSelectedYear(selectedYear + 1);
+      setSelectedMonth(1);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
+    }
+  };
+  
+  const monthYearString = new Date(selectedYear, selectedMonth - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const isLoading = employeesLoading || isLoadingAttendance;
 
   return (
     <div className="space-y-6">
@@ -60,8 +135,19 @@ export default function AttendancePage() {
       </div>
       
       <Card>
-        <CardHeader>
-          <CardTitle>Monthly Attendance Grid</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle>Monthly Attendance Grid - {monthYearString}</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={handlePrevMonth}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium min-w-[120px] text-center">{monthYearString}</span>
+              <Button variant="ghost" size="sm" onClick={handleNextMonth}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
@@ -120,7 +206,8 @@ export default function AttendancePage() {
                   </TableRow>
                 ) : (
                   filteredEmployees.map((emp) => {
-                    const pCount = DAY_KEYS.reduce((acc, key) => acc + (emp[key as keyof Employee] === 'P' ? 1 : 0), 0);
+                    const employeeAttendance = monthlyAttendanceData[emp.employeeId] || {};
+                    const pCount = DAY_KEYS.reduce((acc, key) => acc + (employeeAttendance[key] === 'P' ? 1 : 0), 0);
 
                     return (
                       <TableRow key={emp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
@@ -133,7 +220,7 @@ export default function AttendancePage() {
                               key={key} 
                               employee={emp} 
                               dayKey={key} 
-                              initialCode={(emp[key as keyof Employee] as string) || ""} 
+                              initialCode={employeeAttendance[key] || ""} 
                               onUpdate={handleUpdate}
                               showToast={showToast}
                            />
@@ -175,19 +262,31 @@ function AttendanceCell({
   onUpdate: (emp: Employee, dayKey: string, nextCode: AttendanceCode) => Promise<void>,
   showToast: (msg: string) => void
 }) {
-  const [code, setCode] = useState<AttendanceCode>(
-    (initialCode && ATTENDANCE_CODES.includes(initialCode as AttendanceCode)) 
-      ? (initialCode as AttendanceCode)
-      : ''
-  );
+  // Parse and normalize the code from database
+  const parseCode = (val: string | undefined): AttendanceCode => {
+    if (!val) return '';
+    
+    // If it's already a valid attendance code, return it
+    if (ATTENDANCE_CODES.includes(val as AttendanceCode)) {
+      return val as AttendanceCode;
+    }
+    
+    // Map alternate formats
+    if (val === "H" || val === "0.5") return "HD";
+    if (val === "LWP") return "L";
+    
+    return '';
+  };
+
+  const normalizedCode = parseCode(initialCode);
+  const [code, setCode] = useState<AttendanceCode>(normalizedCode);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Sync state when initialCode changes
   useEffect(() => {
-    const validCode = (initialCode && ATTENDANCE_CODES.includes(initialCode as AttendanceCode))
-      ? (initialCode as AttendanceCode)
-      : '';
+    const validCode = parseCode(initialCode);
     setCode(validCode);
-  }, [initialCode]);
+  }, [initialCode, employee.name]);
 
   const handleClick = async () => {
     if (isUpdating) return;

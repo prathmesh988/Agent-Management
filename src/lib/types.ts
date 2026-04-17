@@ -121,7 +121,7 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'mvp';
+  role: 'admin' | 'viewer';
   labels: string[];
   permissions: ('READ' | 'WRITE' | 'UPDATE' | 'DELETE')[];
   createdAt: string;

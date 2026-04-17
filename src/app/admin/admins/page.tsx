@@ -18,7 +18,7 @@ export default function AdminsPage() {
     console.log("Add new admin");
   };
 
-  const handleUpdateRole = async (adminId: string, role: 'admin' | 'mvp') => {
+  const handleUpdateRole = async (adminId: string, role: 'admin' | 'viewer') => {
     // Check if current user is admin
     if (currentUser?.role !== 'admin') {
       setUpdateError('Only admins can change user roles');
@@ -137,7 +137,7 @@ export default function AdminsPage() {
           <Card className="p-5 shadow-sm transition-all hover:shadow-md">
             <div className="flex items-center gap-2 pb-3 border-b border-border mb-3">
               <Eye className="h-4 w-4 text-blue-500" />
-              <h4 className="font-semibold text-sm text-foreground">MVP Role</h4>
+              <h4 className="font-semibold text-sm text-foreground">viewer Role</h4>
             </div>
             <div className="text-xs text-muted-foreground space-y-3">
               <p>Read-only access. View employee data and reports safely.</p>
@@ -169,7 +169,7 @@ export default function AdminsPage() {
 
         <Card className="p-4 bg-muted border border-border mt-6">
           <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">Change Roles:</span> Only admins can click role badges to change between MVP (Read-only) and Admin (Full Access) roles. MVP users will see roles as read-only.
+            <span className="font-semibold text-foreground">Change Roles:</span> Only admins can click role badges to change between viewer (Read-only) and Admin (Full Access) roles. viewer users will see roles as read-only.
           </p>
         </Card>
       </div>

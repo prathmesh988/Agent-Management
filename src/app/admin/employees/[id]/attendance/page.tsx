@@ -122,7 +122,7 @@ export default function AttendanceOverviewPage({
 
   useEffect(() => {
     recalculate();
-  }, [recalculate]);
+  }, [recalculate, overviewRefreshKey]);
 
   const handleDownloadReport = () => {
     if (!currentEmployee) return;

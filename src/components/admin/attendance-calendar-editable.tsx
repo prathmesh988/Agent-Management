@@ -98,7 +98,9 @@ export function AttendanceCalendarEditable({ employee, onEmployeeUpdate, onSave 
     const daysInMonth = new Date(year, month, 0).getDate(); // month is 1-indexed here, so month = next month's 0th day
 
     for (let i = 1; i <= daysInMonth; i++) {
-      const dayName = DAY_NAMES[(i - 1) % 7];
+      // Use actual calendar date to get correct day of week
+      const date = new Date(year, month - 1, i);
+      const dayName = DAY_NAMES[date.getDay()];
       const dayKey = `${i}${dayName}`;
       days.push({ date: i, day: dayName, status: getAttendanceStatus(dayKey), dayKey });
     }

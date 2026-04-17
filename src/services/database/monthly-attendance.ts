@@ -248,7 +248,7 @@ export async function saveMonthlyAttendance(
 
 /**
  * Convert MonthlyAttendanceRecord day values to the key format used by the calendar.
- * The calendar uses keys like "1Sun", "2Mon", etc. (positional, cycling Sun→Sat).
+ * The calendar uses keys like "1Sun", "2Mon", etc. based on actual calendar dates.
  * We store as day1, day2, ... day31 in the monthly_attendance collection.
  */
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -257,14 +257,19 @@ export function monthlyRecordToCalendarKeys(
   record: MonthlyAttendanceRecord | null
 ): Record<string, string> {
   if (!record) return {};
+  
   const result: Record<string, string> = {};
+  
   for (let i = 1; i <= 31; i++) {
     const val = (record as any)[`day${i}`];
     if (val) {
-      const dayName = DAY_NAMES[(i - 1) % 7];
+      // Calculate actual day of week based on year and month
+      const date = new Date(record.year, record.month - 1, i);
+      const dayName = DAY_NAMES[date.getDay()];
       result[`${i}${dayName}`] = val;
     }
   }
+  
   return result;
 }
 

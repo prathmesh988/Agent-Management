@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Client, Users } from 'node-appwrite';
 
 interface UpdateLabelRequest {
-  role: 'admin' | 'mvp';
+  role: 'admin' | 'viewer';
 }
 
 export async function PATCH(
@@ -34,7 +34,7 @@ export async function PATCH(
 
     // Remove old role labels
     let newLabels = currentLabels.filter(
-      (label: string) => !['admin', 'mvp'].includes(label)
+      (label: string) => !['admin', 'viewer'].includes(label)
     );
 
     // Add new role label

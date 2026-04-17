@@ -162,3 +162,75 @@ export async function getMonthSummaryAction(
     return { success: false, counts: {}, totalEmployees: 0 };
   }
 }
+
+/**
+ * Save a single day's attendance to monthly_attendance2 collection.
+ * Used for bulk attendance grid updates to keep monthly_attendance2 in sync.
+ * @param employeeId - Employee ID
+ * @param dayKey - Calendar key like "3Tue" or "15Mon"
+ * @param code - Attendance code like "P", "A", "L", etc.
+ * @param year - Optional year (defaults to current)
+ * @param month - Optional month (defaults to current)
+ */
+export async function saveBulkAttendanceAction(
+  employeeId: string,
+  dayKey: string,
+  code: string,
+  year?: number,
+  month?: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const now = new Date();
+    const saveYear = year || now.getFullYear();
+    const saveMonth = month || (now.getMonth() + 1);
+
+    // Extract day number from dayKey (e.g., "3Tue" -> 3)
+    const match = dayKey.match(/^(\d+)/);
+    if (!match) {
+      return { success: false, error: "Invalid day key format" };
+    }
+
+    const dayNum = parseInt(match[1], 10);
+
+    // Build the day data object
+    const dayData: Record<string, string | undefined> = {};
+    for (let i = 1; i <= 31; i++) {
+      if (i === dayNum) {
+        dayData[`day${i}`] = code || undefined;
+      }
+    }
+
+    await saveMonthlyAttendance(employeeId, saveYear, saveMonth, dayData);
+    return { success: true };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Error saving bulk attendance:", msg);
+    return { success: false, error: msg };
+  }
+}
+
+/**
+ * Fetch all employees' attendance data for a specific month from monthly_attendance2 collection.
+ * Used by bulk attendance grid to display current month data.
+ * @returns Map of { employeeId: { "1Sun": "P", "2Mon": "A", ... } }
+ */
+export async function getBulkMonthlyAttendanceAction(
+  year: number,
+  month: number
+): Promise<{ success: boolean; data: Record<string, Record<string, string>>; error?: string }> {
+  try {
+    const records = await getMonthAttendanceForAllEmployees(year, month, 1000);
+    const data: Record<string, Record<string, string>> = {};
+
+    records.forEach((record) => {
+      const calendarKeys = monthlyRecordToCalendarKeys(record);
+      data[record.employeeId] = calendarKeys;
+    });
+
+    return { success: true, data };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Error fetching bulk monthly attendance:", msg);
+    return { success: false, data: {}, error: msg };
+  }
+}

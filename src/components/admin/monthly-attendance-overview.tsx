@@ -72,7 +72,9 @@ export function MonthlyAttendanceOverview({ employee, refreshKey }: MonthlyAtten
     const days: AttendanceDay[] = [];
     const daysInMonth = new Date(year, month, 0).getDate(); // month is 1-based here
     for (let i = 1; i <= daysInMonth; i++) {
-      const dayName = DAY_NAMES[(i - 1) % 7];
+      // Use actual calendar date to get correct day of week
+      const date = new Date(year, month - 1, i);
+      const dayName = DAY_NAMES[date.getDay()];
       const dayKey = `${i}${dayName}`;
       days.push({ date: i, day: dayName, status: parseStatus(monthData[dayKey]), dayKey });
     }

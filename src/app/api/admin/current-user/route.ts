@@ -25,11 +25,11 @@ export async function GET(request: NextRequest) {
     const user = await users.get(userId);
 
     // Determine role based on labels
-    let role = 'mvp'; // default role
+    let role = 'viewer'; // default role
     if (user.labels?.includes('admin')) {
       role = 'admin';
-    } else if (user.labels?.includes('mvp')) {
-      role = 'mvp';
+    } else if (user.labels?.includes('viewer')) {
+      role = 'viewer';
     }
 
     // Map role to permissions

@@ -6,7 +6,7 @@ export interface AdminUser {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'mvp';
+  role: 'admin' | 'viewer';
   labels: string[];
   permissions: ('READ' | 'WRITE' | 'UPDATE' | 'DELETE')[];
   createdAt: string;
@@ -41,7 +41,7 @@ export function useAdmins() {
   };
 
   // Update admin role
-  const updateAdminRole = async (userId: string, role: 'admin' | 'mvp') => {
+  const updateAdminRole = async (userId: string, role: 'admin' | 'viewer') => {
     try {
       const response = await fetch(`/api/admin/users/${userId}/label`, {
         method: 'PATCH',

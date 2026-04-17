@@ -52,8 +52,8 @@ const ROLE_CONFIG = {
     colors: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-400/30',
     dot: 'bg-amber-500',
   },
-  mvp: {
-    label: 'MVP  •  Read only',
+  viewer: {
+    label: 'viewer  •  Read only',
     icon: Eye,
     colors: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-400/30',
     dot: 'bg-blue-500',
@@ -69,7 +69,7 @@ export function AdminSidebar() {
   const { toast } = useToast();
 
   const isAdmin = currentUser?.role === 'admin';
-  const roleKey = (currentUser?.role ?? 'mvp') as 'admin' | 'mvp';
+  const roleKey = (currentUser?.role ?? 'viewer') as 'admin' | 'viewer';
   const roleCfg = ROLE_CONFIG[roleKey];
   const RoleIcon = roleCfg.icon;
 
@@ -81,7 +81,7 @@ export function AdminSidebar() {
       e.preventDefault();
       toast({
         title: 'Access Denied',
-        description: `"${item.title}" requires Admin role. You currently have MVP (read-only) access.`,
+        description: `"${item.title}" requires Admin role. You currently have viewer (read-only) access.`,
         variant: 'error',
       });
       return;

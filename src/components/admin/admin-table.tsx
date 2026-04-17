@@ -19,11 +19,11 @@ import { PageLoader } from "@/components/ui/page-loader";
 interface AdminTableProps {
   admins: AdminUser[];
   loading?: boolean;
-  currentUserRole?: 'admin' | 'mvp' | null;
+  currentUserRole?: 'admin' | 'viewer' | null;
   onAddAdmin?: () => void;
   onEditAdmin?: (admin: AdminUser) => void;
   onDeleteAdmin?: (admin: AdminUser) => void;
-  onUpdateRole?: (adminId: string, role: 'admin' | 'mvp') => Promise<void>;
+  onUpdateRole?: (adminId: string, role: 'admin' | 'viewer') => Promise<void>;
 }
 
 const permissionColors: Record<string, string> = {
@@ -47,7 +47,7 @@ export function AdminTable({
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const canEditRoles = currentUserRole === 'admin';
 
-  const handleRoleChange = async (adminId: string, role: 'admin' | 'mvp') => {
+  const handleRoleChange = async (adminId: string, role: 'admin' | 'viewer') => {
     if (!onUpdateRole) return;
     try {
       setUpdatingId(adminId);
@@ -65,9 +65,9 @@ export function AdminTable({
           <h2 className="text-lg font-semibold text-foreground">
             Admin Users ({admins.length})
           </h2>
-          {!canEditRoles && currentUserRole === 'mvp' && (
+          {!canEditRoles && currentUserRole === 'viewer' && (
             <div className="text-xs bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg border border-blue-200 dark:border-blue-800">
-              🔒 MVP users can only view roles
+              🔒 viewer users can only view roles
             </div>
           )}
         </div>

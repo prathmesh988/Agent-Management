@@ -9,7 +9,7 @@ interface EditRoleModalProps {
   isOpen: boolean;
   isUpdating: boolean;
   onClose: () => void;
-  onRoleChange: (role: 'admin' | 'mvp') => Promise<void>;
+  onRoleChange: (role: 'admin' | 'viewer') => Promise<void>;
 }
 
 export function EditRoleModal({
@@ -19,7 +19,7 @@ export function EditRoleModal({
   onClose,
   onRoleChange,
 }: EditRoleModalProps) {
-  const [selectedRole, setSelectedRole] = useState<'admin' | 'mvp'>(admin.role);
+  const [selectedRole, setSelectedRole] = useState<'admin' | 'viewer'>(admin.role);
 
   const handleSave = async () => {
     if (selectedRole !== admin.role) {
@@ -55,7 +55,7 @@ export function EditRoleModal({
               name="role"
               value="admin"
               checked={selectedRole === 'admin'}
-              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'mvp')}
+              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'viewer')}
               className="w-4 h-4 text-amber-600 accent-amber-600"
               disabled={isUpdating}
             />
@@ -65,10 +65,10 @@ export function EditRoleModal({
             </div>
           </label>
 
-          {/* MVP Role Option */}
+          {/* viewer Role Option */}
           <label
             className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-              selectedRole === 'mvp'
+              selectedRole === 'viewer'
                 ? 'border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-950/40'
                 : 'border-border bg-transparent hover:bg-muted/50'
             }`}
@@ -76,14 +76,14 @@ export function EditRoleModal({
             <input
               type="radio"
               name="role"
-              value="mvp"
-              checked={selectedRole === 'mvp'}
-              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'mvp')}
+              value="viewer"
+              checked={selectedRole === 'viewer'}
+              onChange={(e) => setSelectedRole(e.target.value as 'admin' | 'viewer')}
               className="w-4 h-4 text-blue-600 accent-blue-600"
               disabled={isUpdating}
             />
             <div className="ml-3">
-              <p className="font-semibold text-foreground">👁️ MVP</p>
+              <p className="font-semibold text-foreground">👁️ viewer</p>
               <p className="text-xs text-muted-foreground">Read-only - Can only view data</p>
             </div>
           </label>

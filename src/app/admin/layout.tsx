@@ -5,8 +5,10 @@ import { AdminHeader } from '@/components/admin/header';
 import { SidebarProvider, useSidebar } from '@/components/admin/sidebar-context';
 import { ToastProvider } from '@/components/ui/toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useRouteProtection } from '@/hooks/useRouteProtection';
-import { useRouter } from 'next/navigation';
+import { canAccessRoute, isProtectedRoute } from '@/lib/route-protection';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { PageLoader } from '@/components/ui/page-loader';
@@ -31,6 +33,8 @@ function AdminContent({ children }: { children: React.ReactNode }) {
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const { currentUser } = useCurrentUser();
+  const pathname = usePathname();
   
   // Check route protection
   useRouteProtection();
@@ -50,6 +54,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // If not authenticated, don't render the admin layout
   if (!isAuthenticated) {
     return null;
+  }
+
+  // Check if current route requires access the user doesn't have
+  // If so, show loading while redirect happens
+  const hasAccess = canAccessRoute(pathname, currentUser?.role);
+  const protectedRoute = isProtectedRoute(pathname);
+  
+  if (protectedRoute && !hasAccess) {
+    return <PageLoader message="Redirecting..." className="h-screen" />;
   }
 
   return (
