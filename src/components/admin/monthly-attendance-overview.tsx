@@ -62,7 +62,7 @@ export function MonthlyAttendanceOverview({ employee, refreshKey }: MonthlyAtten
     if (value === "P") return "P";
     if (value === "A") return "A";
     if (value === "L" || value === "LWP") return "L";
-    if (value === "H" || value === "0.5") return "H";
+    if (value === "H" || value === "0.5" || value === "HD") return "H";
     if (value === "WO") return "WO";
     if (value === "HO") return "HO";
     return "-";

@@ -4,14 +4,6 @@ import { Certificate } from "@/hooks/useCertificates";
 import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
 
 /** Escape special HTML characters to prevent XSS in the generated document. */
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 export const generateCertificatePDF = async (certificate: Certificate) => {
   try {
@@ -176,8 +168,6 @@ export const generateCertificatePDF = async (certificate: Certificate) => {
   }
 };
 
-<<<<<<< HEAD
-=======
 /**
  * Helper to escape HTML special characters for safe rendering in PDF templates.
  */
@@ -190,7 +180,6 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#039;");
 }
 
->>>>>>> d41c19c (drop down leave)
 export const generateMultipleCertificatePDFs = async (
   certificates: Certificate[],
 ) => {
