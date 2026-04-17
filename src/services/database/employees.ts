@@ -80,6 +80,13 @@ export interface EmployeeRecord {
   netSalary?: number;
   penalty?: number;
   paidAmount?: number;
+  // Incentive fields
+  incentiveAmount?: number;
+  performanceBonus?: number;
+  referralBonus?: number;
+  festivalBonus?: number;
+  retentionBonus?: number;
+  totalIncentive?: number;
 }
 
 /**
