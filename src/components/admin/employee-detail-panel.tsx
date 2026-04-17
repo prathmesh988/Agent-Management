@@ -208,6 +208,26 @@ export function EmployeeDetailPanel({
     employee.totalIncentive
   ]);
 
+  // Helper to parse percentage values for incentive fields
+  const parsePercentageOrNumber = (input: string, baseSalary: number): number => {
+    if (!input) return 0;
+
+    // Check if input contains '%'
+    if (input.includes("%")) {
+      const percentageStr = input.replace("%", "").trim();
+      const percentage = parseFloat(percentageStr);
+      
+      if (!isNaN(percentage) && baseSalary > 0) {
+        // Calculate percentage of base salary
+        return Math.round((percentage / 100) * baseSalary * 100) / 100;
+      }
+    }
+
+    // Otherwise treat as a regular number
+    const num = parseFloat(input);
+    return isNaN(num) ? 0 : Math.max(0, num);
+  };
+
   const handleFieldChange = useCallback(
     (key: string, value: unknown) => {
       // Convert dates to timestamps
@@ -217,6 +237,20 @@ export function EmployeeDetailPanel({
         finalValue = new Date(String(value)).getTime();
       } else if (value === "") {
         finalValue = undefined;
+      } else if (
+        // Check if this is an incentive field that might contain a percentage
+        [
+          "incentiveAmount",
+          "performanceBonus",
+          "referralBonus",
+          "festivalBonus",
+          "retentionBonus",
+        ].includes(key) &&
+        typeof value === "string"
+      ) {
+        // Parse percentage or number for incentive fields
+        const baseSalary = Number(employee.grossSalary) || Number(employee.ctc) || 0;
+        finalValue = parsePercentageOrNumber(value, baseSalary);
       }
 
       setEmployee((prev) => {
@@ -228,7 +262,7 @@ export function EmployeeDetailPanel({
       setEditedFields((prev) => new Set(prev).add(key));
       setSaveError(null);
     },
-    []
+    [employee.grossSalary, employee.ctc]
   );
 
   const handleSave = async () => {
@@ -296,6 +330,15 @@ export function EmployeeDetailPanel({
   const renderField = (field: FieldDefinition, value: unknown) => {
     const isEdited = editedFields.has(field.key);
     const isDisabled = field.key === "totalIncentive";
+    
+    // Check if this is an incentive field
+    const isIncentiveField = [
+      "incentiveAmount",
+      "performanceBonus",
+      "referralBonus",
+      "festivalBonus",
+      "retentionBonus",
+    ].includes(field.key);
 
     if (field.type === "date") {
       return (
@@ -311,32 +354,29 @@ export function EmployeeDetailPanel({
 
     if (field.type === "number") {
       const numValue = typeof value === "number" ? value : (typeof value === "string" ? parseFloat(value) : "");
+      
       return (
-        <Input
-          type="number"
-          step="0.01"
-          min="0"
-          disabled={isDisabled}
-          value={numValue === "" ? "" : numValue}
-          onKeyDown={(e) => {
-            // Prevent entering negative signs and scientific notations
-            if (["-", "e", "E", "+"].includes(e.key)) {
-              e.preventDefault();
-            }
-          }}
-          onChange={(e) => {
-            if (e.target.value === "") {
-              handleFieldChange(field.key, "");
-            } else {
-              const parsed = parseFloat(e.target.value);
-              if (!isNaN(parsed)) {
-                // Strictly enforce non-negative values
-                handleFieldChange(field.key, Math.max(0, parsed));
+        <div className="space-y-1">
+          <Input
+            type="text"
+            disabled={isDisabled}
+            placeholder={isIncentiveField ? "e.g., 12% or 5000" : "0"}
+            value={numValue === "" ? "" : numValue}
+            onChange={(e) => {
+              if (e.target.value === "") {
+                handleFieldChange(field.key, "");
+              } else {
+                handleFieldChange(field.key, e.target.value);
               }
-            }
-          }}
-          className={isEdited ? "border-primary bg-primary/5" : ""}
-        />
+            }}
+            className={isEdited ? "border-primary bg-primary/5" : ""}
+          />
+          {isIncentiveField && !isDisabled && (
+            <p className="text-xs text-muted-foreground">
+              💡 Enter as percentage (12%) or amount (5000)
+            </p>
+          )}
+        </div>
       );
     }
 
