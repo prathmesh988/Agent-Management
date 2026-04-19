@@ -75,42 +75,65 @@ export const logIn = async (email: string, password: string) => {
 
 /**
  * Send Magic Link (Passwordless Login / Signup)
+ * 
+ * Note: Creates a magic URL token that Appwrite will append userId and secret to.
+ * The redirectUrl must be exactly as provided when verifying the token.
  */
 export const sendMagicLink = async (email: string, redirectUrl: string) => {
   try {
+    // Delete any existing session before creating magic link
     try {
       await account.deleteSession('current');
     } catch (err) {
-      // Ignore
+      // Session might not exist, that's fine
     }
-    return await account.createMagicURLToken(ID.unique(), email, redirectUrl);
+
+    console.log('[sendMagicLink] Creating magic URL token for:', email, 'redirectUrl:', redirectUrl);
+    const token = await account.createMagicURLToken(ID.unique(), email, redirectUrl);
+    console.log('[sendMagicLink] Magic link token created successfully');
+    return token;
   } catch (error) {
+    console.error('[sendMagicLink] Error:', error);
     throw error;
   }
 };
 
 /**
  * Verify Magic Link
+ * 
+ * Called when user clicks the magic link from email.
+ * The userId and secret are extracted from URL query params.
  */
 export const verifyMagicLink = async (userId: string, secret: string) => {
   try {
+    console.log('[verifyMagicLink] Verifying magic link for userId:', userId);
+    console.log('[verifyMagicLink] Secret length:', secret.length);
+
+    // Delete any existing session first (only one session allowed in Appwrite)
     try {
       await account.deleteSession('current');
+      console.log('[verifyMagicLink] Deleted existing session');
     } catch (err) {
-      // Ignore
+      // Session might not exist, that's fine
+      console.log('[verifyMagicLink] No existing session to delete');
     }
+
+    // Verify the magic link token and create a new authenticated session
+    console.log('[verifyMagicLink] Calling updateMagicURLSession with userId:', userId, 'secret length:', secret.length);
     const session = await account.updateMagicURLSession(userId, secret);
-    
-    // Set auth cookie for middleware validation - use more secure settings
+    console.log('[verifyMagicLink] Magic link verified successfully, session created', session);
+
+    // Set auth cookie for middleware validation
     if (typeof window !== 'undefined') {
       // Set cookie with longer expiration (7 days)
       const date = new Date();
       date.setTime(date.getTime() + (7 * 24 * 60 * 60 * 1000));
       document.cookie = `auth_session=true; path=/; expires=${date.toUTCString()}; SameSite=Lax`;
     }
-    
+
     return session;
   } catch (error) {
+    console.error('[verifyMagicLink] Error verifying magic link:', error);
     throw error;
   }
 };

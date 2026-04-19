@@ -25,27 +25,42 @@ function AuthCallbackContent() {
     const userId = searchParams.get('userId');
     const secret = searchParams.get('secret');
 
+    console.log('[AuthCallback] Raw URL params - userId:', userId, 'secret:', secret ? 'present' : 'missing');
+    console.log('[AuthCallback] Full search params:', searchParams.toString());
+
     if (!userId || !secret) {
       setStatus('error');
-      setErrorMessage('Invalid or missing authentication link parameters.');
+      setErrorMessage('Invalid or missing authentication link parameters. Please request a new login link.');
       return;
     }
 
     const handleVerification = async () => {
       try {
+        console.log('[AuthCallback] Starting magic link verification...');
+        console.log('[AuthCallback] Attempting to verify with userId:', userId);
         await verifyMagicLink(userId, secret);
+        console.log('[AuthCallback] Magic link verified successfully');
 
         // Auto-assign 'new_user' label if this is the first login (no role label yet)
         // We need the verified user's ID — re-read it from Appwrite client-side
         try {
           const { account: appwriteAccount } = await import('@/services/auth');
           const verifiedUser = await appwriteAccount.get();
-          await fetch(`/api/admin/users/${verifiedUser.$id}/check-or-init`, {
+          console.log('[AuthCallback] Verified user:', verifiedUser.$id);
+          
+          const initResponse = await fetch(`/api/admin/users/${verifiedUser.$id}/check-or-init`, {
             method: 'POST',
           });
+          
+          const initData = await initResponse.json();
+          console.log('[AuthCallback] check-or-init response:', initData);
+          
+          if (!initResponse.ok) {
+            console.warn('[AuthCallback] check-or-init failed:', initData.error);
+          }
         } catch (initErr) {
           // Non-fatal — the layout will handle role enforcement
-          console.warn('[Auth Callback] check-or-init failed:', initErr);
+          console.warn('[AuthCallback] check-or-init error:', initErr);
         }
 
         setStatus('success');
@@ -56,6 +71,15 @@ function AuthCallbackContent() {
       } catch (error: unknown) {
         setStatus('error');
         const message = error instanceof Error ? error.message : 'Failed to verify login link. It may have expired.';
+        console.error('[AuthCallback] Verification error:', error);
+        
+        // Log more detailed error info
+        if (error instanceof Error) {
+          console.error('[AuthCallback] Error name:', error.name);
+          console.error('[AuthCallback] Error message:', error.message);
+          console.error('[AuthCallback] Error stack:', error.stack);
+        }
+        
         setErrorMessage(message);
       }
     };
@@ -99,7 +123,15 @@ function AuthCallbackContent() {
             <div className="space-y-6 py-4">
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 text-left">
                 <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-800 font-medium">{errorMessage}</p>
+                <div>
+                  <p className="text-sm text-red-800 font-medium">{errorMessage}</p>
+                  <p className="text-xs text-red-700 mt-2">
+                    If the link has expired, you can request a new one. Magic links are valid for a limited time.
+                  </p>
+                  <p className="text-xs text-red-700 mt-2">
+                    💡 <strong>Debugging tip:</strong> Open your browser console (F12) to see detailed error information.
+                  </p>
+                </div>
               </div>
               <Link href="/login" className="block w-full">
                 <Button className="w-full transition-all duration-200 hover:shadow-md">

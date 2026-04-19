@@ -91,6 +91,44 @@ export function useAdmins() {
     }
   };
 
+  // Disapprove user (remove all labels, lock account)
+  const disapproveAdmin = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/disapprove`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to disapprove user');
+      }
+
+      const data = await response.json();
+
+      // Update local state — user is now locked with no labels
+      setAdmins(
+        admins.map((admin) =>
+          admin.id === userId
+            ? {
+                ...admin,
+                role: 'new_user',
+                labels: [],
+                permissions: [],
+              }
+            : admin
+        )
+      );
+
+      return data.user;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Error disapproving user:', err);
+      throw new Error(errorMsg);
+    }
+  };
+
   useEffect(() => {
     fetchAdmins();
   }, []);
@@ -102,5 +140,6 @@ export function useAdmins() {
     fetchAdmins,
     updateAdminRole,
     deleteAdmin,
+    disapproveAdmin,
   };
 }

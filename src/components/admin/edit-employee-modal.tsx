@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
 interface EditEmployeeModalProps {
   employee: Employee | null;
@@ -54,6 +55,7 @@ export function EditEmployeeModal({
       dateOfJoining: 0,
     },
   );
+  const { toast } = useToast();
 
   // Autofill form when employee changes
   useEffect(() => {
@@ -93,7 +95,7 @@ export function EditEmployeeModal({
       !formData.status ||
       !formData.dateOfJoining
     ) {
-      alert("Please fill in all required fields");
+      toast({ title: "Please fill in all required fields", variant: "warning" });
       return;
     }
 

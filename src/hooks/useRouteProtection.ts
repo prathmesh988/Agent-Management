@@ -2,11 +2,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { canAccessRoute, isProtectedRoute } from '@/lib/route-protection';
+import { useToast } from '@/components/ui/toast';
 
 export function useRouteProtection() {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, loading } = useCurrentUser();
+  const { toast } = useToast();
   const hasShownAlert = useRef(false);
 
   useEffect(() => {
@@ -20,9 +22,12 @@ export function useRouteProtection() {
     const protectedRoute = isProtectedRoute(pathname);
 
     if (protectedRoute && !hasAccess && !hasShownAlert.current) {
-      // Show alert notification only once
       hasShownAlert.current = true;
-      alert(`Access Denied\n\n"${protectedRoute.title}" requires Admin role. You currently have viewer (read-only) access.`);
+      toast({
+        title: 'Access Denied',
+        description: `"${protectedRoute.title}" requires Admin role. You currently have viewer (read-only) access.`,
+        variant: 'error',
+      });
 
       // Redirect to dashboard
       router.push('/admin/dashboard');

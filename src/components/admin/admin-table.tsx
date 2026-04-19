@@ -19,6 +19,7 @@ import { Edit2, Trash2, Eye, FilePen, RefreshCw, CheckCircle2 } from "lucide-rea
 import { useState } from "react";
 import { EditRoleModal } from "./edit-role-modal";
 import { PageLoader } from "@/components/ui/page-loader";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface AdminTableProps {
   admins: AdminUser[];
@@ -29,14 +30,14 @@ interface AdminTableProps {
   onDeleteAdmin?: (admin: AdminUser) => void;
   onUpdateRole?: (adminId: string, role: 'admin' | 'viewer' | 'mvp' | 'new_user') => Promise<void>;
   onApproveUser?: (adminId: string) => Promise<void>;
+  onDisapproveUser?: (adminId: string) => Promise<void>;
 }
 
-// Map permission name -> { icon, colour classes }
-const permissionMeta: Record<string, { icon: React.ElementType; className: string; label: string }> = {
-  READ:   { icon: Eye,         className: "bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800",   label: "Read" },
-  WRITE:  { icon: FilePen,     className: "bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800", label: "Write" },
-  UPDATE: { icon: RefreshCw,   className: "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800", label: "Update" },
-  DELETE: { icon: Trash2,      className: "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800",       label: "Delete" },
+const permissionColors: Record<string, string> = {
+  READ: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+  WRITE: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
+  UPDATE: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800",
+  DELETE: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800",
 };
 
 
@@ -56,9 +57,11 @@ export function AdminTable({
   onDeleteAdmin,
   onUpdateRole,
   onApproveUser,
+  onDisapproveUser,
 }: AdminTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
+  const [disapproveTarget, setDisapproveTarget] = useState<AdminUser | null>(null);
   const canEditRoles = currentUserRole === 'admin';
 
   const handleRoleChange = async (adminId: string, role: 'admin' | 'viewer' | 'mvp') => {
@@ -179,30 +182,33 @@ export function AdminTable({
                         )}
                         {canEditRoles && admin.role !== 'new_user' && (
                           <>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => setEditingAdmin(admin)}
-                                  disabled={updatingId === admin.id}
-                                  className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200 disabled:opacity-50"
-                                >
-                                  <Edit2 className="size-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs font-medium">Edit role</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => onDeleteAdmin?.(admin)}
-                                  disabled={updatingId === admin.id}
-                                  className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 disabled:opacity-50"
-                                >
-                                  <Trash2 className="size-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs font-medium">Delete user</TooltipContent>
-                            </Tooltip>
+                            <button
+                              onClick={() => setEditingAdmin(admin)}
+                              disabled={updatingId === admin.id}
+                              className="p-2 rounded-lg text-muted-foreground hover:bg-primary/10 transition-all duration-200 hover:text-primary disabled:opacity-50"
+                              title="Edit admin role"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (!onDisapproveUser) return;
+                                setDisapproveTarget(admin);
+                              }}
+                              disabled={updatingId === admin.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 disabled:opacity-50"
+                              title="Disapprove user - removes all labels and locks account"
+                            >
+                              {updatingId === admin.id ? 'Disapproving…' : '✗ Disapprove'}
+                            </button>
+                            <button
+                              onClick={() => onDeleteAdmin?.(admin)}
+                              disabled={updatingId === admin.id}
+                              className="p-2 rounded-lg text-muted-foreground hover:bg-destructive/10 transition-all duration-200 hover:text-destructive disabled:opacity-50"
+                              title="Delete admin"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </>
                         )}
                       </div>
@@ -225,6 +231,25 @@ export function AdminTable({
           onRoleChange={(role) => handleRoleChange(editingAdmin.id, role)}
         />
       )}
+
+      {/* Disapprove Confirm Dialog */}
+      <ConfirmDialog
+        open={!!disapproveTarget}
+        onOpenChange={(open) => { if (!open) setDisapproveTarget(null); }}
+        title="Disapprove User?"
+        description={`This will remove all labels and lock ${disapproveTarget?.name ?? 'this user'}'s account. They will see "Your account is awaiting admin approval" when trying to login.`}
+        confirmLabel="Disapprove"
+        variant="destructive"
+        onConfirm={async () => {
+          if (!disapproveTarget || !onDisapproveUser) return;
+          setUpdatingId(disapproveTarget.id);
+          try {
+            await onDisapproveUser(disapproveTarget.id);
+          } finally {
+            setUpdatingId(null);
+          }
+        }}
+      />
     </>
   );
 }

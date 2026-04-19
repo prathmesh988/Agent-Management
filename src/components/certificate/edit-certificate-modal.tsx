@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { X } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
 
 interface EditCertificateModalProps {
   certificate: Certificate | null;
@@ -52,6 +53,7 @@ export function EditCertificateModal({
       contactAddressLine2: '',
     }
   );
+  const { toast } = useToast();
 
   // Autofill form when certificate changes
   useEffect(() => {
@@ -89,7 +91,7 @@ export function EditCertificateModal({
       !formData.department ||
       !formData.jobTitle
     ) {
-      alert('Please fill in all required fields');
+      toast({ title: 'Please fill in all required fields', variant: 'warning' });
       return;
     }
 
