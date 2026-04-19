@@ -1,7 +1,6 @@
 "use client";
 
 import { AdminUser } from "@/lib/types";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -11,7 +10,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Edit2, Trash2, Plus } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Edit2, Trash2, Eye, FilePen, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { EditRoleModal } from "./edit-role-modal";
 import { PageLoader } from "@/components/ui/page-loader";
@@ -27,11 +31,12 @@ interface AdminTableProps {
   onApproveUser?: (adminId: string) => Promise<void>;
 }
 
-const permissionColors: Record<string, string> = {
-  READ: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
-  WRITE: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
-  UPDATE: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800",
-  DELETE: "bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800",
+// Map permission name -> { icon, colour classes }
+const permissionMeta: Record<string, { icon: React.ElementType; className: string; label: string }> = {
+  READ:   { icon: Eye,         className: "bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800",   label: "Read" },
+  WRITE:  { icon: FilePen,     className: "bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800", label: "Write" },
+  UPDATE: { icon: RefreshCw,   className: "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800", label: "Update" },
+  DELETE: { icon: Trash2,      className: "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800",       label: "Delete" },
 };
 
 
@@ -81,7 +86,7 @@ export function AdminTable({
           )}
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto px-4">
           <Table>
             <TableHeader>
               <TableRow>
@@ -127,55 +132,77 @@ export function AdminTable({
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-2">
-                        {admin.permissions.map((perm) => (
-                          <span
-                            key={perm}
-                            className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                              permissionColors[perm] || 'bg-muted text-muted-foreground border border-border'
-                            }`}
-                          >
-                            {perm}
-                          </span>
-                        ))}
+                      <div className="flex items-center gap-1.5">
+                        {admin.permissions.map((perm) => {
+                          const meta = permissionMeta[perm];
+                          if (!meta) return (
+                            <span key={perm} className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground border border-border">{perm}</span>
+                          );
+                          const Icon = meta.icon;
+                          return (
+                            <Tooltip key={perm}>
+                              <TooltipTrigger asChild>
+                                <span className={`inline-flex items-center justify-center size-7 rounded-lg cursor-default transition-all duration-150 hover:scale-110 ${meta.className}`}>
+                                  <Icon className="size-3.5" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs font-medium">
+                                {meta.label}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })}
                       </div>
                     </TableCell>
-                 
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         {/* Approve button for pending users */}
                         {canEditRoles && admin.role === 'new_user' && (
-                          <button
-                            onClick={async () => {
-                              if (!onApproveUser) return;
-                              setUpdatingId(admin.id);
-                              try { await onApproveUser(admin.id); } finally { setUpdatingId(null); }
-                            }}
-                            disabled={updatingId === admin.id}
-                            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-all duration-200 disabled:opacity-50"
-                            title="Approve user"
-                          >
-                            {updatingId === admin.id ? 'Approving…' : '✓ Approve'}
-                          </button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={async () => {
+                                  if (!onApproveUser) return;
+                                  setUpdatingId(admin.id);
+                                  try { await onApproveUser(admin.id); } finally { setUpdatingId(null); }
+                                }}
+                                disabled={updatingId === admin.id}
+                                className="inline-flex items-center justify-center size-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-200 dark:hover:bg-emerald-900 transition-all duration-200 disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="size-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs font-medium">
+                              {updatingId === admin.id ? 'Approving…' : 'Approve user'}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                         {canEditRoles && admin.role !== 'new_user' && (
                           <>
-                            <button
-                              onClick={() => setEditingAdmin(admin)}
-                              disabled={updatingId === admin.id}
-                              className="p-2 rounded-lg text-muted-foreground hover:bg-primary/10 transition-all duration-200 hover:text-primary disabled:opacity-50"
-                              title="Edit admin role"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => onDeleteAdmin?.(admin)}
-                              disabled={updatingId === admin.id}
-                              className="p-2 rounded-lg text-muted-foreground hover:bg-destructive/10 transition-all duration-200 hover:text-destructive disabled:opacity-50"
-                              title="Delete admin"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => setEditingAdmin(admin)}
+                                  disabled={updatingId === admin.id}
+                                  className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200 disabled:opacity-50"
+                                >
+                                  <Edit2 className="size-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs font-medium">Edit role</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  onClick={() => onDeleteAdmin?.(admin)}
+                                  disabled={updatingId === admin.id}
+                                  className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 disabled:opacity-50"
+                                >
+                                  <Trash2 className="size-4" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs font-medium">Delete user</TooltipContent>
+                            </Tooltip>
                           </>
                         )}
                       </div>
