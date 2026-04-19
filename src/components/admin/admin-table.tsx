@@ -16,10 +16,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Edit2, Trash2, Eye, FilePen, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EditRoleModal } from "./edit-role-modal";
 import { PageLoader } from "@/components/ui/page-loader";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Pagination } from "@/components/ui/pagination";
 
 interface AdminTableProps {
   admins: AdminUser[];
@@ -64,6 +65,15 @@ export function AdminTable({
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [disapproveTarget, setDisapproveTarget] = useState<AdminUser | null>(null);
   const canEditRoles = currentUserRole === 'admin';
+
+  const PAGE_SIZE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset to page 1 whenever the admins list changes (tab switch, filter, etc.)
+  useEffect(() => { setCurrentPage(1); }, [admins]);
+
+  const totalPages = Math.max(1, Math.ceil(admins.length / PAGE_SIZE));
+  const paginatedAdmins = admins.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const handleRoleChange = async (adminId: string, role: 'admin' | 'viewer' | 'mvp') => {
     if (!onUpdateRole) return;
@@ -115,7 +125,7 @@ export function AdminTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                admins.map((admin) => (
+                paginatedAdmins.map((admin) => (
                   <TableRow
                     key={admin.id}
                     className="transition-colors duration-200 hover:bg-muted/50"
@@ -232,6 +242,18 @@ export function AdminTable({
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {!loading && admins.length > PAGE_SIZE && (
+          <div className="border-t border-border px-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              isLoading={loading}
+            />
+          </div>
+        )}
       </Card>
 
       {/* Edit Role Modal */}

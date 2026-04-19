@@ -142,7 +142,7 @@ export default function AdminsPage() {
                 <Users className="h-3.5 w-3.5" />
                 All Users
                 <span className="ml-0.5 inline-flex items-center justify-center h-4.5 min-w-[1.25rem] px-1.5 rounded-full text-[10px] font-semibold bg-muted text-muted-foreground leading-none">
-                  {admins.length}
+                  {approvedUsers.length}
                 </span>
               </TabsTrigger>
 
@@ -195,7 +195,7 @@ export default function AdminsPage() {
 
           {/* ── All Users tab ─────────────────────────────────────────────── */}
           <TabsContent value="all" className="mt-4">
-            <AdminTable admins={admins} {...tableProps} />
+            <AdminTable admins={approvedUsers} {...tableProps} />
           </TabsContent>
 
           {/* ── Role Guide tab ────────────────────────────────────────────── */}
