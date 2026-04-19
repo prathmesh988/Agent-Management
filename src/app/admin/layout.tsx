@@ -9,7 +9,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useRouteProtection } from '@/hooks/useRouteProtection';
 import { canAccessRoute, isProtectedRoute } from '@/lib/route-protection';
-import { PendingApprovalScreen } from '@/components/admin/pending-approval-screen';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -45,7 +44,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // If authentication check is complete and user is not authenticated, redirect to login
     if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+      console.log('[AdminLayout] User logged out, redirecting to login');
+      router.replace('/login');
     }
   }, [isAuthenticated, isLoading, router]);
 
@@ -64,22 +64,29 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return <PageLoader message="Loading your profile..." className="h-screen" />;
   }
 
-  // Block new_user accounts — show waiting-for-approval screen
-  if (currentUser?.role === 'new_user') {
-    return (
-      <PendingApprovalScreen
-        userEmail={currentUser.email}
-        userName={currentUser.name}
-      />
-    );
+  // Check if user has empty labels (new_user - pending approval)
+  if (currentUser && !currentUser.labels?.length) {
+    console.log('[AdminLayout] User has empty labels, checking pathname:', pathname);
+    
+    // If NOT already on pending-approval page, redirect
+    if (!pathname.includes('/admin/pending-approval')) {
+      console.log('[AdminLayout] Redirecting to pending-approval');
+      router.replace('/admin/pending-approval');
+      return <PageLoader message="Redirecting to approval page..." className="h-screen" />;
+    }
+    
+    // If already on pending-approval, render WITHOUT navbar/sidebar (full page)
+    if (pathname.includes('/admin/pending-approval')) {
+      return <>{children}</>;
+    }
   }
-
+  
   // Check if current route requires access the user doesn't have
   const hasAccess = canAccessRoute(pathname, currentUser?.role);
   const protectedRoute = isProtectedRoute(pathname);
   
   if (protectedRoute && !hasAccess) {
-    return <PageLoader message="Redirecting..." className="h-screen" />;
+    return <PageLoader message="You don't have access to this page" className="h-screen" />;
   }
 
   return (

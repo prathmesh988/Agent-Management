@@ -94,6 +94,7 @@ export async function generateMonthPayrollAction(
 
         // Count attendance statuses
         let presentDays = 0;
+        let halfDays = 0;
         let absentDays = 0;
         let leaveDays = 0;
         let holidayDays = 0;
@@ -104,6 +105,9 @@ export async function generateMonthPayrollAction(
           switch (status) {
             case "P":
               presentDays++;
+              break;
+            case "HD":
+              halfDays++;
               break;
             case "A":
               absentDays++;
@@ -121,23 +125,33 @@ export async function generateMonthPayrollAction(
         }
 
         // Calculate payroll based on attendance
-        // Formula:
-        // Per day rate = Monthly Salary / 30
-        // Present Days Earning = Present Days * Per Day Rate
-        // Week Off Earning = Week Off Days * Per Day Rate
-        // Incentive Bonus = Total Incentive Amount
-        // Total Earning = Present Days Earning + Week Off Earning + Incentive
+        // Formula (as per requirement):
+        // Per day rate = Gross Salary / (Total days in month - 4 paid weekly offs)
+        // Paid days = Present Days + (Half Days * 0.5) + Holiday Days + min(Weekly Off Days, 4)
+        // Total Earning = Paid Days * Per Day Rate + Incentive Bonus
         // TDS Deduction = 5% of Total Earning
         // Net Salary = Total Earning - TDS
 
         const grossSalary = Number(employee.grossSalary) || 0;
-        const perDayRate = grossSalary / 30;
+        
+        // Get actual number of days in the month
+        const daysInMonth = new Date(year, month, 0).getDate();
+        
+        // Per day rate = Gross Salary / (Total days - 4 paid weekly offs)
+        const perDayRate = grossSalary / (daysInMonth - 4);
+
+        // Calculate paid days:
+        // P (Present) = 1 day
+        // HD (Half Day) = 0.5 day
+        // H (Holiday) = 1 day (paid)
+        // WO (Weekly Off) = only first 4 are paid as normal days
+        // L (Leave) = 0 days (no salary)
+        // A (Absent) = 0 days (no salary)
+        const paidWeeklyOffs = Math.min(weeklyOffDays, 4);
+        const totalPaidDays = presentDays + (halfDays * 0.5) + holidayDays + paidWeeklyOffs;
 
         // Earning calculation
-        const presentDaysEarning = presentDays * perDayRate;
-        const weekOffEarning = weeklyOffDays * perDayRate;
-        const incentiveBonus = Number(employee.totalIncentive) || Number(employee.incentiveAmount) || 0;
-        const totalEarning = presentDaysEarning + weekOffEarning + incentiveBonus;
+        const totalEarning = (totalPaidDays * perDayRate) + (Number(employee.totalIncentive) || Number(employee.incentiveAmount) || 0);
 
         // TDS: 5% of total earning (from employee.tds5perc or calculated)
         const tdsDeducted = Number(employee.tds5perc) || (totalEarning * 0.05);
@@ -145,7 +159,7 @@ export async function generateMonthPayrollAction(
         // Net salary
         const netSalary = totalEarning - tdsDeducted;
 
-        const totalWorkingDays = presentDays + absentDays + leaveDays; // exclude holidays & WO
+        const totalWorkingDays = presentDays + halfDays + absentDays + leaveDays; // exclude holidays & WO
 
         // Add to calculated payroll (don't save to DB yet)
         calculatedPayroll.push({
@@ -160,7 +174,7 @@ export async function generateMonthPayrollAction(
           totalWorkingDays,
           grossSalary: String(grossSalary),
           perDayRate: String(perDayRate.toFixed(2)),
-          deductedAmount: String((presentDaysEarning + weekOffEarning + incentiveBonus).toFixed(2)), // Now represents total earning
+          deductedAmount: String((totalPaidDays * perDayRate + (Number(employee.totalIncentive) || Number(employee.incentiveAmount) || 0)).toFixed(2)), // Total earning
           tdsDeducted: String(tdsDeducted.toFixed(2)),
           netSalary: String(netSalary.toFixed(2)),
           status: "draft",

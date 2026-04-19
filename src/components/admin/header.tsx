@@ -40,10 +40,15 @@ export function AdminHeader() {
       setIsLoggingOut(true);
       setProfileOpen(false);
       await logout();
-      router.push("/login");
+      // Small delay to ensure logout completes
+      setTimeout(() => {
+        router.replace('/login');
+      }, 100);
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error('Logout failed:', error);
       setIsLoggingOut(false);
+      // Still redirect even if logout fails
+      router.replace('/login');
     }
   };
 
