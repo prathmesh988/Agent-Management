@@ -8,13 +8,12 @@ import { Eye, Shield, AlertCircle, Clock, Users, Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { PageLoader } from "@/components/ui/page-loader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 export default function AdminsPage() {
-  const { admins, loading, error, updateAdminRole, deleteAdmin, disapproveAdmin } = useAdmins();
+  const { admins, loading, error, updateAdminRole, deleteAdmin, disapproveAdmin, fetchAdmins } = useAdmins();
   const { currentUser, loading: currentUserLoading, error: currentUserError } = useCurrentUser();
   const [updateError, setUpdateError] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
   const pendingUsers  = admins.filter((a) => a.role === 'new_user');
   const approvedUsers = admins.filter((a) => a.role !== 'new_user');
@@ -23,36 +22,121 @@ export default function AdminsPage() {
 
   const handleUpdateRole = async (adminId: string, role: 'admin' | 'viewer' | 'mvp' | 'new_user') => {
     if (currentUser?.role !== 'admin') { setUpdateError('Only admins can change user roles'); return; }
+    const admin = admins.find((a) => a.id === adminId);
+    const previousRole = admin?.role;
     try {
       setUpdateError(null);
       await updateAdminRole(adminId, role);
+      toast.success(`${admin?.name ?? 'User'}'s role updated to ${role.toUpperCase()}`, {
+        description: `Previous role: ${previousRole?.toUpperCase() ?? 'Unknown'}`,
+        action: previousRole
+          ? {
+              label: "Undo",
+              onClick: async () => {
+                try {
+                  await updateAdminRole(adminId, previousRole);
+                  toast.info(`Reverted ${admin?.name ?? 'User'}'s role back to ${previousRole.toUpperCase()}`);
+                } catch {
+                  toast.error("Failed to undo role change");
+                }
+              },
+            }
+          : undefined,
+      });
     } catch (err) {
       setUpdateError(err instanceof Error ? err.message : 'Failed to update role');
+      toast.error("Failed to update role", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
     }
   };
 
   const handleApproveUser = async (adminId: string) => {
     if (currentUser?.role !== 'admin') { setUpdateError('Only admins can approve users'); return; }
+    const admin = admins.find((a) => a.id === adminId);
     try {
       setUpdateError(null);
       await updateAdminRole(adminId, 'mvp');
+      toast.success(`${admin?.name ?? 'User'} has been approved`, {
+        description: "They now have MVP access and can use the system.",
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              await disapproveAdmin(adminId);
+              toast.info(`Reverted approval for ${admin?.name ?? 'User'}`);
+            } catch {
+              toast.error("Failed to undo approval");
+            }
+          },
+        },
+      });
     } catch (err) {
       setUpdateError(err instanceof Error ? err.message : 'Failed to approve user');
+      toast.error("Failed to approve user", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
     }
   };
 
-  const handleDeleteAdmin = (admin: AdminUser) => {
+  const handleDeleteAdmin = async (admin: AdminUser) => {
     if (currentUser?.role !== 'admin') { setUpdateError('Only admins can delete users'); return; }
-    setDeleteTarget(admin);
+    // Store snapshot for undo
+    const snapshot = { ...admin };
+    try {
+      await deleteAdmin(admin.id);
+      toast.success(`${admin.name} has been deleted`, {
+        description: `${admin.email} — ${admin.role.toUpperCase()} role removed.`,
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            try {
+              // Re-create the user by restoring their role (this re-adds them to the list)
+              await updateAdminRole(snapshot.id, snapshot.role);
+              toast.info(`${snapshot.name} has been restored`);
+            } catch {
+              // If API restore fails, at least refresh the list
+              await fetchAdmins();
+              toast.error("Failed to undo deletion — refreshed user list");
+            }
+          },
+        },
+      });
+    } catch (err) {
+      toast.error("Failed to delete user", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    }
   };
 
   const handleDisapproveUser = async (adminId: string) => {
     if (currentUser?.role !== 'admin') { setUpdateError('Only admins can disapprove users'); return; }
+    const admin = admins.find((a) => a.id === adminId);
+    const previousRole = admin?.role;
     try {
       setUpdateError(null);
       await disapproveAdmin(adminId);
+      toast.success(`${admin?.name ?? 'User'} has been disapproved`, {
+        description: "All labels removed. They will see a pending approval screen.",
+        action: previousRole && previousRole !== 'new_user'
+          ? {
+              label: "Undo",
+              onClick: async () => {
+                try {
+                  await updateAdminRole(adminId, previousRole);
+                  toast.info(`Restored ${admin?.name ?? 'User'}'s ${previousRole.toUpperCase()} role`);
+                } catch {
+                  toast.error("Failed to undo disapproval");
+                }
+              },
+            }
+          : undefined,
+      });
     } catch (err) {
       setUpdateError(err instanceof Error ? err.message : 'Failed to disapprove user');
+      toast.error("Failed to disapprove user", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
     }
   };
 
@@ -289,19 +373,6 @@ export default function AdminsPage() {
 
         </Tabs>
       )}
-
-      {/* Delete Admin Confirm Dialog */}
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
-        title="Delete Admin?"
-        description={`Are you sure you want to delete ${deleteTarget?.name ?? 'this admin'}? This action cannot be undone.`}
-        confirmLabel="Delete"
-        variant="destructive"
-        onConfirm={() => {
-          if (deleteTarget) deleteAdmin(deleteTarget.id);
-        }}
-      />
     </div>
   );
 }

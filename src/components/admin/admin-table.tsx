@@ -19,7 +19,6 @@ import { Edit2, Trash2, Eye, FilePen, RefreshCw, CheckCircle2, XCircle } from "l
 import { useState } from "react";
 import { EditRoleModal } from "./edit-role-modal";
 import { PageLoader } from "@/components/ui/page-loader";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface AdminTableProps {
   admins: AdminUser[];
@@ -35,12 +34,11 @@ interface AdminTableProps {
 
 // Map permission name -> { icon, colour classes }
 const permissionMeta: Record<string, { icon: React.ElementType; className: string; label: string }> = {
-  READ:   { icon: Eye,       className: "bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800",     label: "Read" },
-  WRITE:  { icon: FilePen,   className: "bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800", label: "Write" },
+  READ: { icon: Eye, className: "bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800", label: "Read" },
+  WRITE: { icon: FilePen, className: "bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 border border-purple-200 dark:border-purple-800", label: "Write" },
   UPDATE: { icon: RefreshCw, className: "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800", label: "Update" },
-  DELETE: { icon: Trash2,    className: "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800",         label: "Delete" },
+  DELETE: { icon: Trash2, className: "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800", label: "Delete" },
 };
-
 
 const roleStyles: Record<string, string> = {
   admin: 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
@@ -62,7 +60,6 @@ export function AdminTable({
 }: AdminTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
-  const [disapproveTarget, setDisapproveTarget] = useState<AdminUser | null>(null);
   const canEditRoles = currentUserRole === 'admin';
 
   const handleRoleChange = async (adminId: string, role: 'admin' | 'viewer' | 'mvp') => {
@@ -128,9 +125,8 @@ export function AdminTable({
                     </TableCell>
                     <TableCell>
                       <span
-                        className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                          roleStyles[admin.role] || 'bg-muted text-muted-foreground border border-border'
-                        }`}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium ${roleStyles[admin.role] || 'bg-muted text-muted-foreground border border-border'
+                          }`}
                       >
                         {admin.role === 'new_user' ? '⏳ Pending' : admin.role.charAt(0).toUpperCase() + admin.role.slice(1)}
                       </span>
@@ -244,25 +240,6 @@ export function AdminTable({
           onRoleChange={(role) => handleRoleChange(editingAdmin.id, role)}
         />
       )}
-
-      {/* Disapprove Confirm Dialog */}
-      <ConfirmDialog
-        open={!!disapproveTarget}
-        onOpenChange={(open) => { if (!open) setDisapproveTarget(null); }}
-        title="Disapprove User?"
-        description={`This will remove all labels and lock ${disapproveTarget?.name ?? 'this user'}'s account. They will see "Your account is awaiting admin approval" when trying to login.`}
-        confirmLabel="Disapprove"
-        variant="destructive"
-        onConfirm={async () => {
-          if (!disapproveTarget || !onDisapproveUser) return;
-          setUpdatingId(disapproveTarget.id);
-          try {
-            await onDisapproveUser(disapproveTarget.id);
-          } finally {
-            setUpdatingId(null);
-          }
-        }}
-      />
     </>
   );
 }

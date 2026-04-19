@@ -4,6 +4,7 @@ import { AdminSidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
 import { SidebarProvider, useSidebar } from '@/components/admin/sidebar-context';
 import { ToastProvider } from '@/components/ui/toast';
+import { Toaster } from '@/components/ui/sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useRouteProtection } from '@/hooks/useRouteProtection';
@@ -95,6 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <ToastProvider>
       <AdminLayoutContent>{children}</AdminLayoutContent>
+      <Toaster />
     </ToastProvider>
   );
 }
