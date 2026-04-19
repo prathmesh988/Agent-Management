@@ -79,15 +79,28 @@ export function useAdmins() {
     }
   };
 
-  // Delete admin (optional - for future use)
+  // Delete admin permanently
   const deleteAdmin = async (userId: string) => {
     try {
-      // This would require an additional API route
-      // For now, just remove from local state
+      const response = await fetch(`/api/admin/users/${userId}/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      // Remove from local state after successful deletion
       setAdmins(admins.filter((admin) => admin.id !== userId));
+
+      return await response.json();
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
       console.error('Error deleting admin:', err);
-      throw err;
+      throw new Error(errorMsg);
     }
   };
 

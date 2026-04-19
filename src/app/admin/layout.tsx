@@ -41,6 +41,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // Check route protection
   useRouteProtection();
 
+  // Effect: Redirect to login if not authenticated
   useEffect(() => {
     // If authentication check is complete and user is not authenticated, redirect to login
     if (!isLoading && !isAuthenticated) {
@@ -48,6 +49,32 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       router.replace('/login');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // Effect: Redirect to pending-approval if user has no approved role
+  useEffect(() => {
+    if (!currentUserLoading && currentUser && !currentUser.labels?.length) {
+      console.log('[AdminLayout] User has empty labels, checking pathname:', pathname);
+      
+      // If NOT already on pending-approval page, redirect
+      if (!pathname.includes('/admin/pending-approval')) {
+        console.log('[AdminLayout] Redirecting to pending-approval');
+        router.replace('/admin/pending-approval');
+      }
+    }
+  }, [currentUser, currentUserLoading, pathname, router]);
+
+  // Effect: Redirect if user doesn't have access to current route
+  useEffect(() => {
+    if (!currentUserLoading && currentUser) {
+      const hasAccess = canAccessRoute(pathname, currentUser?.role);
+      const protectedRoute = isProtectedRoute(pathname);
+      
+      if (protectedRoute && !hasAccess) {
+        console.log('[AdminLayout] User does not have access to:', pathname);
+        router.replace('/admin/pending-approval');
+      }
+    }
+  }, [pathname, currentUser, currentUserLoading, router]);
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -64,29 +91,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return <PageLoader message="Loading your profile..." className="h-screen" />;
   }
 
-  // Check if user has empty labels (new_user - pending approval)
-  if (currentUser && !currentUser.labels?.length) {
-    console.log('[AdminLayout] User has empty labels, checking pathname:', pathname);
-    
-    // If NOT already on pending-approval page, redirect
-    if (!pathname.includes('/admin/pending-approval')) {
-      console.log('[AdminLayout] Redirecting to pending-approval');
-      router.replace('/admin/pending-approval');
-      return <PageLoader message="Redirecting to approval page..." className="h-screen" />;
-    }
-    
-    // If already on pending-approval, render WITHOUT navbar/sidebar (full page)
-    if (pathname.includes('/admin/pending-approval')) {
-      return <>{children}</>;
-    }
+  // If user is pending approval and on pending-approval page, render full page (no navbar)
+  if (currentUser && !currentUser.labels?.length && pathname.includes('/admin/pending-approval')) {
+    return <>{children}</>;
   }
-  
-  // Check if current route requires access the user doesn't have
-  const hasAccess = canAccessRoute(pathname, currentUser?.role);
-  const protectedRoute = isProtectedRoute(pathname);
-  
-  if (protectedRoute && !hasAccess) {
-    return <PageLoader message="You don't have access to this page" className="h-screen" />;
+
+  // If user is pending approval but not on pending-approval page, we're redirecting
+  if (currentUser && !currentUser.labels?.length) {
+    return <PageLoader message="Redirecting to approval page..." className="h-screen" />;
   }
 
   return (

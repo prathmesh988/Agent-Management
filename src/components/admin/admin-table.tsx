@@ -63,6 +63,7 @@ export function AdminTable({
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [disapproveTarget, setDisapproveTarget] = useState<AdminUser | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const canEditRoles = currentUserRole === 'admin';
 
   const PAGE_SIZE = 10;
@@ -221,7 +222,7 @@ export function AdminTable({
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <button
-                                  onClick={() => onDeleteAdmin?.(admin)}
+                                  onClick={() => setDeleteTarget(admin)}
                                   disabled={updatingId === admin.id}
                                   className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 disabled:opacity-50"
                                 >
@@ -278,6 +279,26 @@ export function AdminTable({
           setUpdatingId(disapproveTarget.id);
           try {
             await onDisapproveUser(disapproveTarget.id);
+          } finally {
+            setUpdatingId(null);
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Delete User?"
+        description={`This will permanently delete ${deleteTarget?.name ?? 'this user'} (${deleteTarget?.email}) from the system. This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        loading={updatingId === deleteTarget?.id}
+        onConfirm={async () => {
+          if (!deleteTarget || !onDeleteAdmin) return;
+          setUpdatingId(deleteTarget.id);
+          try {
+            await onDeleteAdmin(deleteTarget);
+            setDeleteTarget(null);
           } finally {
             setUpdatingId(null);
           }
