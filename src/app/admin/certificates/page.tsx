@@ -21,6 +21,8 @@ import { Download, FileText, Trash2, ChevronLeft, ChevronRight, Mail, Loader2 } 
 import { PageLoader } from "@/components/ui/page-loader";
 import { sendCertificatesToMultiple, checkCertificatesInBucketAction } from "@/app/(actions)/send-certificate";
 import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
+import { useToast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const ITEMS_PER_PAGE = UI.PAGINATION.ITEMS_PER_PAGE;
 
@@ -35,6 +37,8 @@ export default function CertificatesPage() {
   const [isSendingEmails, setIsSendingEmails] = useState(false);
   const [isLoadingPdfs, setIsLoadingPdfs] = useState(true);
   const [certificatesInBucket, setCertificatesInBucket] = useState<Record<string, boolean>>({});
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const { toast } = useToast();
   // Guard: only run the expensive bucket check once when employees first populate
   const hasFetchedBucketStatus = useRef(false);
 
@@ -131,7 +135,7 @@ export default function CertificatesPage() {
     try {
       const emp = employees.find((e) => e.id === employeeId);
       if (!emp) {
-        alert("Employee not found");
+        toast({ title: "Employee not found", variant: "error" });
         return;
       }
 
@@ -149,7 +153,7 @@ export default function CertificatesPage() {
 
       const printWindow = window.open("", "_blank");
       if (!printWindow) {
-        alert("Please disable popup blocker to download certificate");
+        toast({ title: "Popup blocked", description: "Please disable popup blocker to download certificate.", variant: "warning" });
         setIsGenerating(false);
         return;
       }
@@ -163,7 +167,7 @@ export default function CertificatesPage() {
       setIsGenerating(false);
     } catch (error) {
       console.error("Error opening print preview:", error);
-      alert("Failed to open print preview");
+      toast({ title: "Failed to open print preview", variant: "error" });
       setIsGenerating(false);
     }
   };
@@ -171,7 +175,7 @@ export default function CertificatesPage() {
   const handleGenerateSelected = async () => {
     try {
       if (selectedIds.size === 0) {
-        alert("Please select at least one employee");
+        toast({ title: "No employees selected", description: "Please select at least one employee.", variant: "warning" });
         return;
       }
 
@@ -235,9 +239,11 @@ export default function CertificatesPage() {
       console.log(`Successfully downloaded ZIP with ${selectedEmps.length} certificates`);
     } catch (error) {
       console.error("Error generating certificates:", error);
-      alert(
-        `Failed to generate certificates: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      toast({
+        title: "Failed to generate certificates",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "error",
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -246,7 +252,7 @@ export default function CertificatesPage() {
   const handleSendToMail = async () => {
     try {
       if (selectedIds.size === 0) {
-        alert("Please select at least one employee");
+        toast({ title: "No employees selected", description: "Please select at least one employee.", variant: "warning" });
         return;
       }
 
@@ -260,9 +266,11 @@ export default function CertificatesPage() {
       const missingCerts = employeeIds.filter((id) => !certificatesInBucket[id]);
 
       if (missingCerts.length > 0) {
-        alert(
-          `Certificates not found in bucket for some employees. Please generate them first.`
-        );
+        toast({
+          title: "Certificates missing",
+          description: "Certificates not found in bucket for some employees. Please generate them first.",
+          variant: "warning",
+        });
         return;
       }
 
@@ -271,9 +279,11 @@ export default function CertificatesPage() {
         (e) => !e.email || !e.email.includes("@")
       );
       if (invalidEmails.length > 0) {
-        alert(
-          `Invalid email addresses for: ${invalidEmails.map((e) => e.name).join(", ")}`
-        );
+        toast({
+          title: "Invalid email addresses",
+          description: `Invalid emails for: ${invalidEmails.map((e) => e.name).join(", ")}`,
+          variant: "error",
+        });
         return;
       }
 
@@ -291,27 +301,33 @@ export default function CertificatesPage() {
       const result = await sendCertificatesToMultiple(emailParams);
 
       if (result.success) {
-        alert(
-          `✓ Emails sent successfully!\n${result.summary || "All emails sent."}`
-        );
+        toast({
+          title: "Emails sent successfully!",
+          description: result.summary || "All emails sent.",
+          variant: "success",
+        });
       } else if (result.results && Array.isArray(result.results)) {
         const failedEmails = result.results
           .filter((r) => !r.success)
           .map((r) => r.email)
           .join(", ");
-        alert(
-          `⚠ Some emails failed to send: ${failedEmails}\n\nSuccessful: ${result.successCount || 0}/${emailParams.length}`
-        );
+        toast({
+          title: "Some emails failed",
+          description: `Failed: ${failedEmails}. Successful: ${result.successCount || 0}/${emailParams.length}`,
+          variant: "warning",
+        });
       } else {
-        alert(`⚠ Failed to send emails: ${result.error || "Unknown error"}`);
+        toast({ title: "Failed to send emails", description: result.error || "Unknown error", variant: "error" });
       }
 
       setSelectedIds(new Set());
     } catch (error) {
       console.error("Error sending emails:", error);
-      alert(
-        `Failed to send emails: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+      toast({
+        title: "Failed to send emails",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "error",
+      });
     } finally {
       setIsSendingEmails(false);
     }
@@ -325,9 +341,7 @@ export default function CertificatesPage() {
   }, [selectedIds, employees, certificatesInBucket]);
 
   const handleDeleteEmployee = (employeeId: string, name: string) => {
-    if (confirm(`Are you sure you want to delete ${name}?`)) {
-      deleteEmployee(employeeId);
-    }
+    setDeleteTarget({ id: employeeId, name });
   };
 
   const toggleSelection = (id: string) => {
@@ -657,6 +671,19 @@ export default function CertificatesPage() {
           </div>
         )}
       </Card>
+
+      {/* Delete Employee Confirm Dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Delete Employee?"
+        description={`Are you sure you want to delete ${deleteTarget?.name ?? 'this employee'}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={() => {
+          if (deleteTarget) deleteEmployee(deleteTarget.id);
+        }}
+      />
     </div>
   );
 }

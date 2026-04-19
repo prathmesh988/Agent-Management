@@ -15,6 +15,7 @@ import { Edit2, Trash2, Plus } from "lucide-react";
 import { useState } from "react";
 import { EditRoleModal } from "./edit-role-modal";
 import { PageLoader } from "@/components/ui/page-loader";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface AdminTableProps {
   admins: AdminUser[];
@@ -56,6 +57,7 @@ export function AdminTable({
 }: AdminTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
+  const [disapproveTarget, setDisapproveTarget] = useState<AdminUser | null>(null);
   const canEditRoles = currentUserRole === 'admin';
 
   const handleRoleChange = async (adminId: string, role: 'admin' | 'viewer' | 'mvp') => {
@@ -171,16 +173,9 @@ export function AdminTable({
                               <Edit2 className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={async () => {
+                              onClick={() => {
                                 if (!onDisapproveUser) return;
-                                if (confirm('Are you sure? This will remove all labels and lock the account.')) {
-                                  setUpdatingId(admin.id);
-                                  try {
-                                    await onDisapproveUser(admin.id);
-                                  } finally {
-                                    setUpdatingId(null);
-                                  }
-                                }
+                                setDisapproveTarget(admin);
                               }}
                               disabled={updatingId === admin.id}
                               className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 disabled:opacity-50"
@@ -218,6 +213,25 @@ export function AdminTable({
           onRoleChange={(role) => handleRoleChange(editingAdmin.id, role)}
         />
       )}
+
+      {/* Disapprove Confirm Dialog */}
+      <ConfirmDialog
+        open={!!disapproveTarget}
+        onOpenChange={(open) => { if (!open) setDisapproveTarget(null); }}
+        title="Disapprove User?"
+        description={`This will remove all labels and lock ${disapproveTarget?.name ?? 'this user'}'s account. They will see "Your account is awaiting admin approval" when trying to login.`}
+        confirmLabel="Disapprove"
+        variant="destructive"
+        onConfirm={async () => {
+          if (!disapproveTarget || !onDisapproveUser) return;
+          setUpdatingId(disapproveTarget.id);
+          try {
+            await onDisapproveUser(disapproveTarget.id);
+          } finally {
+            setUpdatingId(null);
+          }
+        }}
+      />
     </>
   );
 }

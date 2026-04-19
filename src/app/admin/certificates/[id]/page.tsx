@@ -26,6 +26,7 @@ import { PageLoader } from "@/components/ui/page-loader";
 import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
 import { getCertificateShareUrl } from "@/app/(actions)/share-certificate";
 import { sendCertificateEmail } from "@/app/(actions)/send-certificate";
+import { useToast } from "@/components/ui/toast";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export default function CertificateDetailPage({ params }: PageProps) {
     body: "",
     loading: false,
   });
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadCertificate = async () => {
@@ -140,7 +142,7 @@ export default function CertificateDetailPage({ params }: PageProps) {
       setIsDownloading(true);
       const printWindow = window.open("", "_blank");
       if (!printWindow) {
-        alert("Please disable popup blocker to download certificate");
+        toast({ title: "Popup blocked", description: "Please disable popup blocker to download certificate.", variant: "warning" });
         setIsDownloading(false);
         return;
       }
@@ -149,7 +151,7 @@ export default function CertificateDetailPage({ params }: PageProps) {
       setIsDownloading(false);
     } catch (error) {
       console.error("Error opening print preview:", error);
-      alert("Failed to open print preview");
+      toast({ title: "Failed to open print preview", variant: "error" });
       setIsDownloading(false);
     }
   };
@@ -177,11 +179,11 @@ export default function CertificateDetailPage({ params }: PageProps) {
       if (result.success && result.shareUrl) {
         setShareDialog({ open: true, url: result.shareUrl, loading: false, copied: false });
       } else {
-        alert(`Failed to generate share URL: ${result.error || "Unknown error"}`);
+        toast({ title: "Failed to generate share URL", description: result.error || "Unknown error", variant: "error" });
         setShareDialog({ open: false, loading: false, copied: false });
       }
     } catch {
-      alert("Failed to generate share URL. Please try again.");
+      toast({ title: "Failed to generate share URL", description: "Please try again.", variant: "error" });
       setShareDialog({ open: false, loading: false, copied: false });
     }
   };
@@ -193,17 +195,17 @@ export default function CertificateDetailPage({ params }: PageProps) {
       setIsModalOpen(false);
     } catch (error) {
       console.error("Error saving certificate:", error);
-      alert("Failed to update certificate. Please try again.");
+      toast({ title: "Failed to update certificate", description: "Please try again.", variant: "error" });
     }
   };
 
   const handleSendEmail = async () => {
     if (!certificate || !emailDialog.recipientEmail) {
-      alert("Please enter a recipient email address");
+      toast({ title: "Please enter a recipient email address", variant: "warning" });
       return;
     }
     if (!certificate.employeeId) {
-      alert("Employee ID is missing");
+      toast({ title: "Employee ID is missing", variant: "error" });
       return;
     }
     setEmailDialog((prev) => ({ ...prev, loading: true }));
@@ -215,14 +217,14 @@ export default function CertificateDetailPage({ params }: PageProps) {
         certificateId: certificate.certificateId || `CERT-${certificate.employeeId}`,
       });
       if (result.success) {
-        alert(`✓ Email sent successfully to ${emailDialog.recipientEmail}`);
+        toast({ title: "Email sent successfully!", description: `Sent to ${emailDialog.recipientEmail}`, variant: "success" });
         setEmailDialog((prev) => ({ ...prev, open: false, loading: false }));
       } else {
-        alert(`⚠ Failed to send email: ${result.error || "Unknown error"}`);
+        toast({ title: "Failed to send email", description: result.error || "Unknown error", variant: "error" });
         setEmailDialog((prev) => ({ ...prev, loading: false }));
       }
     } catch {
-      alert("Failed to send email. Please try again.");
+      toast({ title: "Failed to send email", description: "Please try again.", variant: "error" });
       setEmailDialog((prev) => ({ ...prev, loading: false }));
     }
   };
@@ -548,7 +550,7 @@ export default function CertificateDetailPage({ params }: PageProps) {
                     <Button
                       onClick={() => {
                         navigator.clipboard.writeText(emailDialog.certificateUrl!);
-                        alert("Certificate URL copied to clipboard!");
+                        toast({ title: "Certificate URL copied to clipboard!", variant: "success" });
                       }}
                       size="sm"
                       variant="outline"

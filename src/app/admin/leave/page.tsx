@@ -50,6 +50,8 @@ import {
   Upload,
   File,
 } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // ─── Leave Type Labels ──────────────────────────────────────────────
 const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
@@ -141,6 +143,7 @@ function ApplyLeaveModal({
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<string>("");
   const [isDragOver, setIsDragOver] = useState(false);
+  const { toast } = useToast();
 
   const totalDays = startDate && endDate ? calculateDays(startDate, endDate) : 0;
 
@@ -182,11 +185,11 @@ function ApplyLeaveModal({
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
       if (!ALLOWED_TYPES.includes(file.type)) {
-        alert(`"${file.name}" is not a supported file type. Allowed: PDF, Images, Word, Excel.`);
+        toast({ title: "Unsupported file type", description: `"${file.name}" is not allowed. Use PDF, Images, Word, or Excel.`, variant: "error" });
         continue;
       }
       if (file.size > MAX_FILE_SIZE) {
-        alert(`"${file.name}" exceeds the 30 MB limit.`);
+        toast({ title: "File too large", description: `"${file.name}" exceeds the 30 MB limit.`, variant: "error" });
         continue;
       }
       newFiles.push(file);
@@ -258,7 +261,7 @@ function ApplyLeaveModal({
       reset();
       onClose();
     } catch (error: any) {
-      alert(error.message || "Failed to submit leave request");
+      toast({ title: "Failed to submit leave request", description: error.message || "Please try again.", variant: "error" });
       setUploadProgress("");
     } finally {
       setIsSubmitting(false);
@@ -902,6 +905,7 @@ export default function LeaveManagementPage() {
     action: "approve" | "reject";
     leave: LeaveRequest | null;
   }>({ open: false, action: "approve", leave: null });
+  const [deleteTarget, setDeleteTarget] = useState<LeaveRequest | null>(null);
 
   const fetchLeaves = useCallback(async () => {
     try {
@@ -962,11 +966,7 @@ export default function LeaveManagementPage() {
   };
 
   const handleDelete = async (leave: LeaveRequest) => {
-    const leaveId = leave.$id || leave.id || "";
-    if (confirm("Are you sure you want to delete this leave request?")) {
-      await removeLeave(leaveId);
-      await fetchLeaves();
-    }
+    setDeleteTarget(leave);
   };
 
   return (
@@ -1199,6 +1199,22 @@ export default function LeaveManagementPage() {
         open={!!previewAttachment}
         onClose={() => setPreviewAttachment(null)}
         attachment={previewAttachment}
+      />
+
+      {/* Delete Leave Confirm Dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Delete Leave Request?"
+        description={`Are you sure you want to delete ${deleteTarget?.employeeName ? `${deleteTarget.employeeName}'s` : 'this'} leave request? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          const leaveId = deleteTarget.$id || deleteTarget.id || "";
+          await removeLeave(leaveId);
+          await fetchLeaves();
+        }}
       />
     </div>
   );

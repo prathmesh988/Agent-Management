@@ -82,17 +82,19 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ToastProvider>
-      <SidebarProvider>
-        <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
-          <AdminSidebar />
-          <AdminContent>{children}</AdminContent>
-        </div>
-      </SidebarProvider>
-    </ToastProvider>
+    <SidebarProvider>
+      <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950">
+        <AdminSidebar />
+        <AdminContent>{children}</AdminContent>
+      </div>
+    </SidebarProvider>
   );
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return <AdminLayoutContent>{children}</AdminLayoutContent>;
+  return (
+    <ToastProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </ToastProvider>
+  );
 }

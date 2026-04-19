@@ -8,11 +8,13 @@ import { Eye, Shield, AlertCircle, Clock, Users, Info } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { PageLoader } from "@/components/ui/page-loader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export default function AdminsPage() {
   const { admins, loading, error, updateAdminRole, deleteAdmin, disapproveAdmin } = useAdmins();
   const { currentUser, loading: currentUserLoading, error: currentUserError } = useCurrentUser();
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
 
   const pendingUsers  = admins.filter((a) => a.role === 'new_user');
   const approvedUsers = admins.filter((a) => a.role !== 'new_user');
@@ -41,7 +43,7 @@ export default function AdminsPage() {
 
   const handleDeleteAdmin = (admin: AdminUser) => {
     if (currentUser?.role !== 'admin') { setUpdateError('Only admins can delete users'); return; }
-    if (confirm(`Are you sure you want to delete ${admin.name}?`)) { deleteAdmin(admin.id); }
+    setDeleteTarget(admin);
   };
 
   const handleDisapproveUser = async (adminId: string) => {
@@ -287,6 +289,19 @@ export default function AdminsPage() {
 
         </Tabs>
       )}
+
+      {/* Delete Admin Confirm Dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title="Delete Admin?"
+        description={`Are you sure you want to delete ${deleteTarget?.name ?? 'this admin'}? This action cannot be undone.`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={() => {
+          if (deleteTarget) deleteAdmin(deleteTarget.id);
+        }}
+      />
     </div>
   );
 }

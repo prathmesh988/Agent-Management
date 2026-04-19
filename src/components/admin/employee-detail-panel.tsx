@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Save, AlertCircle, Mail, Users, Calendar, BarChart3, Gift } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
+import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 
 interface EmployeeDetailPanelProps {
@@ -162,6 +163,7 @@ export function EmployeeDetailPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const { updateEmployee } = useEmployees();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchIncentives = async () => {
@@ -300,7 +302,7 @@ export function EmployeeDetailPanel({
       }
 
       setEditedFields(new Set());
-      alert("Employee details updated successfully!");
+      toast({ title: "Employee details updated successfully!", variant: "success" });
     } catch (error) {
       console.error("❌ Error saving employee:", error);
       setSaveError(
