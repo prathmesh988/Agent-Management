@@ -19,18 +19,21 @@ export function PendingApprovalScreen({
 
   const handleLogout = async () => {
     await logout();
-    router.push("/login");
+    // Small delay to ensure logout completes
+    setTimeout(() => {
+      router.replace('/login');
+    }, 100);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+    <div className="fixed inset-0 w-screen h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 overflow-hidden">
       {/* Background ambient glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-lg">
+      <div className="relative w-full max-w-lg z-10">
         {/* Card */}
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl text-center space-y-8">
           {/* Animated clock icon */}

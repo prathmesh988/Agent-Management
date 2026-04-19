@@ -13,11 +13,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check if API secret is configured
+    const apiSecret = process.env.APPWRITE_PROJECT_ID_API_SECRET;
+    if (!apiSecret) {
+      console.error('[current-user API] Missing APPWRITE_PROJECT_ID_API_SECRET');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
     // Initialize Appwrite Admin Client
     const client = new Client()
       .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'https://cloud.appwrite.io/v1')
       .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || '')
-      .setKey(process.env.APPWRITE_PROJECT_ID_API_SECRET || '');
+      .setKey(apiSecret);
 
     const users = new Users(client);
 
@@ -58,9 +68,26 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[current-user API] Error fetching user:', error?.message || error);
+    
+    // Handle specific Appwrite errors
+    if (error?.code === 404 || error?.type === 'user_not_found') {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+    
+    if (error?.code === 401 || error?.type === 'invalid_token' || error?.message?.includes('Invalid token')) {
+      return NextResponse.json(
+        { error: 'Invalid token or authorization' },
+        { status: 401 }
+      );
+    }
+    
+    // Generic error
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch current user';
-    console.error('Error fetching current user:', error);
     return NextResponse.json(
       { error: 'Failed to fetch current user', details: errorMessage },
       { status: 500 }

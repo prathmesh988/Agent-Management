@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Card } from '@/components/ui/card';
@@ -14,8 +14,26 @@ function AuthCallbackContent() {
   const { verifyMagicLink, isAuthenticated } = useAuth();
   const [status, setStatus] = useState<'loading' | 'error' | 'success'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  // Prevent multiple verification attempts - useRef persists across re-renders
+  const verificationAttemptedRef = useRef(false);
+  const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    return () => {
+      // Clean up any pending timeouts on unmount
+      if (cleanupTimeoutRef.current) {
+        clearTimeout(cleanupTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Only run verification ONCE - prevent cascading API calls on re-renders
+    if (verificationAttemptedRef.current) {
+      console.log('[AuthCallback] Verification already attempted, skipping re-run');
+      return;
+    }
+    
     // If somehow already authenticated, just redirect
     if (isAuthenticated) {
       router.push('/admin/dashboard');
@@ -28,8 +46,12 @@ function AuthCallbackContent() {
     if (!userId || !secret) {
       setStatus('error');
       setErrorMessage('Invalid or missing authentication link parameters.');
+      verificationAttemptedRef.current = true;
       return;
     }
+
+    // Mark that we've started verification - prevent re-runs
+    verificationAttemptedRef.current = true;
 
     const handleVerification = async () => {
       try {
@@ -40,23 +62,49 @@ function AuthCallbackContent() {
         try {
           const { account: appwriteAccount } = await import('@/services/auth');
           const verifiedUser = await appwriteAccount.get();
-          await fetch(`/api/admin/users/${verifiedUser.$id}/check-or-init`, {
-            method: 'POST',
-          });
+          
+          // Add rate limit protection to the init endpoint
+          try {
+            const initResponse = await fetch(`/api/admin/users/${verifiedUser.$id}/check-or-init`, {
+              method: 'POST',
+            });
+            
+            // Handle rate limit on init endpoint
+            if (initResponse.status === 429) {
+              console.warn('[AuthCallback] Init endpoint rate limited (429), but continuing with redirect');
+              // Don't fail the entire login, the init will happen on dashboard load
+            } else if (!initResponse.ok) {
+              console.warn('[AuthCallback] Init endpoint returned:', initResponse.status);
+              // Non-fatal - the layout will handle role enforcement
+            }
+          } catch (fetchErr) {
+            console.warn('[AuthCallback] check-or-init network error:', fetchErr);
+            // Non-fatal — the layout will handle role enforcement
+          }
         } catch (initErr) {
           // Non-fatal — the layout will handle role enforcement
-          console.warn('[Auth Callback] check-or-init failed:', initErr);
+          console.warn('[AuthCallback] Failed to get verified user:', initErr);
         }
 
         setStatus('success');
         // Add a small delay to ensure cookies are persisted before redirecting
-        setTimeout(() => {
+        cleanupTimeoutRef.current = setTimeout(() => {
           router.push('/admin/dashboard');
         }, 500);
       } catch (error: unknown) {
         setStatus('error');
-        const message = error instanceof Error ? error.message : 'Failed to verify login link. It may have expired.';
-        setErrorMessage(message);
+        
+        // Detect rate limit error
+        const errorMsg = error instanceof Error ? error.message : 'Failed to verify login link. It may have expired.';
+        const isRateLimit = errorMsg.includes('429') || errorMsg.includes('Too many requests');
+        
+        if (isRateLimit) {
+          setErrorMessage('Too many login attempts. Please wait a few minutes and try again.');
+          console.error('[AuthCallback] Rate limit hit during verification:', error);
+        } else {
+          setErrorMessage(errorMsg);
+          console.error('[AuthCallback] Verification error:', error);
+        }
       }
     };
 
