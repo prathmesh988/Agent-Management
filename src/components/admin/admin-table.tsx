@@ -25,6 +25,7 @@ interface AdminTableProps {
   onDeleteAdmin?: (admin: AdminUser) => void;
   onUpdateRole?: (adminId: string, role: 'admin' | 'viewer' | 'mvp' | 'new_user') => Promise<void>;
   onApproveUser?: (adminId: string) => Promise<void>;
+  onDisapproveUser?: (adminId: string) => Promise<void>;
 }
 
 const permissionColors: Record<string, string> = {
@@ -51,6 +52,7 @@ export function AdminTable({
   onDeleteAdmin,
   onUpdateRole,
   onApproveUser,
+  onDisapproveUser,
 }: AdminTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
@@ -167,6 +169,24 @@ export function AdminTable({
                               title="Edit admin role"
                             >
                               <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!onDisapproveUser) return;
+                                if (confirm('Are you sure? This will remove all labels and lock the account.')) {
+                                  setUpdatingId(admin.id);
+                                  try {
+                                    await onDisapproveUser(admin.id);
+                                  } finally {
+                                    setUpdatingId(null);
+                                  }
+                                }
+                              }}
+                              disabled={updatingId === admin.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 disabled:opacity-50"
+                              title="Disapprove user - removes all labels and locks account"
+                            >
+                              {updatingId === admin.id ? 'Disapproving…' : '✗ Disapprove'}
                             </button>
                             <button
                               onClick={() => onDeleteAdmin?.(admin)}

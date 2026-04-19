@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isCheckingRole, setIsCheckingRole] = useState(false);
 
   // ── If already logged in, redirect immediately ──────────────────────────
   useEffect(() => {
@@ -35,12 +36,14 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setIsSubmitting(true);
+    setIsCheckingRole(true);
 
     try {
       // Validate form
       if (!email) {
         setError('Please enter your email address');
         setIsSubmitting(false);
+        setIsCheckingRole(false);
         return;
       }
 
@@ -49,9 +52,48 @@ export default function LoginPage() {
       if (!email.toLowerCase().endsWith(allowedDomain)) {
         setError(`Please use your ${allowedDomain} email address.`);
         setIsSubmitting(false);
+        setIsCheckingRole(false);
         return;
       }
 
+      // ── Step 1: Check if user exists and has an approved role ───────────
+      const checkRoleResponse = await fetch('/api/auth/check-user-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!checkRoleResponse.ok) {
+        const errorData = await checkRoleResponse.json();
+        setError(errorData.error || 'Failed to verify account. Please try again.');
+        setIsSubmitting(false);
+        setIsCheckingRole(false);
+        return;
+      }
+
+      const roleCheckData = await checkRoleResponse.json();
+
+      // User doesn't exist yet — they need to sign up first
+      if (!roleCheckData.exists) {
+        setError('Account not found. Please contact your administrator to create an account.');
+        setIsSubmitting(false);
+        setIsCheckingRole(false);
+        return;
+      }
+
+      // User exists but doesn't have an approved role
+      if (!roleCheckData.hasApprovedRole) {
+        setError(
+          'Your account is awaiting admin approval. ' +
+          'An administrator will grant you access soon. Please check back later or contact your admin.'
+        );
+        setIsSubmitting(false);
+        setIsCheckingRole(false);
+        return;
+      }
+
+      // ── Step 2: User is approved — send magic link ─────────────────────
+      setIsCheckingRole(false);
       const redirectUrl = `${window.location.origin}/auth/callback`;
       await sendMagicLink(email, redirectUrl);
       setIsSubmitted(true);
@@ -61,6 +103,7 @@ export default function LoginPage() {
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
+      setIsCheckingRole(false);
     }
   };
 
@@ -157,7 +200,12 @@ export default function LoginPage() {
                   disabled={isSubmitting || isLoading}
                   className="w-full mt-6 transition-all duration-200 hover:shadow-lg hover:scale-105"
                 >
-                  {isSubmitting || isLoading ? (
+                  {isCheckingRole ? (
+                    <div className="flex items-center gap-2">
+                      <Loader className="h-4 w-4 animate-spin" />
+                      Checking account...
+                    </div>
+                  ) : isSubmitting || isLoading ? (
                     <div className="flex items-center gap-2">
                       <Loader className="h-4 w-4 animate-spin" />
                       Sending Link...

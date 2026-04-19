@@ -10,7 +10,7 @@ import { PageLoader } from "@/components/ui/page-loader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function AdminsPage() {
-  const { admins, loading, error, updateAdminRole, deleteAdmin } = useAdmins();
+  const { admins, loading, error, updateAdminRole, deleteAdmin, disapproveAdmin } = useAdmins();
   const { currentUser, loading: currentUserLoading, error: currentUserError } = useCurrentUser();
   const [updateError, setUpdateError] = useState<string | null>(null);
 
@@ -44,6 +44,16 @@ export default function AdminsPage() {
     if (confirm(`Are you sure you want to delete ${admin.name}?`)) { deleteAdmin(admin.id); }
   };
 
+  const handleDisapproveUser = async (adminId: string) => {
+    if (currentUser?.role !== 'admin') { setUpdateError('Only admins can disapprove users'); return; }
+    try {
+      setUpdateError(null);
+      await disapproveAdmin(adminId);
+    } catch (err) {
+      setUpdateError(err instanceof Error ? err.message : 'Failed to disapprove user');
+    }
+  };
+
   // ── shared table props ────────────────────────────────────────────────────
   const tableProps = {
     loading: loading || currentUserLoading,
@@ -51,6 +61,7 @@ export default function AdminsPage() {
     onDeleteAdmin: handleDeleteAdmin,
     onUpdateRole: handleUpdateRole,
     onApproveUser: handleApproveUser,
+    onDisapproveUser: handleDisapproveUser,
   } as const;
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -256,10 +267,19 @@ export default function AdminsPage() {
               </div>
 
               <Card className="p-4 bg-muted border border-border">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mb-3">
                   <span className="font-semibold text-foreground">Approval Flow:</span>{' '}
                   New users land on a waiting screen. Head to the <strong>Pending</strong> tab to approve them —
                   this grants them the <strong>MVP</strong> role and full read access. Only admins can approve users and change roles.
+                </p>
+              </Card>
+
+              <Card className="p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800">
+                <p className="text-sm text-red-900 dark:text-red-100">
+                  <span className="font-semibold">Disapprove Option (✗):</span>{' '}
+                  Removes <strong>ALL labels</strong> from a user's account, effectively locking it.
+                  Disapproved users will see "Your account is awaiting admin approval" when trying to login.
+                  Use this to restrict access or temporarily lock an account. Re-approve by assigning a role again.
                 </p>
               </Card>
             </div>
