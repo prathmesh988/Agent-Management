@@ -21,21 +21,25 @@ export async function initializeEmployeesTable() {
 
   try {
     // Check if table already exists
+    let collectionExists = false;
     try {
-      await databases.getCollection(DATABASE_ID, COLLECTION_ID);
-      console.log("✓ Table already exists");
-      return { success: true, message: "Table already initialized" };
+      const collection = await databases.getCollection(DATABASE_ID, COLLECTION_ID);
+      console.log("✓ Table already exists, checking for missing attributes...");
+      collectionExists = true;
     } catch (err) {
       // Table doesn't exist, create it
       console.log("Creating new table...");
     }
 
-    // Create the collection
-    const collection = await databases.createCollection(
-      DATABASE_ID,
-      COLLECTION_ID,
-      COLLECTION_NAME
-    );
+    // Create the collection if it doesn't exist
+    let collection;
+    if (!collectionExists) {
+      collection = await databases.createCollection(
+        DATABASE_ID,
+        COLLECTION_ID,
+        COLLECTION_NAME
+      );
+    }
 
     // Define columns with proper Appwrite format
     const columns: Array<{key: string, type: "string" | "double" | "integer", size?: number, required: boolean}> = [
@@ -113,22 +117,27 @@ export async function initializeEmployeesTable() {
       try {
         if (col.type === "string") {
           await databases.createStringAttribute(DATABASE_ID, COLLECTION_ID, col.key, col.size || 255, col.required);
+          console.log(`✓ Created attribute: ${col.key}`);
         } else if (col.type === ("integer" as any) || col.type === ("number" as any)) { // Fallback 
           await databases.createIntegerAttribute(DATABASE_ID, COLLECTION_ID, col.key, col.required);
+          console.log(`✓ Created attribute: ${col.key}`);
         } else if (col.type === "double") {
           await databases.createFloatAttribute(DATABASE_ID, COLLECTION_ID, col.key, col.required);
+          console.log(`✓ Created attribute: ${col.key}`);
         }
       } catch (e: any) {
-        if (e.code !== 409) { // Ignore attribute already exists
-          console.error(`Error creating attribute ${col.key}:`, e);
+        if (e.code === 409) { 
+          console.log(`⊘ Attribute already exists: ${col.key}`);
+        } else {
+          console.error(`Error creating attribute ${col.key}:`, e.message);
         }
       }
       // Wait slightly between schema updates
       await new Promise(resolve => setTimeout(resolve, 50));
     }
 
-    console.log("✓ Table created successfully with 38 columns");
-    return { success: true, message: "Table initialized", collection };
+    console.log("✓ Table/Attributes initialized successfully");
+    return { success: true, message: "Table and attributes initialized", collection };
   } catch (error) {
     console.error("✗ Error initializing table:", error);
     throw error;

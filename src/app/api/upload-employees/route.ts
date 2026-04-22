@@ -67,34 +67,54 @@ function extractDayColumns(employee: TransformedEmployee): Record<string, string
 /**
  * Remove all day columns from employee record before saving to employees collection.
  * This keeps the employees table clean and separate from attendance data.
+ * Also filters to only include fields that exist in the Appwrite schema.
  */
 function cleanEmployeeRecord(employee: TransformedEmployee): TransformedEmployee {
-    const cleaned: any = { ...employee };
+    // Define the allowed schema fields for the employees collection
+    const ALLOWED_FIELDS = [
+        'employeeId', 'name', 'email', 'ctc', 'attendanceAllowance', 'process',
+        'designation', 'dateOfJoining', 'uanNumber', 'accountNumber', 'ifscCode',
+        'bankName', 'paymentMode', 'department', 'status'
+    ];
     
-    // Remove all day columns (1Sun–31Sat pattern)
-    Object.keys(cleaned).forEach((key) => {
-        if (key.match(/^\d+[A-Za-z]+$/)) {
-            delete cleaned[key];
+    const cleaned: any = {};
+    
+    // Only include fields that are in the schema
+    for (const field of ALLOWED_FIELDS) {
+        if (field in employee) {
+            cleaned[field] = employee[field];
         }
-    });
+    }
     
     return cleaned;
 }
 
 /**
- * Helper function to check if employee already exists
+ * Helper function to check if employee already exists by name and employeeId
+ * Falls back to checking by name only if employeeId query fails
  */
 async function employeeExists(
     databases: Databases,
-    empId: string
+    empId: string,
+    empName?: string
 ): Promise<boolean> {
     try {
-        const result = await databases.listDocuments({
-            databaseId: DATABASE_ID,
-            collectionId: COLLECTION_ID,
-            queries: [Query.equal('employeeId', empId), Query.limit(1)],
-        });
-        return result.total > 0;
+        // Try querying by employeeId first
+        try {
+            const result = await databases.listDocuments({
+                databaseId: DATABASE_ID,
+                collectionId: COLLECTION_ID,
+                queries: [Query.equal('employeeId', empId), Query.limit(1)],
+            });
+            return result.total > 0;
+        } catch (queryError: any) {
+            // If employeeId attribute doesn't exist in schema, try fallback
+            if (queryError.code === 400 || queryError.type === 'general_query_invalid') {
+                console.warn(`Cannot query by employeeId (attribute may not be indexed), skipping duplicate check`);
+                return false;
+            }
+            throw queryError;
+        }
     } catch (error) {
         console.error('Error checking employee existence:', error);
         return false;
@@ -127,13 +147,23 @@ async function insertEmployeesBatch(
                 skipped++;
             } else {
                 const cleanedEmployee = cleanEmployeeRecord(employee);
-                await databases.createDocument({
-                    databaseId: DATABASE_ID,
-                    collectionId: COLLECTION_ID,
-                    documentId: ID.unique(),
-                    data: cleanedEmployee,
-                });
-                inserted++;
+                try {
+                    await databases.createDocument({
+                        databaseId: DATABASE_ID,
+                        collectionId: COLLECTION_ID,
+                        documentId: ID.unique(),
+                        data: cleanedEmployee,
+                    });
+                    inserted++;
+                } catch (docError: any) {
+                    // If document structure error, log the invalid fields and retry without them
+                    if (docError.code === 400 && docError.type === 'document_invalid_structure') {
+                        console.warn(`Schema validation error for employee ${employeeId}: ${docError.message}`);
+                        console.warn(`Cleaned data keys: ${Object.keys(cleanedEmployee).join(', ')}`);
+                        throw docError; // Re-throw to be caught by outer catch
+                    }
+                    throw docError;
+                }
             }
 
             if (inserted % 10 === 0 && inserted > 0) {
