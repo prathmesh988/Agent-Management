@@ -19,6 +19,7 @@ import {
   Banknote,
   Crown,
   Eye,
+  UserPlus,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ const navItems = [
   { title: 'Attendance',       href: '/admin/attendance',        icon: Calendar },
   { title: 'Leave',            href: '/admin/leave',             icon: Clock },
   { title: 'Payroll',          href: '/admin/payroll',           icon: Banknote },
+  { title: 'Onboarding',       href: '/admin/onboarding',        icon: UserPlus },
   { title: 'Upload Employees', href: '/admin/employees/upload',  icon: Upload },
   { title: 'Certificates',     href: '/admin/certificates',      icon: FileText },
   { title: 'Admins',           href: '/admin/admins',            icon: Shield },

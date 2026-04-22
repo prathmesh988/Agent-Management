@@ -23,6 +23,7 @@ import { sendCertificatesToMultiple, checkCertificatesInBucketAction } from "@/a
 import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
 import { useToast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const ITEMS_PER_PAGE = UI.PAGINATION.ITEMS_PER_PAGE;
 
@@ -480,8 +481,7 @@ export default function CertificatesPage() {
                 <TableHeader className="sticky top-0 bg-slate-100 z-10 shadow-sm">
                   <TableRow className="border-b border-slate-200">
                     <TableHead className="w-12 py-3 px-4 sm:px-6 text-left">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={
                         selectedIds.size === filteredEmployees.length &&
                         filteredEmployees.length > 0
@@ -518,8 +518,7 @@ export default function CertificatesPage() {
                       className="transition-colors duration-200 hover:bg-slate-50 cursor-pointer"
                     >
                       <TableCell className="py-4 px-4 sm:px-6 text-left w-12 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selectedIds.has(emp.id)}
                         onChange={(e) => {
                           e.stopPropagation();

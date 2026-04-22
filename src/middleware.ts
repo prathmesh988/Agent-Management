@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Public routes — no auth needed
 const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password"];
+const PUBLIC_PREFIXES = ["/onboard", "/api/onboarding"];
 
 // Protected route prefixes
 const PROTECTED_PREFIXES = ["/admin"];
@@ -42,7 +43,9 @@ async function isSessionValid(request: NextRequest): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublic    = PUBLIC_ROUTES.includes(pathname);
+  const isPublicRoute  = PUBLIC_ROUTES.includes(pathname);
+  const isPublicPrefix  = PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+  const isPublic        = isPublicRoute || isPublicPrefix;
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
 
   // ── Verify with Appwrite on every relevant request ──────────────────────
