@@ -11,8 +11,14 @@ export async function GET(request: NextRequest) {
 
     const users = new Users(client);
 
-    // Fetch all users with pagination
-    const response = await users.list([Query.limit(100)]);
+    // Optional search filter
+    const search = request.nextUrl.searchParams.get('search') ?? '';
+    const queries = search
+      ? [Query.limit(20), Query.search('name', search)]
+      : [Query.limit(100)];
+
+    // Fetch users
+    const response = await users.list(queries);
 
     // Transform users to include role/permission information based on labels
     const formattedUsers = response.users.map((user: any) => {
