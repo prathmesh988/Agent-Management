@@ -27,25 +27,28 @@ const API_KEY = process.env.APPWRITE_PROJECT_ID_API_SECRET;
  * Generic helper: create a collection with given attributes if it doesn't exist.
  */
 async function ensureCollection(databases, collectionId, collectionName, columns) {
+  let exists = false;
   try {
     await databases.getCollection(DATABASE_ID, collectionId);
-    console.log(`✓ Collection "${collectionName}" already exists - skipping`);
-    return;
+    console.log(`✓ Collection "${collectionName}" already exists - checking attributes`);
+    exists = true;
   } catch (err) {
     if (err.code !== 404) {
       throw err;
     }
   }
 
-  console.log(`📋 Creating collection "${collectionName}"...`);
+  if (!exists) {
+    console.log(`📋 Creating collection "${collectionName}"...`);
 
-  await databases.createCollection(
-    DATABASE_ID,
-    collectionId,
-    collectionName
-  );
+    await databases.createCollection(
+      DATABASE_ID,
+      collectionId,
+      collectionName
+    );
+  }
 
-  console.log(`📝 Creating ${columns.length} attributes for "${collectionName}"...`);
+  console.log(`📝 Creating/Verifying ${columns.length} attributes for "${collectionName}"...`);
   let created = 0;
   let skipped = 0;
 
