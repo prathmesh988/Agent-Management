@@ -27,20 +27,22 @@ import { useSidebar } from './sidebar-context';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/components/ui/toast';
 import { isProtectedRoute } from '@/lib/route-protection';
+import { PermissionModal } from './permission-modal';
+import './permission-modal.css';
 
 // ─── Nav items with optional role restriction ───────────────────────────────
 // Uses isProtectedRoute utility to determine requiresAdmin status
 const navItems = [
-  { title: 'Dashboard',        href: '/admin/dashboard',        icon: LayoutDashboard },
-  { title: 'Employees',        href: '/admin/employees',         icon: Users },
-  { title: 'Attendance',       href: '/admin/attendance',        icon: Calendar },
-  { title: 'Leave',            href: '/admin/leave',             icon: Clock },
-  { title: 'Payroll',          href: '/admin/payroll',           icon: Banknote },
-  { title: 'Onboarding',       href: '/admin/onboarding',        icon: UserPlus },
-  { title: 'Upload Employees', href: '/admin/employees/upload',  icon: Upload },
-  { title: 'Certificates',     href: '/admin/certificates',      icon: FileText },
-  { title: 'Admins',           href: '/admin/admins',            icon: Shield },
-  { title: 'Settings',         href: '/admin/settings',          icon: Settings },
+  { title: 'Dashboard',        href: '/admin/dashboard',        icon: LayoutDashboard, pageId: 'dashboard'        },
+  { title: 'Employees',        href: '/admin/employees',         icon: Users,           pageId: 'employees'        },
+  { title: 'Attendance',       href: '/admin/attendance',        icon: Calendar,        pageId: 'attendance'       },
+  { title: 'Leave',            href: '/admin/leave',             icon: Clock,           pageId: 'leave'            },
+  { title: 'Payroll',          href: '/admin/payroll',           icon: Banknote,        pageId: 'payroll'          },
+  { title: 'Onboarding',       href: '/admin/onboarding',        icon: UserPlus,        pageId: 'onboarding'       },
+  { title: 'Upload Employees', href: '/admin/employees/upload',  icon: Upload,          pageId: 'upload_employees' },
+  { title: 'Certificates',     href: '/admin/certificates',      icon: FileText,        pageId: 'certificates'     },
+  { title: 'Admins',           href: '/admin/admins',            icon: Shield,          pageId: 'admins'           },
+  { title: 'Settings',         href: '/admin/settings',          icon: Settings,        pageId: 'settings'         },
 ].map((item) => ({
   ...item,
   requiresAdmin: isProtectedRoute(item.href)?.requiresAdmin ?? false,
@@ -81,6 +83,9 @@ export function AdminSidebar() {
   const { collapsed, toggle } = useSidebar();
   const { currentUser } = useCurrentUser();
   const { toast } = useToast();
+
+  // Permission modal state
+  const [permModal, setPermModal] = useState<{ pageId: string; pageName: string } | null>(null);
 
   const isAdmin = currentUser?.role === 'admin';
   const roleKey = (currentUser?.role ?? 'new_user') as keyof typeof ROLE_CONFIG;
@@ -164,32 +169,47 @@ export function AdminSidebar() {
             const isLocked = item.requiresAdmin && !isAdmin;
 
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={(e) => handleNavClick(e, item)}
-                title={collapsed ? item.title : undefined}
-                className={cn(
-                  'relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
-                  collapsed ? 'justify-center' : '',
-                  isActive
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : isLocked
-                    ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
-                )}
-              >
-                <Icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && (
-                  <span className="truncate flex-1">{item.title}</span>
-                )}
-                {/* Lock icon badge for restricted items when expanded */}
-                {!collapsed && isLocked && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
-                    ADMIN
-                  </span>
-                )}
-              </Link>
+              <div key={item.href} className="relative group">
+                <Link
+                  href={item.href}
+                  onClick={(e) => handleNavClick(e, item)}
+                  title={collapsed ? item.title : undefined}
+                  className={cn(
+                    'relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+                    collapsed ? 'justify-center' : '',
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-md'
+                      : isLocked
+                      ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+                  )}
+                >
+                  <Icon className="h-5 w-5 flex-shrink-0" />
+                  {!collapsed && (
+                    <span className="truncate flex-1">{item.title}</span>
+                  )}
+                  {/* Lock badge */}
+                  {!collapsed && isLocked && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
+                      ADMIN
+                    </span>
+                  )}
+                  {/* Gear button — admin only, hidden until row hover */}
+                  {isAdmin && !collapsed && (
+                    <button
+                      className="sidebar-gear-btn"
+                      title={`Permissions: ${item.title}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setPermModal({ pageId: item.pageId, pageName: item.title });
+                      }}
+                    >
+                      ⚙
+                    </button>
+                  )}
+                </Link>
+              </div>
             );
           })}
         </nav>
@@ -238,6 +258,15 @@ export function AdminSidebar() {
         <div
           className="fixed inset-0 bg-black/50 md:hidden z-20"
           onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* Permission modal */}
+      {permModal && (
+        <PermissionModal
+          pageId={permModal.pageId}
+          pageName={permModal.pageName}
+          onClose={() => setPermModal(null)}
         />
       )}
     </>

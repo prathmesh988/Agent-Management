@@ -4,11 +4,12 @@ import { AdminTable } from "@/components/admin/admin-table";
 import { useAdmins, type AdminUser } from "@/hooks/useAdmins";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useState } from "react";
-import { Eye, Shield, AlertCircle, Clock, Users, Info } from "lucide-react";
+import { Eye, Shield, AlertCircle, Clock, Users, Info, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { PageLoader } from "@/components/ui/page-loader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { RolesOverview } from "@/components/admin/roles-overview";
 
 export default function AdminsPage() {
   const { admins, loading, error, updateAdminRole, deleteAdmin, disapproveAdmin, fetchAdmins } = useAdmins();
@@ -20,7 +21,7 @@ export default function AdminsPage() {
 
   // ── handlers ────────────────────────────────────────────────────────────────
 
-  const handleUpdateRole = async (adminId: string, role: 'admin' | 'viewer' | 'mvp' | 'new_user') => {
+  const handleUpdateRole = async (adminId: string, role: 'admin' | 'manager' | 'hr' | 'viewer' | 'mvp' | 'new_user') => {
     if (currentUser?.role !== 'admin') { setUpdateError('Only admins can change user roles'); return; }
     const admin = admins.find((a) => a.id === adminId);
     const previousRole = admin?.role;
@@ -234,6 +235,11 @@ export default function AdminsPage() {
                 <Info className="h-3.5 w-3.5" />
                 Role Guide
               </TabsTrigger>
+
+              <TabsTrigger value="permissions" className="gap-2 px-4">
+                <Lock className="h-3.5 w-3.5" />
+                Roles &amp; Permissions
+              </TabsTrigger>
             </TabsList>
 
             {/* Logged-in-as pill */}
@@ -369,6 +375,11 @@ export default function AdminsPage() {
                 </p>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* ── Roles & Permissions tab ────────────────────────────────────── */}
+          <TabsContent value="permissions" className="mt-4">
+            <RolesOverview users={admins.map((a) => ({ id: a.id, name: a.name, email: a.email, role: a.role }))} />
           </TabsContent>
 
         </Tabs>
