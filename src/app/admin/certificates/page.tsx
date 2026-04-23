@@ -486,7 +486,7 @@ export default function CertificatesPage() {
                         selectedIds.size === filteredEmployees.length &&
                         filteredEmployees.length > 0
                       }
-                      onChange={toggleSelectAll}
+                      onCheckedChange={toggleSelectAll}
                       className="rounded border-slate-300 cursor-pointer"
                     />
                   </TableHead>
@@ -520,10 +520,7 @@ export default function CertificatesPage() {
                       <TableCell className="py-4 px-4 sm:px-6 text-left w-12 shrink-0" onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedIds.has(emp.id)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          toggleSelection(emp.id);
-                        }}
+                        onCheckedChange={() => toggleSelection(emp.id)}
                         className="rounded border-slate-300 cursor-pointer"
                       />
                     </TableCell>
