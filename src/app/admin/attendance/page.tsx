@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/select';
 import { useEmployees } from '@/hooks/useEmployees';
 import { Employee } from '@/lib/types';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Loader2, ChevronLeft, ChevronRight, CheckSquare, Square, Users, Info, X } from 'lucide-react';
 import { saveBulkAttendanceAction, getBulkMonthlyAttendanceAction } from '@/app/(actions)/attendance';
 
 // Types of attendance
@@ -43,6 +43,16 @@ export default function AttendancePage() {
   const [branchFilter, setBranchFilter] = useState("all");
   const [batchFilter, setBatchFilter] = useState("all");
   const [toastMessage, setToastMessage] = useState<{show: boolean, msg: string}>({show: false, msg: ""});
+
+  // Bulk mode state
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
+  const [bulkCode, setBulkCode] = useState<string>("P");
+  const [bulkDayStart, setBulkDayStart] = useState(1);
+  const [bulkDayEnd, setBulkDayEnd] = useState(1);
+  const [isBulkApplying, setIsBulkApplying] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  const bulkAbortRef = useRef(false);
   
   // Month/Year navigation
   const now = new Date();
@@ -78,11 +88,11 @@ export default function AttendancePage() {
     fetchAttendance();
   }, [selectedYear, selectedMonth]);
 
-  const showToast = useCallback((msg: string) => {
+  const showToast = useCallback((msg: string, duration = 2000) => {
     setToastMessage({show: true, msg});
     setTimeout(() => {
       setToastMessage(prev => ({ ...prev, show: false }));
-    }, 150);
+    }, duration);
   }, []);
 
   const handleUpdate = useCallback(async (employee: Employee, dayKey: string, nextCode: AttendanceCode) => {
@@ -123,14 +133,137 @@ export default function AttendancePage() {
   }, [employees]);
 
   const filteredEmployees = employees.filter(emp => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      (emp.name && emp.name.toLowerCase().includes(searchLower)) ||
-      (emp.employeeId && emp.employeeId.toLowerCase().includes(searchLower)) ||
-      (emp.process && emp.process.toLowerCase().includes(searchLower))
-    );
+    // Branch filter
+    if (branchFilter !== "all") {
+      const branch = (emp.process || emp.department || "").trim();
+      if (branch !== branchFilter) return false;
+    }
+
+    // Batch filter (future-ready)
+    if (batchFilter !== "all") {
+      const batch = (((emp as unknown) as Record<string, unknown>).batch as string || "").trim();
+      if (batch !== batchFilter) return false;
+    }
+
+    // Search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        (emp.name && emp.name.toLowerCase().includes(searchLower)) ||
+        (emp.employeeId && emp.employeeId.toLowerCase().includes(searchLower)) ||
+        (emp.process && emp.process.toLowerCase().includes(searchLower))
+      );
+    }
+
+    return true;
   });
+
+  // Bulk mode handlers
+  const toggleBulkMode = useCallback(() => {
+    setBulkMode(prev => {
+      if (prev) {
+        // Exiting bulk mode — clear selections
+        setSelectedEmployeeIds(new Set());
+        setBulkProgress({ current: 0, total: 0 });
+      } else {
+        // Entering bulk mode — default day range to today (if in current month)
+        const today = new Date();
+        if (selectedYear === today.getFullYear() && selectedMonth === today.getMonth() + 1) {
+          setBulkDayStart(today.getDate());
+          setBulkDayEnd(today.getDate());
+        } else {
+          setBulkDayStart(1);
+          setBulkDayEnd(1);
+        }
+      }
+      return !prev;
+    });
+  }, [selectedYear, selectedMonth]);
+
+  const toggleEmployeeSelection = useCallback((employeeId: string) => {
+    setSelectedEmployeeIds(prev => {
+      const next = new Set(prev);
+      if (next.has(employeeId)) {
+        next.delete(employeeId);
+      } else {
+        next.add(employeeId);
+      }
+      return next;
+    });
+  }, []);
+
+  const allFilteredSelected = filteredEmployees.length > 0 && filteredEmployees.every(e => selectedEmployeeIds.has(e.employeeId));
+
+  const toggleSelectAll = useCallback(() => {
+    if (allFilteredSelected) {
+      setSelectedEmployeeIds(new Set());
+    } else {
+      setSelectedEmployeeIds(new Set(filteredEmployees.map(e => e.employeeId)));
+    }
+  }, [allFilteredSelected, filteredEmployees]);
+
+  const daysInMonth = useMemo(() => new Date(selectedYear, selectedMonth, 0).getDate(), [selectedYear, selectedMonth]);
+
+  const handleBulkApply = useCallback(async () => {
+    if (selectedEmployeeIds.size === 0 || isBulkApplying) return;
+    if (bulkDayStart > bulkDayEnd) {
+      showToast("Start day must be ≤ end day", 3000);
+      return;
+    }
+
+    const selectedEmps = filteredEmployees.filter(e => selectedEmployeeIds.has(e.employeeId));
+    const dayCount = bulkDayEnd - bulkDayStart + 1;
+    const total = selectedEmps.length * dayCount;
+
+    setIsBulkApplying(true);
+    setBulkProgress({ current: 0, total });
+    bulkAbortRef.current = false;
+
+    let completed = 0;
+    let failed = 0;
+
+    for (const emp of selectedEmps) {
+      if (bulkAbortRef.current) break;
+
+      for (let day = bulkDayStart; day <= bulkDayEnd; day++) {
+        if (bulkAbortRef.current) break;
+
+        // Build the dayKey (e.g. "3Tue")
+        const date = new Date(selectedYear, selectedMonth - 1, day);
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const dayKey = `${day}${dayNames[date.getDay()]}`;
+
+        try {
+          await saveBulkAttendanceAction(emp.employeeId, dayKey, bulkCode as string, selectedYear, selectedMonth);
+
+          // Update local state immediately for visual feedback
+          setMonthlyAttendanceData(prev => ({
+            ...prev,
+            [emp.employeeId]: {
+              ...prev[emp.employeeId],
+              [dayKey]: bulkCode as string
+            }
+          }));
+
+          completed++;
+        } catch {
+          failed++;
+        }
+
+        setBulkProgress({ current: completed + failed, total });
+      }
+    }
+
+    setIsBulkApplying(false);
+    const msg = failed > 0
+      ? `Done: ${completed} saved, ${failed} failed`
+      : `✓ Marked ${completed} entries as ${bulkCode}`;
+    showToast(msg, 3000);
+  }, [selectedEmployeeIds, filteredEmployees, bulkDayStart, bulkDayEnd, bulkCode, selectedYear, selectedMonth, isBulkApplying, showToast]);
+
+  const handleBulkCancel = useCallback(() => {
+    bulkAbortRef.current = true;
+  }, []);
   
   const handlePrevMonth = () => {
     if (selectedMonth === 1) {
@@ -159,7 +292,17 @@ export default function AttendancePage() {
         <h1 className="text-3xl font-bold tracking-tight">Attendance Management</h1>
         <div className="flex gap-2">
           <Button variant="outline">Import XLSX</Button>
-          <Button>Bulk Mark Attendance</Button>
+          <Button
+            variant={bulkMode ? "destructive" : "default"}
+            onClick={toggleBulkMode}
+            className="gap-1.5"
+          >
+            {bulkMode ? (
+              <><X className="h-4 w-4" /> Exit Bulk Mode</>
+            ) : (
+              <><Users className="h-4 w-4" /> Bulk Mark Attendance</>
+            )}
+          </Button>
         </div>
       </div>
       
@@ -248,13 +391,155 @@ export default function AttendancePage() {
                <span className="font-semibold text-slate-900 dark:text-slate-200">Codes:</span> 
                P (Present), WO (Week Off), CL (Casual Leave), LC (Late Coming), HD (Half Day), L (Leave), A (Absent)
             </div>
+
+            {/* Bulk Mode Panel */}
+            {bulkMode && (
+              <div className="rounded-lg border-2 border-blue-200 dark:border-blue-800 bg-blue-50/60 dark:bg-blue-950/30 p-4 space-y-4">
+                {/* Description */}
+                <div className="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300">
+                  <Info className="h-4 w-4 mt-0.5 shrink-0" />
+                  <p>
+                    <span className="font-semibold">Bulk Mode:</span> Select employees using the checkboxes, choose a day range and attendance code, then click &quot;Apply&quot; to mark attendance for all selected employees at once.
+                  </p>
+                </div>
+
+                {/* Controls row */}
+                <div className="flex flex-wrap gap-3 items-end">
+                  {/* Select All */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-9"
+                    onClick={toggleSelectAll}
+                    disabled={isBulkApplying}
+                  >
+                    {allFilteredSelected ? (
+                      <><CheckSquare className="h-4 w-4 text-blue-600" /> Deselect All</>
+                    ) : (
+                      <><Square className="h-4 w-4" /> Select All ({filteredEmployees.length})</>
+                    )}
+                  </Button>
+
+                  {/* Day Range: From */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">From Day</label>
+                    <Select value={String(bulkDayStart)} onValueChange={(v) => setBulkDayStart(Number(v))}>
+                      <SelectTrigger className="w-24 bg-background h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => (
+                          <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Day Range: To */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">To Day</label>
+                    <Select value={String(bulkDayEnd)} onValueChange={(v) => setBulkDayEnd(Number(v))}>
+                      <SelectTrigger className="w-24 bg-background h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: daysInMonth }, (_, i) => i + 1).filter(d => d >= bulkDayStart).map(d => (
+                          <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Attendance Code */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Code</label>
+                    <Select value={bulkCode} onValueChange={setBulkCode}>
+                      <SelectTrigger className="w-28 bg-background h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ATTENDANCE_CODES.filter(c => c !== '').map(c => (
+                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Apply Button */}
+                  <Button
+                    size="sm"
+                    className="h-9 gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={handleBulkApply}
+                    disabled={selectedEmployeeIds.size === 0 || isBulkApplying}
+                  >
+                    {isBulkApplying ? (
+                      <><Loader2 className="h-4 w-4 animate-spin" /> Applying...</>
+                    ) : (
+                      <>Apply to {selectedEmployeeIds.size} employee{selectedEmployeeIds.size !== 1 ? 's' : ''}</>
+                    )}
+                  </Button>
+
+                  {/* Cancel during apply */}
+                  {isBulkApplying && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9"
+                      onClick={handleBulkCancel}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+
+                {/* Progress bar */}
+                {isBulkApplying && bulkProgress.total > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Processing...</span>
+                      <span>{bulkProgress.current} / {bulkProgress.total}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-500 transition-all duration-200"
+                        style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Selection count badge */}
+                {selectedEmployeeIds.size > 0 && !isBulkApplying && (
+                  <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                    {selectedEmployeeIds.size} employee{selectedEmployeeIds.size !== 1 ? 's' : ''} selected · Days {bulkDayStart}–{bulkDayEnd} · Code: {bulkCode}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="rounded-md border overflow-x-auto max-h-[600px]">
             <Table className="min-w-[1000px] relative">
               <TableHeader className="bg-white dark:bg-slate-950 sticky top-0 z-20 shadow-sm">
                 <TableRow>
-                  <TableHead className="w-[150px] border-r sticky left-0 bg-white dark:bg-slate-950 z-30">Employee</TableHead>
+                  {bulkMode && (
+                    <TableHead className="w-[48px] border-r sticky left-0 bg-white dark:bg-slate-950 z-30 text-center p-1">
+                      <div
+                        role="checkbox"
+                        aria-checked={allFilteredSelected}
+                        tabIndex={0}
+                        className="flex items-center justify-center cursor-pointer"
+                        onClick={toggleSelectAll}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSelectAll(); } }}
+                      >
+                        {allFilteredSelected
+                          ? <CheckSquare className="h-4 w-4 text-blue-600" />
+                          : <Square className="h-4 w-4 text-slate-400" />
+                        }
+                      </div>
+                    </TableHead>
+                  )}
+                  <TableHead className={`w-[150px] border-r sticky ${bulkMode ? 'left-[48px]' : 'left-0'} bg-white dark:bg-slate-950 z-30`}>Employee</TableHead>
                   {DAY_KEYS.map((key) => {
                     const match = key.match(/^(\d+)([A-Za-z]+)$/);
                     const num = match ? match[1] : key;
@@ -274,7 +559,7 @@ export default function AttendancePage() {
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={DAY_KEYS.length + 2} className="h-32 text-center">
+                    <TableCell colSpan={DAY_KEYS.length + 2 + (bulkMode ? 1 : 0)} className="h-32 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         <span className="text-lg font-medium text-slate-500">Loading employees...</span>
@@ -283,7 +568,7 @@ export default function AttendancePage() {
                   </TableRow>
                 ) : filteredEmployees.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={DAY_KEYS.length + 2} className="h-24 text-center text-slate-500">
+                    <TableCell colSpan={DAY_KEYS.length + 2 + (bulkMode ? 1 : 0)} className="h-24 text-center text-slate-500">
                       No employees found.
                     </TableCell>
                   </TableRow>
@@ -293,8 +578,25 @@ export default function AttendancePage() {
                     const pCount = DAY_KEYS.reduce((acc, key) => acc + (employeeAttendance[key] === 'P' ? 1 : 0), 0);
 
                     return (
-                      <TableRow key={emp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                        <TableCell className="font-medium border-r sticky left-0 bg-white dark:bg-slate-950 z-10 w-[150px] max-w-[150px] truncate">
+                      <TableRow key={emp.id} className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/50 ${bulkMode && selectedEmployeeIds.has(emp.employeeId) ? 'bg-blue-50/50 dark:bg-blue-950/20' : ''}`}>
+                        {bulkMode && (
+                          <TableCell className="border-r sticky left-0 bg-white dark:bg-slate-950 z-10 w-[48px] text-center p-1">
+                            <div
+                              role="checkbox"
+                              aria-checked={selectedEmployeeIds.has(emp.employeeId)}
+                              tabIndex={0}
+                              className="flex items-center justify-center cursor-pointer"
+                              onClick={() => toggleEmployeeSelection(emp.employeeId)}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleEmployeeSelection(emp.employeeId); } }}
+                            >
+                              {selectedEmployeeIds.has(emp.employeeId)
+                                ? <CheckSquare className="h-4 w-4 text-blue-600" />
+                                : <Square className="h-4 w-4 text-slate-400" />
+                              }
+                            </div>
+                          </TableCell>
+                        )}
+                        <TableCell className={`font-medium border-r sticky ${bulkMode ? 'left-[48px]' : 'left-0'} bg-white dark:bg-slate-950 z-10 w-[150px] max-w-[150px] truncate`}>
                           <div title={emp.name}>{emp.name}</div>
                           <div className="text-[10px] text-muted-foreground" title={emp.employeeId}>{emp.employeeId}</div>
                         </TableCell>
