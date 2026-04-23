@@ -25,10 +25,124 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from './sidebar-context';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { usePagePermission } from '@/hooks/usePagePermission';
 import { useToast } from '@/components/ui/toast';
 import { isProtectedRoute } from '@/lib/route-protection';
 import { PermissionModal } from './permission-modal';
 import './permission-modal.css';
+
+// ─── Nav Item Component (handles per-item permission check) ──────────────────
+function SidebarNavItem({
+  item,
+  isActive,
+  isAdmin,
+  collapsed,
+  pathname,
+  onPermModalOpen,
+  onNavigate,
+}: {
+  item: (typeof navItems)[number];
+  isActive: boolean;
+  isAdmin: boolean;
+  collapsed: boolean;
+  pathname: string;
+  onPermModalOpen: (pageId: string, pageName: string) => void;
+  onNavigate?: () => void;
+}) {
+  const { toast } = useToast();
+  const perms = usePagePermission(item.pageId); // Single call returns all perms
+  const { canRead, canUpdate, loading } = perms;
+  
+  // Can't read = no access
+  const isLocked = !canRead && !loading;
+  const isLockedByRole = item.requiresAdmin && !isAdmin;
+  
+  const Icon = item.icon;
+
+  const handleNavClick = (e: React.MouseEvent) => {
+    // Check requiresAdmin first (old system)
+    if (isLockedByRole) {
+      e.preventDefault();
+      toast({
+        title: 'Access Denied',
+        description: `"${item.title}" requires Admin role.`,
+        variant: 'error',
+      });
+      return;
+    }
+    
+    // Check granular permissions
+    if (isLocked) {
+      e.preventDefault();
+      toast({
+        title: 'Access Denied',
+        description: `You don't have permission to access "${item.title}".`,
+        variant: 'error',
+      });
+      return;
+    }
+    
+    // Close mobile menu after navigation
+    onNavigate?.();
+  };
+
+  return (
+    <div key={item.href} className="relative group">
+      <Link
+        href={item.href}
+        onClick={handleNavClick}
+        title={collapsed ? item.title : undefined}
+        className={cn(
+          'relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
+          collapsed ? 'justify-center' : '',
+          isActive && !isLocked
+            ? 'bg-primary text-primary-foreground shadow-md'
+            : isLocked || isLockedByRole
+            ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
+            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
+        )}
+      >
+        <Icon className="h-5 w-5 flex-shrink-0" />
+        {!collapsed && (
+          <span className="truncate flex-1">{item.title}</span>
+        )}
+        {/* Lock badge */}
+        {!collapsed && (isLocked || isLockedByRole) && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
+            {loading ? '...' : '🔒'}
+          </span>
+        )}
+        {/* Gear button — admin only, hidden until row hover */}
+        {isAdmin && !collapsed && (
+          <button
+            className="sidebar-gear-btn"
+            disabled={!canUpdate}
+            title={canUpdate ? `Permissions: ${item.title}` : `No update permission for ${item.title}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!canUpdate) {
+                toast({
+                  title: 'No Permission',
+                  description: `You don't have permission to modify "${item.title}" permissions.`,
+                  variant: 'error',
+                });
+                return;
+              }
+              onPermModalOpen(item.pageId, item.title);
+            }}
+            style={{
+              opacity: canUpdate ? 1 : 0.4,
+              cursor: canUpdate ? 'pointer' : 'not-allowed',
+            }}
+          >
+            ⚙
+          </button>
+        )}
+      </Link>
+    </div>
+  );
+}
 
 // ─── Nav items with optional role restriction ───────────────────────────────
 // Uses isProtectedRoute utility to determine requiresAdmin status
@@ -39,7 +153,7 @@ const navItems = [
   { title: 'Leave',            href: '/admin/leave',             icon: Clock,           pageId: 'leave'            },
   { title: 'Payroll',          href: '/admin/payroll',           icon: Banknote,        pageId: 'payroll'          },
   { title: 'Onboarding',       href: '/admin/onboarding',        icon: UserPlus,        pageId: 'onboarding'       },
-  { title: 'Upload Employees', href: '/admin/employees/upload',  icon: Upload,          pageId: 'upload_employees' },
+  { title: 'Upload Employees', href: '/admin/employees/upload',  icon: Upload,          pageId: 'employees'        },
   { title: 'Certificates',     href: '/admin/certificates',      icon: FileText,        pageId: 'certificates'     },
   { title: 'Admins',           href: '/admin/admins',            icon: Shield,          pageId: 'admins'           },
   { title: 'Settings',         href: '/admin/settings',          icon: Settings,        pageId: 'settings'         },
@@ -91,22 +205,6 @@ export function AdminSidebar() {
   const roleKey = (currentUser?.role ?? 'new_user') as keyof typeof ROLE_CONFIG;
   const roleCfg = ROLE_CONFIG[roleKey] ?? ROLE_CONFIG['viewer'];
   const RoleIcon = roleCfg.icon;
-
-  const handleNavClick = (
-    e: React.MouseEvent,
-    item: (typeof navItems)[number]
-  ) => {
-    if (item.requiresAdmin && !isAdmin) {
-      e.preventDefault();
-      toast({
-        title: 'Access Denied',
-        description: `"${item.title}" requires Admin role. You currently have viewer (read-only) access.`,
-        variant: 'error',
-      });
-      return;
-    }
-    setMobileOpen(false);
-  };
 
   return (
     <>
@@ -164,52 +262,19 @@ export function AdminSidebar() {
         {/* Nav */}
         <nav className="flex flex-col space-y-1 p-2 md:p-3 flex-1 overflow-y-auto">
           {navItems.map((item) => {
-            const Icon = item.icon;
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            const isLocked = item.requiresAdmin && !isAdmin;
 
             return (
-              <div key={item.href} className="relative group">
-                <Link
-                  href={item.href}
-                  onClick={(e) => handleNavClick(e, item)}
-                  title={collapsed ? item.title : undefined}
-                  className={cn(
-                    'relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200',
-                    collapsed ? 'justify-center' : '',
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-md'
-                      : isLocked
-                      ? 'text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60'
-                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white'
-                  )}
-                >
-                  <Icon className="h-5 w-5 flex-shrink-0" />
-                  {!collapsed && (
-                    <span className="truncate flex-1">{item.title}</span>
-                  )}
-                  {/* Lock badge */}
-                  {!collapsed && isLocked && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
-                      ADMIN
-                    </span>
-                  )}
-                  {/* Gear button — admin only, hidden until row hover */}
-                  {isAdmin && !collapsed && (
-                    <button
-                      className="sidebar-gear-btn"
-                      title={`Permissions: ${item.title}`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setPermModal({ pageId: item.pageId, pageName: item.title });
-                      }}
-                    >
-                      ⚙
-                    </button>
-                  )}
-                </Link>
-              </div>
+              <SidebarNavItem
+                key={item.href}
+                item={item}
+                isActive={isActive}
+                isAdmin={isAdmin}
+                collapsed={collapsed}
+                pathname={pathname}
+                onPermModalOpen={(pageId, pageName) => setPermModal({ pageId, pageName })}
+                onNavigate={() => setMobileOpen(false)}
+              />
             );
           })}
         </nav>

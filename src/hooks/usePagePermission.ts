@@ -68,7 +68,12 @@ export function usePagePermission(pageId: string): PermissionSet {
   return perms;
 }
 
-/** Clear the in-memory cache (call after saving permission changes). */
+/** Clear the in-memory cache for a specific page (call after saving permission changes). */
+export function clearPagePermissionCache(pageId: string) {
+  cache.delete(pageId);
+}
+
+/** Clear the ENTIRE in-memory cache (use sparingly). */
 export function clearPermissionCache() {
   cache.clear();
 }

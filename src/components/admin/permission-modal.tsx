@@ -5,7 +5,7 @@ import {
   ALL_PERMS, APP_ROLES, PERM_LABELS,
   type Perm, type AppRole, type PagePermissions, type UserOverride,
 } from '@/lib/permissions';
-import { clearPermissionCache } from '@/hooks/usePagePermission';
+import { clearPagePermissionCache } from '@/hooks/usePagePermission';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -105,7 +105,7 @@ export function PermissionModal({ pageId, pageName, onClose }: PermissionModalPr
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       setData((prev) => prev ? { ...prev, ...json } : null);
-      clearPermissionCache();
+      clearPagePermissionCache(pageId); // Only clear this specific page's cache
       setFeedback('✅ Saved');
       setTimeout(() => setFeedback(''), 2000);
     } catch (e: any) {
@@ -115,7 +115,7 @@ export function PermissionModal({ pageId, pageName, onClose }: PermissionModalPr
 
   // ── Role perm toggle ────────────────────────────────────────────────────────
   const toggleRolePerm = (role: AppRole, perm: Perm) => {
-    if (!data || role === 'admin') return;
+    if (!data) return;
     const current = data.rolePerms[role] ?? [];
     const next    = current.includes(perm) ? current.filter((p) => p !== perm) : [...current, perm];
     setData({ ...data, rolePerms: { ...data.rolePerms, [role]: next } });
@@ -154,10 +154,10 @@ export function PermissionModal({ pageId, pageName, onClose }: PermissionModalPr
     if (!data) return;
     const userId = u.id || u.$id;
     if (data.userOverrides[userId]) return; // already added
-    const override: UserOverride = { userId, name: u.name, email: u.email, perms: ['r'] };
+    const override: UserOverride = { userId, name: u.name, email: u.email, perms: [] };
     const next = { ...data.userOverrides, [userId]: override };
     setData({ ...data, userOverrides: next });
-    patch({ type: 'user', userId, name: u.name, email: u.email, perms: ['r'] });
+    patch({ type: 'user', userId, name: u.name, email: u.email, perms: [] });
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -207,17 +207,14 @@ export function PermissionModal({ pageId, pageName, onClose }: PermissionModalPr
                     <span className="pm-role-name" style={{ color: ROLE_COLORS[role] }}>
                       {role.charAt(0).toUpperCase() + role.slice(1)}
                     </span>
-                    {role === 'admin' && (
-                      <span className="pm-role-lock" title="Admins always have full access">🔒 Full access</span>
-                    )}
                   </div>
                   <div className="pm-perm-group">
                     {ALL_PERMS.map((perm) => (
                       <PermToggle
                         key={perm}
                         perm={perm}
-                        active={role === 'admin' || (data?.rolePerms[role]?.includes(perm) ?? false)}
-                        disabled={role === 'admin' || saving}
+                        active={(data?.rolePerms[role]?.includes(perm) ?? false)}
+                        disabled={saving}
                         onChange={() => toggleRolePerm(role, perm)}
                       />
                     ))}

@@ -65,7 +65,6 @@ export const MANAGED_PAGES: Pick<PagePermissions, 'pageId' | 'pageName' | 'pageP
   { pageId: 'leave',            pageName: 'Leave',            pagePath: '/admin/leave'            },
   { pageId: 'payroll',          pageName: 'Payroll',          pagePath: '/admin/payroll'          },
   { pageId: 'onboarding',       pageName: 'Onboarding',       pagePath: '/admin/onboarding'       },
-  { pageId: 'upload_employees', pageName: 'Upload Employees', pagePath: '/admin/employees/upload' },
   { pageId: 'certificates',     pageName: 'Certificates',     pagePath: '/admin/certificates'     },
   { pageId: 'admins',           pageName: 'Admins',           pagePath: '/admin/admins'           },
   { pageId: 'settings',         pageName: 'Settings',         pagePath: '/admin/settings'         },
@@ -93,8 +92,6 @@ export function hasPermission(
   userId: string,
   perm: Perm,
 ): boolean {
-  // Admin always has access
-  if (role === 'admin') return true;
   // No permissions doc → use defaults
   if (!permissions) return DEFAULT_ROLE_PERMS[role]?.includes(perm) ?? false;
 
@@ -110,3 +107,20 @@ export function canRead  (p: PagePermissions | null, role: AppRole, uid: string)
 export function canWrite (p: PagePermissions | null, role: AppRole, uid: string) { return hasPermission(p, role, uid, 'w'); }
 export function canUpdate(p: PagePermissions | null, role: AppRole, uid: string) { return hasPermission(p, role, uid, 'u'); }
 export function canDelete(p: PagePermissions | null, role: AppRole, uid: string) { return hasPermission(p, role, uid, 'd'); }
+
+/**
+ * Get pageId from pathname (e.g., "/admin/employees" → "employees")
+ * Also returns parent page if child route has no explicit permissions.
+ * E.g., "/admin/employees/[id]" falls back to "employees" page
+ */
+export function getPageIdFromPath(pathname: string): string | null {
+  // Find exact match first
+  const exactPage = MANAGED_PAGES.find(p => pathname === p.pagePath);
+  if (exactPage) return exactPage.pageId;
+
+  // Find parent page (longest matching path that this is a child of)
+  const parentPage = MANAGED_PAGES.filter(p => pathname.startsWith(p.pagePath + '/'))
+    .sort((a, b) => b.pagePath.length - a.pagePath.length)[0];
+  
+  return parentPage?.pageId ?? null;
+}

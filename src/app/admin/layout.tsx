@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useRouteProtection } from '@/hooks/useRouteProtection';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { canAccessRoute, isProtectedRoute } from '@/lib/route-protection';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -40,6 +41,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   
   // Check route protection
   useRouteProtection();
+
+  // Enforce page-level access control
+  const { checking: accessChecking } = usePageAccess();
 
   // Effect: Redirect to login if not authenticated
   useEffect(() => {
@@ -89,6 +93,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // Wait until we know the user's role before rendering
   if (currentUserLoading) {
     return <PageLoader message="Loading your profile..." className="h-screen" />;
+  }
+
+  // Wait for page access check to complete
+  if (accessChecking) {
+    return <PageLoader message="Checking access permissions..." className="h-screen" />;
   }
 
   // If user is pending approval and on pending-approval page, render full page (no navbar)

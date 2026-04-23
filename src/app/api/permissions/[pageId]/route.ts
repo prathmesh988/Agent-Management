@@ -4,10 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Client, Databases, Query } from 'node-appwrite';
+import { Client, Databases } from 'node-appwrite';
 import { getAuthenticatedUser } from '@/lib/auth-utils';
 import { ensurePermissionsSchema, COLLECTION_ID } from '@/lib/permissions-init';
-import { DEFAULT_ROLE_PERMS, MANAGED_PAGES, type Perm, type AppRole } from '@/lib/permissions';
+import { DEFAULT_ROLE_PERMS, MANAGED_PAGES, hasPermission, parsePagePermissions, type Perm, type AppRole } from '@/lib/permissions';
 
 function createAdminClient() {
   return new Client()
@@ -98,17 +98,39 @@ export async function PATCH(
   await ensurePermissionsSchema();
   const db = new Databases(createAdminClient());
 
-  // Get current doc
+  // Get current doc (for both permission check and updates)
   let current: any;
+  let permissions: any = null;
   try {
     current = await db.getDocument({
       databaseId:   DB_ID(),
       collectionId: COLLECTION_ID(),
       documentId:   pageId,
     });
+    permissions = parsePagePermissions(current as any);
   } catch (e: any) {
     if (e?.code !== 404) throw e;
-    // Create with defaults
+    // Doc doesn't exist yet - will create it
+    current = null;
+  }
+
+  // Check if user has UPDATE permission on this page
+  const role = (labels.includes('admin') ? 'admin'
+    : labels.includes('manager') ? 'manager'
+    : labels.includes('hr')      ? 'hr'
+    : labels.includes('viewer')  ? 'viewer'
+    : 'new_user') as AppRole;
+  
+  const canUpdate = hasPermission(permissions, role, user.$id, 'u');
+  if (!canUpdate) {
+    return NextResponse.json(
+      { error: `You don't have permission to update "${pageId}" settings` },
+      { status: 403 }
+    );
+  }
+
+  // Create doc if it doesn't exist
+  if (!current) {
     const page = MANAGED_PAGES.find((p) => p.pageId === pageId);
     current = await db.createDocument({
       databaseId:   DB_ID(),
@@ -130,7 +152,6 @@ export async function PATCH(
   if (type === 'role') {
     const { role, perms }: { role: AppRole; perms: Perm[] } = body;
     if (!role) return NextResponse.json({ error: 'role is required' }, { status: 400 });
-    if (role === 'admin') return NextResponse.json({ error: 'admin always has full access' }, { status: 400 });
     rolePerms[role] = perms ?? [];
   } else if (type === 'user') {
     const { userId, name, email, perms } = body;

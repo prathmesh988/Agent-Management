@@ -30,11 +30,6 @@ export async function GET(req: NextRequest) {
     : labels.includes('viewer')  ? 'viewer'
     : 'new_user') as AppRole;
 
-  // Admin always has all permissions
-  if (role === 'admin') {
-    return NextResponse.json({ allowed: true, role });
-  }
-
   const pageId = req.nextUrl.searchParams.get('pageId') ?? '';
   const perm   = (req.nextUrl.searchParams.get('perm') ?? 'r') as Perm;
 
