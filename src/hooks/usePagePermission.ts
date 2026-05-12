@@ -39,26 +39,29 @@ export function usePagePermission(pageId: string): PermissionSet {
     const userId = getUserId();
     const headers: Record<string, string> = userId ? { 'x-user-id': userId } : {};
 
-    // Fire 4 check calls in parallel
-    const [r, w, u, d] = await Promise.all(
-      ALL_PERMS.map((p: Perm) =>
-        fetch(`/api/permissions/check?pageId=${pageId}&perm=${p}`, { headers })
-          .then((res) => res.json())
-          .catch(() => ({ allowed: false, role: 'viewer' }))
-      )
-    );
+    try {
+      const res = await fetch(`/api/permissions/check?pageId=${pageId}&perm=all`, { headers });
+      const data = await res.json();
+      
+      const result: PermissionSet = {
+        canRead:   data.canRead ?? data.allowed ?? false,
+        canWrite:  data.canWrite ?? false,
+        canUpdate: data.canUpdate ?? false,
+        canDelete: data.canDelete ?? false,
+        loading:   false,
+        role:      data.role ?? 'viewer',
+      };
 
-    const result: PermissionSet = {
-      canRead:   r.allowed,
-      canWrite:  w.allowed,
-      canUpdate: u.allowed,
-      canDelete: d.allowed,
-      loading:   false,
-      role:      r.role ?? 'viewer',
-    };
-
-    cache.set(pageId, result);
-    setPerms(result);
+      cache.set(pageId, result);
+      setPerms(result);
+    } catch {
+      const result: PermissionSet = {
+        canRead: false, canWrite: false, canUpdate: false, canDelete: false,
+        loading: false, role: 'viewer',
+      };
+      cache.set(pageId, result);
+      setPerms(result);
+    }
   }, [pageId]);
 
   useEffect(() => {

@@ -48,10 +48,28 @@ export async function GET(req: NextRequest) {
       // Collection or doc missing — fall through to defaults
     }
 
+    if (perm === 'all') {
+      const canRead   = hasPermission(permissions, role, user.$id, 'r');
+      const canWrite  = hasPermission(permissions, role, user.$id, 'w');
+      const canUpdate = hasPermission(permissions, role, user.$id, 'u');
+      const canDelete = hasPermission(permissions, role, user.$id, 'd');
+      return NextResponse.json({
+        allowed: canRead, // for backward compatibility
+        canRead, canWrite, canUpdate, canDelete,
+        role, pageId
+      });
+    }
+
     const allowed = hasPermission(permissions, role, user.$id, perm);
     return NextResponse.json({ allowed, role, pageId, perm });
   } catch (error: any) {
     // On any server error, fail open for reads, closed for writes
+    if (perm === 'all') {
+      return NextResponse.json({
+        allowed: true, canRead: true, canWrite: false, canUpdate: false, canDelete: false,
+        role, error: error.message
+      });
+    }
     const safe = perm === 'r';
     return NextResponse.json({ allowed: safe, role, error: error.message });
   }

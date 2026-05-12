@@ -4,6 +4,14 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { getPageIdFromPath } from '@/lib/permissions';
 
+function getUserId(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    const s = localStorage.getItem('user_session');
+    return s ? JSON.parse(s).userId ?? '' : '';
+  } catch { return ''; }
+}
+
 /**
  * Hook that enforces page-level access control.
  * Redirects to dashboard if user doesn't have read permission on current page.
@@ -46,13 +54,17 @@ export function usePageAccess() {
       }
 
       try {
+        // Forward the user identity so the backend can resolve permissions
+        const userId = getUserId();
+        const headers: Record<string, string> = userId ? { 'x-user-id': userId } : {};
+
         // Check if user has read access to this page
-        const res = await fetch(`/api/permissions/check?pageId=${pageId}&perm=r`);
+        const res = await fetch(`/api/permissions/check?pageId=${pageId}&perm=r`, { headers });
         const data = await res.json();
 
         // If not allowed, redirect to dashboard (once only)
         if (!data.allowed) {
-          console.log(`[usePageAccess] Access denied to ${pageId}, redirecting to dashboard`);
+          console.log(`[usePageAccess] Access denied to ${pageId} (role: ${data.role}), redirecting to dashboard`);
           lastCheckedPath.current = pathname;
           isCheckingRef.current = false;
           router.replace('/admin/dashboard');
@@ -64,10 +76,10 @@ export function usePageAccess() {
         isCheckingRef.current = false;
       } catch (error) {
         console.error('[usePageAccess] Error checking access:', error);
-        // On error, fail closed - redirect to dashboard
+        // On error, fail open for reads — don't bounce a user away due to a network hiccup
+        setChecking(false);
         lastCheckedPath.current = pathname;
         isCheckingRef.current = false;
-        router.replace('/admin/dashboard');
       }
     };
 

@@ -43,6 +43,15 @@ export function useCurrentUser() {
             const session = await account.get();
             if (session && session.$id) {
               userId = session.$id;
+              if (typeof window !== 'undefined') {
+                const sessionData = {
+                  userId: session.$id,
+                  email: session.email,
+                  name: session.name,
+                  timestamp: Date.now(),
+                };
+                localStorage.setItem('user_session', JSON.stringify(sessionData));
+              }
             }
           } catch (sessionError: any) {
             // Handle case where user is not authenticated

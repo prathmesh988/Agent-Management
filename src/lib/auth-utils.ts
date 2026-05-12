@@ -10,6 +10,8 @@ import { cookies } from 'next/headers';
 import { Client, Account, Users } from 'node-appwrite';
 import type { NextRequest } from 'next/server';
 
+let hasLoggedAuthError = false;
+
 function createAdminClient() {
   return new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || 'https://fra.cloud.appwrite.io/v1')
@@ -82,7 +84,11 @@ export async function getAuthenticatedUser(req?: NextRequest) {
     // cookies() not available or session invalid — continue
   }
 
-  console.log('[Auth Utils] ❌ No valid authentication found');
+  if (!hasLoggedAuthError) {
+    console.log('[Auth Utils] ❌ No valid authentication found');
+    hasLoggedAuthError = true;
+  }
+  
   return null;
 }
 
