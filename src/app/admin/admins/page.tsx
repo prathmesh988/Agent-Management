@@ -10,8 +10,10 @@ import { PageLoader } from "@/components/ui/page-loader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { RolesOverview } from "@/components/admin/roles-overview";
+import { usePagePermission } from "@/hooks/usePagePermission";
 
 export default function AdminsPage() {
+  const { canWrite, canUpdate, canDelete, loading: permsLoading } = usePagePermission("admins");
   const { admins, loading, error, updateAdminRole, deleteAdmin, disapproveAdmin, fetchAdmins } = useAdmins();
   const { currentUser, loading: currentUserLoading, error: currentUserError } = useCurrentUser();
   const [updateError, setUpdateError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export default function AdminsPage() {
   // ── handlers ────────────────────────────────────────────────────────────────
 
   const handleUpdateRole = async (adminId: string, role: 'admin' | 'manager' | 'hr' | 'viewer' | 'mvp' | 'new_user') => {
-    if (currentUser?.role !== 'admin') { setUpdateError('Only admins can change user roles'); return; }
+    if (!canUpdate || permsLoading) { setUpdateError('You do not have permission to change user roles'); return; }
     const admin = admins.find((a) => a.id === adminId);
     const previousRole = admin?.role;
     try {
@@ -53,7 +55,7 @@ export default function AdminsPage() {
   };
 
   const handleApproveUser = async (adminId: string) => {
-    if (currentUser?.role !== 'admin') { setUpdateError('Only admins can approve users'); return; }
+    if (!canUpdate || permsLoading) { setUpdateError('You do not have permission to approve users'); return; }
     const admin = admins.find((a) => a.id === adminId);
     try {
       setUpdateError(null);
@@ -81,7 +83,7 @@ export default function AdminsPage() {
   };
 
   const handleDeleteAdmin = async (admin: AdminUser) => {
-    if (currentUser?.role !== 'admin') { setUpdateError('Only admins can delete users'); return; }
+    if (!canDelete || permsLoading) { setUpdateError('You do not have permission to delete users'); return; }
     // Store snapshot for undo
     const snapshot = { ...admin };
     try {
@@ -111,7 +113,7 @@ export default function AdminsPage() {
   };
 
   const handleDisapproveUser = async (adminId: string) => {
-    if (currentUser?.role !== 'admin') { setUpdateError('Only admins can disapprove users'); return; }
+    if (!canUpdate || permsLoading) { setUpdateError('You do not have permission to disapprove users'); return; }
     const admin = admins.find((a) => a.id === adminId);
     const previousRole = admin?.role;
     try {
@@ -143,12 +145,14 @@ export default function AdminsPage() {
 
   // ── shared table props ────────────────────────────────────────────────────
   const tableProps = {
-    loading: loading || currentUserLoading,
+    loading: loading || currentUserLoading || permsLoading,
     currentUserRole: currentUser?.role,
     onDeleteAdmin: handleDeleteAdmin,
     onUpdateRole: handleUpdateRole,
     onApproveUser: handleApproveUser,
     onDisapproveUser: handleDisapproveUser,
+    canUpdate,
+    canDelete,
   } as const;
 
   // ── render ────────────────────────────────────────────────────────────────

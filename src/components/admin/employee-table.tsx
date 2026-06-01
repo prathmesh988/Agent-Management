@@ -31,6 +31,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 import Link from "next/link";
+import { usePagePermission } from "@/hooks/usePagePermission";
 
 interface EmployeeTableProps {
   employees: Employee[];
@@ -52,6 +53,7 @@ interface ActionDropdownProps {
 
 function ActionDropdown({ employee, onView, onEdit, onDelete }: ActionDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { canUpdate, canDelete, loading } = usePagePermission("employees");
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -85,7 +87,8 @@ function ActionDropdown({ employee, onView, onEdit, onDelete }: ActionDropdownPr
               onEdit?.(employee);
               setIsOpen(false);
             }}
-            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center gap-2 transition-colors duration-200 border-t border-border"
+            disabled={!canUpdate || loading}
+            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted flex items-center gap-2 transition-colors duration-200 border-t border-border disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Edit2 className="h-4 w-4 text-amber-500" />
             Edit
@@ -95,7 +98,8 @@ function ActionDropdown({ employee, onView, onEdit, onDelete }: ActionDropdownPr
               onDelete?.(employee);
               setIsOpen(false);
             }}
-            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-destructive/10 flex items-center gap-2 transition-colors duration-200 border-t border-border"
+            disabled={!canDelete || loading}
+            className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-destructive/10 flex items-center gap-2 transition-colors duration-200 border-t border-border disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Trash2 className="h-4 w-4 text-destructive" />
             Delete
@@ -113,6 +117,7 @@ export function EmployeeTable({
   onDelete,
   onSearch,
 }: EmployeeTableProps) {
+  const { canWrite, loading } = usePagePermission("employees");
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -227,11 +232,17 @@ export function EmployeeTable({
     <Card className="flex flex-col h-full w-full overflow-hidden border-0 shadow-sm sm:border sm:shadow">
       <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
         <h2 className="text-lg font-semibold text-foreground">Employees</h2>
-        <Link href="/admin/employees/upload">
-          <Button className="text-sm">
+        {!canWrite || loading ? (
+          <Button className="text-sm" disabled>
             + Add New Employee
           </Button>
-        </Link>
+        ) : (
+          <Link href="/admin/employees/upload">
+            <Button className="text-sm">
+              + Add New Employee
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

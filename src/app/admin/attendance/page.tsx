@@ -17,6 +17,7 @@ import { Employee } from '@/lib/types';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Loader2, ChevronLeft, ChevronRight, CheckSquare, Square, Users, Info, X } from 'lucide-react';
 import { saveBulkAttendanceAction, getBulkMonthlyAttendanceAction } from '@/app/(actions)/attendance';
+import { usePagePermission } from '@/hooks/usePagePermission';
 
 // Types of attendance
 const ATTENDANCE_CODES = ATTENDANCE.CODES;
@@ -38,6 +39,7 @@ function generateDayKeysForMonth(year: number, month: number): string[] {
 }
 
 export default function AttendancePage() {
+  const { canWrite, canUpdate, loading: permsLoading } = usePagePermission("attendance");
   const { employees, updateEmployee, isLoading: employeesLoading } = useEmployees();
   const [searchTerm, setSearchTerm] = useState("");
   const [branchFilter, setBranchFilter] = useState("all");
@@ -291,10 +293,11 @@ export default function AttendancePage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Attendance Management</h1>
         <div className="flex gap-2">
-          <Button variant="outline">Import XLSX</Button>
+          <Button variant="outline" disabled={!canWrite || permsLoading}>Import XLSX</Button>
           <Button
             variant={bulkMode ? "destructive" : "default"}
             onClick={toggleBulkMode}
+            disabled={!canUpdate || permsLoading}
             className="gap-1.5"
           >
             {bulkMode ? (
@@ -608,6 +611,7 @@ export default function AttendancePage() {
                               initialCode={employeeAttendance[key] || ""} 
                               onUpdate={handleUpdate}
                               showToast={showToast}
+                              disabled={!canUpdate || permsLoading}
                            />
                         ))}
                         <TableCell className="text-right font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20">
@@ -639,13 +643,15 @@ function AttendanceCell({
   dayKey, 
   initialCode, 
   onUpdate,
-  showToast
+  showToast,
+  disabled = false
 }: { 
   employee: Employee, 
   dayKey: string, 
   initialCode: string, 
   onUpdate: (emp: Employee, dayKey: string, nextCode: AttendanceCode) => Promise<void>,
-  showToast: (msg: string) => void
+  showToast: (msg: string) => void,
+  disabled?: boolean
 }) {
   // Parse and normalize the code from database
   const parseCode = (val: string | undefined): AttendanceCode => {
@@ -674,7 +680,7 @@ function AttendanceCell({
   }, [initialCode, employee.name]);
 
   const handleClick = async () => {
-    if (isUpdating) return;
+    if (isUpdating || disabled) return;
     
     const currentIndex = ATTENDANCE_CODES.indexOf(code);
     const nextIndex = (currentIndex + 1) % ATTENDANCE_CODES.length;
@@ -706,8 +712,8 @@ function AttendanceCell({
 
   return (
     <TableCell 
-      className={`text-center p-0 border-r cursor-pointer select-none transition-colors ${bgColor} ${isUpdating ? 'opacity-70' : ''}`}
-      onClick={handleClick}
+      className={`text-center p-0 border-r ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'} select-none transition-colors ${bgColor} ${isUpdating ? 'opacity-70' : ''}`}
+      onClick={disabled ? undefined : handleClick}
     >
       <div className={`flex items-center justify-center h-10 w-full hover:bg-slate-200/50 dark:hover:bg-slate-700/50 font-medium text-xs ${textColor}`}>
         {isUpdating ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" /> : (code || "-")}

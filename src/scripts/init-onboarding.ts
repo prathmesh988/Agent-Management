@@ -55,8 +55,7 @@ async function init() {
           key: attr.key,
           size: attr.size || 255,
           required: attr.required,
-          default: (attr as any).default,
-          xdefault: undefined,
+          xdefault: (attr as any).default,
         });
       } else if (attr.type === 'integer') {
         await databases.createIntegerAttribute({
@@ -64,8 +63,7 @@ async function init() {
           collectionId: TOKENS_ID,
           key: attr.key,
           required: attr.required,
-          default: (attr as any).default,
-          xdefault: undefined,
+          xdefault: (attr as any).default,
         });
       }
       console.log(`  ✅ attr: ${attr.key}`);
@@ -128,8 +126,7 @@ async function init() {
         key: attr.key,
         size: attr.size || 255,
         required: attr.required,
-        default: (attr as any).default,
-        xdefault: undefined,
+        xdefault: (attr as any).default,
       });
       console.log(`  ✅ attr: ${attr.key}`);
     } catch (e: any) {

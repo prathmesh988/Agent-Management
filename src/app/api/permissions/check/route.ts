@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     : 'new_user') as AppRole;
 
   const pageId = req.nextUrl.searchParams.get('pageId') ?? '';
-  const perm   = (req.nextUrl.searchParams.get('perm') ?? 'r') as Perm;
+  const perm   = (req.nextUrl.searchParams.get('perm') ?? 'r') as Perm | 'all';
 
   try {
     const db  = new Databases(createAdminClient());

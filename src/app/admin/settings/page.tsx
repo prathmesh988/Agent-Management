@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Briefcase, FileText } from 'lucide-react';
+import { usePagePermission } from '@/hooks/usePagePermission';
 
 export default function SettingsPage() {
+  const { canUpdate, loading } = usePagePermission("settings");
   const { user, updateProfileName, updateUserPreferences } = useAuth();
   
   // Personal Info form state
@@ -95,7 +97,8 @@ export default function SettingsPage() {
                 placeholder={user?.email.split('@')[0] || 'Your Name'}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="transition-colors focus-visible:ring-blue-500"
+                disabled={loading || !canUpdate}
+                className="transition-colors focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -158,8 +161,8 @@ export default function SettingsPage() {
 
           <Button 
             onClick={handleSavePersonal}
-            disabled={isSavingPersonal}
-            className="transition-all duration-200 hover:shadow-md hover:scale-105"
+            disabled={isSavingPersonal || loading || !canUpdate}
+            className="transition-all duration-200 hover:shadow-md hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSavingPersonal ? 'Saving...' : 'Save Profile'}
           </Button>
@@ -180,7 +183,8 @@ export default function SettingsPage() {
             <Input
               type="text"
               defaultValue="Airvincible"
-              className="mt-2"
+              disabled={loading || !canUpdate}
+              className="mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -191,7 +195,8 @@ export default function SettingsPage() {
             <Input
               type="email"
               defaultValue="company@airvinclible.com"
-              className="mt-2"
+              disabled={loading || !canUpdate}
+              className="mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -202,11 +207,12 @@ export default function SettingsPage() {
             <Input
               type="email"
               defaultValue="support@airvincible.com"
-              className="mt-2"
+              disabled={loading || !canUpdate}
+              className="mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
-          <Button className="transition-all duration-200 hover:shadow-md hover:scale-105">Save Changes</Button>
+          <Button disabled={loading || !canUpdate} className="transition-all duration-200 hover:shadow-md hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">Save Changes</Button>
         </div>
       </Card>
 
@@ -224,7 +230,7 @@ export default function SettingsPage() {
                 Receive email for important events
               </p>
             </div>
-            <input type="checkbox" defaultChecked className="w-4 h-4" />
+            <input type="checkbox" defaultChecked disabled={loading || !canUpdate} className="w-4 h-4 disabled:opacity-50 disabled:cursor-not-allowed" />
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
@@ -234,7 +240,7 @@ export default function SettingsPage() {
                 Notify when new admins are added or permissions changed
               </p>
             </div>
-            <input type="checkbox" defaultChecked className="w-4 h-4" />
+            <input type="checkbox" defaultChecked disabled={loading || !canUpdate} className="w-4 h-4 disabled:opacity-50 disabled:cursor-not-allowed" />
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
@@ -244,7 +250,7 @@ export default function SettingsPage() {
                 Notify for new employee records
               </p>
             </div>
-            <input type="checkbox" defaultChecked className="w-4 h-4" />
+            <input type="checkbox" defaultChecked disabled={loading || !canUpdate} className="w-4 h-4 disabled:opacity-50 disabled:cursor-not-allowed" />
           </div>
         </div>
       </Card>
@@ -263,7 +269,7 @@ export default function SettingsPage() {
                 Enhance account security with 2FA
               </p>
             </div>
-            <Button variant="outline" className="transition-all duration-200 hover:shadow-md hover:scale-105">Enable</Button>
+            <Button variant="outline" disabled={loading || !canUpdate} className="transition-all duration-200 hover:shadow-md hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">Enable</Button>
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
@@ -273,7 +279,7 @@ export default function SettingsPage() {
                 Update your account password
               </p>
             </div>
-            <Button variant="outline" className="transition-all duration-200 hover:shadow-md hover:scale-105">Change</Button>
+            <Button variant="outline" disabled={loading || !canUpdate} className="transition-all duration-200 hover:shadow-md hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">Change</Button>
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-slate-200">
@@ -283,7 +289,7 @@ export default function SettingsPage() {
                 Auto logout after inactivity (in minutes)
               </p>
             </div>
-            <Input type="number" defaultValue="30" className="w-20" />
+            <Input type="number" defaultValue="30" disabled={loading || !canUpdate} className="w-20 disabled:opacity-50 disabled:cursor-not-allowed" />
           </div>
         </div>
       </Card>

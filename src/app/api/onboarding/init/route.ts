@@ -29,7 +29,7 @@ export async function GET() {
   const log: string[] = [];
 
   // ── Helper ──────────────────────────────────────────────────────
-  async function tryCreate(name: string, fn: () => Promise<void>) {
+  async function tryCreate(name: string, fn: () => Promise<any>) {
     try {
       await fn();
       log.push(`✅ ${name}`);

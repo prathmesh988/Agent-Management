@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { usePagePermission } from '@/hooks/usePagePermission';
 import {
   generateMonthPayrollAction,
   getMonthPayrollAction,
@@ -39,6 +40,7 @@ interface PayrollControlsProps {
 }
 
 export function PayrollControls({ onDataChange, onMonthYearChange }: PayrollControlsProps) {
+  const { canWrite, canUpdate, loading } = usePagePermission('payroll');
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(false);
@@ -188,8 +190,8 @@ export function PayrollControls({ onDataChange, onMonthYearChange }: PayrollCont
 
           <Button
             onClick={handleGeneratePayroll}
-            disabled={isLoading}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            disabled={isLoading || !canWrite || loading}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <>
@@ -206,18 +208,20 @@ export function PayrollControls({ onDataChange, onMonthYearChange }: PayrollCont
       <div className="flex gap-2">
         <Button
           onClick={handleApprovePayroll}
-          disabled={isLoading}
+          disabled={isLoading || !canUpdate || loading}
           variant="outline"
           size="sm"
+          className="disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
           👍 Approve
         </Button>
         <Button
           onClick={handleProcessPayroll}
-          disabled={isLoading}
+          disabled={isLoading || !canUpdate || loading}
           variant="outline"
           size="sm"
+          className="disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
           ✅ Process

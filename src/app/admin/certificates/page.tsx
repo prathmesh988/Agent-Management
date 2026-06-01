@@ -24,10 +24,12 @@ import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
 import { useToast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { usePagePermission } from "@/hooks/usePagePermission";
 
 const ITEMS_PER_PAGE = UI.PAGINATION.ITEMS_PER_PAGE;
 
 export default function CertificatesPage() {
+  const { canWrite, canUpdate, canDelete, loading: permsLoading } = usePagePermission("certificates");
   const router = useRouter();
   const { employees, updateEmployee, deleteEmployee, searchEmployees, isLoading } =
     useEmployees();
@@ -412,7 +414,7 @@ export default function CertificatesPage() {
                 <Button
                   onClick={handleGenerateSelected}
                   className="w-full sm:w-auto gap-2 transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white font-500"
-                  disabled={selectedIds.size === 0 || isGenerating}
+                  disabled={selectedIds.size === 0 || isGenerating || !canWrite || permsLoading}
                 >
                   {isGenerating ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -430,7 +432,9 @@ export default function CertificatesPage() {
                     !areAllSelectedInBucket ||
                     selectedIds.size === 0 ||
                     isSendingEmails ||
-                    isLoadingPdfs
+                    isLoadingPdfs ||
+                    !canUpdate ||
+                    permsLoading
                   }
                   title={
                     isLoadingPdfs
@@ -567,8 +571,8 @@ export default function CertificatesPage() {
                             emp.name &&
                             handleDownloadCertificate(emp.id, emp.name)
                           }
-                          disabled={isGenerating || !emp.id}
-                          className="h-9 w-9 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors duration-200"
+                          disabled={isGenerating || !emp.id || !canUpdate || permsLoading}
+                          className="h-9 w-9 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors duration-200 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
                           title="Download Certificate PDF"
                         >
                           <Download className="h-4 w-4" />
@@ -581,7 +585,8 @@ export default function CertificatesPage() {
                             emp.name &&
                             handleDeleteEmployee(emp.id, emp.name)
                           }
-                          className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
+                          disabled={!canDelete || permsLoading}
+                          className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors duration-200 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
                           title="Remove Employee"
                         >
                           <Trash2 className="h-4 w-4" />
