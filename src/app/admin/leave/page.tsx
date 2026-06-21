@@ -52,6 +52,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { usePagePermission } from "@/hooks/usePagePermission";
 
 // ─── Leave Type Labels ──────────────────────────────────────────────
 const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
@@ -722,6 +723,7 @@ function LeaveTable({
   onPreviewAttachment?: (attachment: { url: string; name: string }) => void;
   emptyMessage: string;
 }) {
+  const { canUpdate, canDelete, loading } = usePagePermission("leave");
   if (leaves.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -851,7 +853,8 @@ function LeaveTable({
                         <Button
                           size="sm"
                           onClick={() => onApprove(leave)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8 text-xs"
+                          disabled={!canUpdate || loading}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 h-8 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           Approve
@@ -862,7 +865,8 @@ function LeaveTable({
                           size="sm"
                           variant="destructive"
                           onClick={() => onReject(leave)}
-                          className="gap-1.5 h-8 text-xs"
+                          disabled={!canUpdate || loading}
+                          className="gap-1.5 h-8 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <XCircle className="h-3.5 w-3.5" />
                           Reject
@@ -873,7 +877,8 @@ function LeaveTable({
                           size="sm"
                           variant="outline"
                           onClick={() => onDelete(leave)}
-                          className="gap-1.5 h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                          disabled={!canDelete || loading}
+                          className="gap-1.5 h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -894,6 +899,7 @@ function LeaveTable({
 // Main Page Component
 // ═════════════════════════════════════════════════════════════════════
 export default function LeaveManagementPage() {
+  const { canWrite, loading } = usePagePermission("leave");
   const { employees } = useEmployees();
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 });
@@ -983,7 +989,8 @@ export default function LeaveManagementPage() {
         </div>
         <Button
           onClick={() => setShowApplyModal(true)}
-          className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+          disabled={!canWrite || loading}
+          className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="h-4 w-4" />
           Apply Leave

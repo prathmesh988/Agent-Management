@@ -25,13 +25,15 @@ import { Pagination } from "@/components/ui/pagination";
 interface AdminTableProps {
   admins: AdminUser[];
   loading?: boolean;
-  currentUserRole?: 'admin' | 'viewer' | 'mvp' | 'new_user' | null;
+  currentUserRole?: 'admin' | 'manager' | 'hr' | 'viewer' | 'mvp' | 'new_user' | null;
   onAddAdmin?: () => void;
   onEditAdmin?: (admin: AdminUser) => void;
   onDeleteAdmin?: (admin: AdminUser) => void;
-  onUpdateRole?: (adminId: string, role: 'admin' | 'viewer' | 'mvp' | 'new_user') => Promise<void>;
+  onUpdateRole?: (adminId: string, role: 'admin' | 'manager' | 'hr' | 'viewer' | 'mvp' | 'new_user') => Promise<void>;
   onApproveUser?: (adminId: string) => Promise<void>;
   onDisapproveUser?: (adminId: string) => Promise<void>;
+  canUpdate?: boolean;
+  canDelete?: boolean;
 }
 
 // Map permission name -> { icon, colour classes }
@@ -61,12 +63,17 @@ export function AdminTable({
   onUpdateRole,
   onApproveUser,
   onDisapproveUser,
+  canUpdate,
+  canDelete,
 }: AdminTableProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [disapproveTarget, setDisapproveTarget] = useState<AdminUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
-  const canEditRoles = currentUserRole === 'admin';
+  
+  // Enforce granular page permissions or fallback to role logic
+  const hasUpdatePerm = canUpdate !== undefined ? canUpdate : currentUserRole === 'admin';
+  const hasDeletePerm = canDelete !== undefined ? canDelete : currentUserRole === 'admin';
 
   const PAGE_SIZE = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,7 +84,7 @@ export function AdminTable({
   const totalPages = Math.max(1, Math.ceil(admins.length / PAGE_SIZE));
   const paginatedAdmins = admins.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const handleRoleChange = async (adminId: string, role: 'admin' | 'viewer' | 'mvp') => {
+  const handleRoleChange = async (adminId: string, role: 'admin' | 'manager' | 'hr' | 'viewer' | 'mvp' | 'new_user') => {
     if (!onUpdateRole) return;
     try {
       setUpdatingId(adminId);
@@ -95,7 +102,7 @@ export function AdminTable({
           <h2 className="text-lg font-semibold text-foreground">
             Admin Users ({admins.length})
           </h2>
-          {!canEditRoles && currentUserRole === 'viewer' && (
+          {!hasUpdatePerm && currentUserRole === 'viewer' && (
             <div className="text-xs bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg border border-blue-200 dark:border-blue-800">
               🔒 viewer users can only view roles
             </div>
@@ -172,7 +179,7 @@ export function AdminTable({
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         {/* Approve button for pending users */}
-                        {canEditRoles && admin.role === 'new_user' && (
+                        {hasUpdatePerm && admin.role === 'new_user' && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button
@@ -192,47 +199,53 @@ export function AdminTable({
                             </TooltipContent>
                           </Tooltip>
                         )}
-                        {canEditRoles && admin.role !== 'new_user' && (
+                        {admin.role !== 'new_user' && (
                           <>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => setEditingAdmin(admin)}
-                                  disabled={updatingId === admin.id}
-                                  className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200 disabled:opacity-50"
-                                >
-                                  <Edit2 className="size-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs font-medium">Edit role</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => {
-                                    if (!onDisapproveUser) return;
-                                    setDisapproveTarget(admin);
-                                  }}
-                                  disabled={updatingId === admin.id}
-                                  className="inline-flex items-center justify-center size-8 rounded-lg bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 disabled:opacity-50"
-                                >
-                                  <XCircle className="size-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs font-medium">Disapprove user</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  onClick={() => setDeleteTarget(admin)}
-                                  disabled={updatingId === admin.id}
-                                  className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 disabled:opacity-50"
-                                >
-                                  <Trash2 className="size-4" />
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs font-medium">Delete user</TooltipContent>
-                            </Tooltip>
+                            {hasUpdatePerm && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => setEditingAdmin(admin)}
+                                    disabled={updatingId === admin.id}
+                                    className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200 disabled:opacity-50"
+                                  >
+                                    <Edit2 className="size-4" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs font-medium">Edit role</TooltipContent>
+                              </Tooltip>
+                            )}
+                            {hasUpdatePerm && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => {
+                                      if (!onDisapproveUser) return;
+                                      setDisapproveTarget(admin);
+                                    }}
+                                    disabled={updatingId === admin.id}
+                                    className="inline-flex items-center justify-center size-8 rounded-lg bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700 hover:bg-red-200 dark:hover:bg-red-900 transition-all duration-200 disabled:opacity-50"
+                                  >
+                                    <XCircle className="size-4" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs font-medium">Disapprove user</TooltipContent>
+                              </Tooltip>
+                            )}
+                            {hasDeletePerm && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => setDeleteTarget(admin)}
+                                    disabled={updatingId === admin.id}
+                                    className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 disabled:opacity-50"
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs font-medium">Delete user</TooltipContent>
+                              </Tooltip>
+                            )}
                           </>
                         )}
                       </div>

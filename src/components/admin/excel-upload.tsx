@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Upload, CheckCircle, AlertCircle } from "lucide-react";
+import { usePagePermission } from "@/hooks/usePagePermission";
 
 interface ExcelUploadComponentProps {
   onUpload?: (file: File) => void;
@@ -24,6 +25,7 @@ export function ExcelUploadComponent({
   onUpload,
   isLoading = false,
 }: ExcelUploadComponentProps) {
+  const { canWrite, loading } = usePagePermission("employees");
   const defaults = getDefaultMonthYear();
   const [dragActive, setDragActive] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -189,6 +191,7 @@ export function ExcelUploadComponent({
               value="single"
               checked={isSingleSheet}
               onChange={() => setIsSingleSheet(true)}
+              disabled={!canWrite || loading}
               className="w-4 h-4"
             />
             <span className="text-sm font-medium text-foreground">Single Month Sheet</span>
@@ -206,7 +209,8 @@ export function ExcelUploadComponent({
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={!canWrite || loading}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {MONTHS.map((name, i) => (
                       <option key={i + 1} value={i + 1}>{name}</option>
@@ -218,7 +222,8 @@ export function ExcelUploadComponent({
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={!canWrite || loading}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {yearOptions.map((y) => (
                       <option key={y} value={y}>{y}</option>
@@ -254,14 +259,18 @@ export function ExcelUploadComponent({
 
       {/* Drag and Drop Area */}
       <div
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-2xl p-16 text-center transition-all duration-300 cursor-pointer ${dragActive
-            ? "border-primary bg-primary/10 shadow-lg scale-105"
-            : "border-border bg-card hover:border-primary/60 hover:bg-primary/5 hover:shadow-md"
-          }`}
+        onDragEnter={canWrite && !loading ? handleDrag : undefined}
+        onDragLeave={canWrite && !loading ? handleDrag : undefined}
+        onDragOver={canWrite && !loading ? handleDrag : undefined}
+        onDrop={canWrite && !loading ? handleDrop : undefined}
+        onClick={canWrite && !loading ? () => document.getElementById("file-input")?.click() : undefined}
+        className={`relative border-2 border-dashed rounded-2xl p-16 text-center transition-all duration-300 ${
+          !canWrite || loading
+            ? "cursor-not-allowed border-slate-200 opacity-60 bg-slate-50 dark:bg-slate-900/30"
+            : dragActive
+            ? "border-primary bg-primary/10 shadow-lg scale-105 cursor-pointer"
+            : "border-border bg-card hover:border-primary/60 hover:bg-primary/5 hover:shadow-md cursor-pointer"
+        }`}
       >
         <div className="relative inline-block mb-6">
           <div className="absolute inset-0 bg-primary/20 rounded-full opacity-20 blur-xl"></div>
@@ -293,7 +302,8 @@ export function ExcelUploadComponent({
         <label htmlFor="file-input" className="flex-1">
           <Button
             type="button"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all duration-200 hover:shadow-lg hover:scale-105"
+            disabled={!canWrite || loading}
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => document.getElementById("file-input")?.click()}
           >
             Select File from Computer
@@ -364,7 +374,7 @@ export function ExcelUploadComponent({
       <div className="mt-8">
         <Button
           onClick={handleUpload}
-          disabled={!canUpload}
+          disabled={!canUpload || !canWrite || loading}
           className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-medium transition-all duration-200 hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
         >
           {isLoading || (uploadProgress > 0 && uploadProgress < 100)

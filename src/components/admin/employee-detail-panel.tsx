@@ -13,6 +13,7 @@ import { Save, AlertCircle, Mail, Users, Calendar, BarChart3, Gift } from "lucid
 import { useEmployees } from "@/hooks/useEmployees";
 import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
+import { usePagePermission } from "@/hooks/usePagePermission";
 
 interface EmployeeDetailPanelProps {
   employee: Employee;
@@ -158,6 +159,7 @@ export function EmployeeDetailPanel({
   employee: initialEmployee,
   employeeId,
 }: EmployeeDetailPanelProps) {
+  const { canUpdate, loading } = usePagePermission("employees");
   const [employee, setEmployee] = useState<Employee>(initialEmployee);
   const [editedFields, setEditedFields] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
@@ -331,7 +333,7 @@ export function EmployeeDetailPanel({
 
   const renderField = (field: FieldDefinition, value: unknown) => {
     const isEdited = editedFields.has(field.key);
-    const isDisabled = field.key === "totalIncentive";
+    const isDisabled = field.key === "totalIncentive" || !canUpdate || loading;
     
     // Check if this is an incentive field
     const isIncentiveField = [
@@ -449,7 +451,7 @@ export function EmployeeDetailPanel({
             </Link>
             <Button
               onClick={handleSave}
-              disabled={editedFields.size === 0 || isSaving}
+              disabled={editedFields.size === 0 || isSaving || !canUpdate || loading}
               size="lg"
               className="shadow-md"
             >

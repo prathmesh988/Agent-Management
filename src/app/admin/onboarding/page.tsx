@@ -3,6 +3,7 @@ import './onboarding-dashboard.css';
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import { usePagePermission } from '@/hooks/usePagePermission';
 
 /** Read userId from localStorage (same source as useCurrentUser hook). */
 function getUserId(): string {
@@ -166,6 +167,7 @@ function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
 
 // ── Submission Detail Modal ───────────────────────────────────────────────────
 function SubmissionModal({ sub, onClose, onRefresh }: { sub: Submission; onClose: () => void; onRefresh: () => void }) {
+  const { canUpdate, loading } = usePagePermission("onboarding");
   const [notes, setNotes] = useState('');
   const [acting, setActing] = useState(false);
 
@@ -253,6 +255,7 @@ function SubmissionModal({ sub, onClose, onRefresh }: { sub: Submission; onClose
             <div className="od-field">
               <label className="od-label">Review Notes <span className="od-optional">(optional)</span></label>
               <textarea className="od-input od-textarea" rows={3} placeholder="Any notes for HR records…"
+                disabled={!canUpdate || loading}
                 value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
           </div>
@@ -271,10 +274,10 @@ function SubmissionModal({ sub, onClose, onRefresh }: { sub: Submission; onClose
           <button className="od-btn-secondary" onClick={onClose}>Close</button>
           {sub.status === 'pending_verification' && (
             <>
-              <button className="od-btn-danger" onClick={() => review('reject')} disabled={acting}>
+              <button className="od-btn-danger" onClick={() => review('reject')} disabled={acting || !canUpdate || loading}>
                 {acting ? 'Processing…' : '❌ Reject'}
               </button>
-              <button className="od-btn-success" onClick={() => review('approve')} disabled={acting}>
+              <button className="od-btn-success" onClick={() => review('approve')} disabled={acting || !canUpdate || loading}>
                 {acting ? 'Processing…' : '✅ Approve & Create Employee'}
               </button>
             </>
@@ -287,6 +290,7 @@ function SubmissionModal({ sub, onClose, onRefresh }: { sub: Submission; onClose
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function OnboardingDashboard() {
+  const { canWrite, loading: permsLoading } = usePagePermission("onboarding");
   const [tab, setTab] = useState<'submissions' | 'links'>('submissions');
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [tokens, setTokens] = useState<InviteToken[]>([]);
@@ -351,7 +355,7 @@ export default function OnboardingDashboard() {
           <h1 className="od-page-title">🎯 Candidate Onboarding</h1>
           <p className="od-page-subtitle">Manage invite links and review candidate submissions</p>
         </div>
-        <button className="od-btn-primary" onClick={() => setShowInviteModal(true)}>
+        <button className="od-btn-primary" disabled={!canWrite || permsLoading} onClick={() => setShowInviteModal(true)}>
           + Invite Candidate
         </button>
       </div>

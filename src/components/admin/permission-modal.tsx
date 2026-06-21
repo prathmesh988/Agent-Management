@@ -142,13 +142,21 @@ export function PermissionModal({ pageId, pageName, onClose }: PermissionModalPr
 
   const handleSearchInput = (q: string) => setSearchQ(q);
 
+  const currentUserId = getUserId();
+
   // Client-side filter of pre-loaded users
-  const filteredUsers = searchQ.trim()
-    ? allUsers.filter((u) =>
+  const filteredUsers = allUsers
+    .filter((u) => {
+      const uid = u.id || u.$id;
+      return uid !== currentUserId;
+    })
+    .filter((u) => {
+      if (!searchQ.trim()) return true;
+      return (
         u.name?.toLowerCase().includes(searchQ.toLowerCase()) ||
         u.email?.toLowerCase().includes(searchQ.toLowerCase())
-      )
-    : allUsers;
+      );
+    });
 
   const addUserOverride = (u: any) => {
     if (!data) return;
@@ -185,7 +193,6 @@ export function PermissionModal({ pageId, pageName, onClose }: PermissionModalPr
           <button className={`pm-tab ${tab === 'roles' ? 'pm-tab--active' : ''}`} onClick={() => setTab('roles')}>
             🎭 Roles
           </button>
-         
         </div>
 
         {/* Body */}
@@ -273,47 +280,54 @@ export function PermissionModal({ pageId, pageName, onClose }: PermissionModalPr
               )}
 
               {/* Divider if overrides exist */}
-              {Object.values(data?.userOverrides ?? {}).length > 0 && (
-                <div className="pm-overrides-header"><span>Custom access assigned</span></div>
-              )}
+              {(() => {
+                const overridesList = Object.values(data?.userOverrides ?? {}).filter((ov) => ov.userId !== currentUserId);
+                return (
+                  <>
+                    {overridesList.length > 0 && (
+                      <div className="pm-overrides-header"><span>Custom access assigned</span></div>
+                    )}
 
-              {/* Current overrides */}
-              <div className="pm-overrides-list">
-                {Object.values(data?.userOverrides ?? {}).length === 0 ? (
-                  <div className="pm-empty">
-                    <p>🔒 No custom overrides yet</p>
-                    <span>Click + Add on a user above to grant custom permissions</span>
-                  </div>
-                ) : (
-                  Object.values(data?.userOverrides ?? {}).map((ov) => (
-                    <div key={ov.userId} className="pm-override-row">
-                      <div className="pm-user-avatar">{ov.name?.charAt(0)?.toUpperCase() || '?'}</div>
-                      <div className="pm-user-info">
-                        <p className="pm-user-name">{ov.name}</p>
-                        <p className="pm-user-email">{ov.email}</p>
-                      </div>
-                      <div className="pm-perm-group">
-                        {ALL_PERMS.map((perm) => (
-                          <PermToggle
-                            key={perm}
-                            perm={perm}
-                            active={ov.perms.includes(perm)}
-                            disabled={saving}
-                            onChange={() => toggleUserPerm(ov.userId, perm)}
-                          />
-                        ))}
-                      </div>
-                      <button
-                        className="pm-btn-remove"
-                        title="Remove override"
-                        onClick={() => removeUserOverride(ov.userId)}
-                      >
-                        ✕
-                      </button>
+                    {/* Current overrides */}
+                    <div className="pm-overrides-list">
+                      {overridesList.length === 0 ? (
+                        <div className="pm-empty">
+                          <p>🔒 No custom overrides yet</p>
+                          <span>Click + Add on a user above to grant custom permissions</span>
+                        </div>
+                      ) : (
+                        overridesList.map((ov) => (
+                          <div key={ov.userId} className="pm-override-row">
+                            <div className="pm-user-avatar">{ov.name?.charAt(0)?.toUpperCase() || '?'}</div>
+                            <div className="pm-user-info">
+                              <p className="pm-user-name">{ov.name}</p>
+                              <p className="pm-user-email">{ov.email}</p>
+                            </div>
+                            <div className="pm-perm-group">
+                              {ALL_PERMS.map((perm) => (
+                                <PermToggle
+                                  key={perm}
+                                  perm={perm}
+                                  active={ov.perms.includes(perm)}
+                                  disabled={saving}
+                                  onChange={() => toggleUserPerm(ov.userId, perm)}
+                                />
+                              ))}
+                            </div>
+                            <button
+                              className="pm-btn-remove"
+                              title="Remove override"
+                              onClick={() => removeUserOverride(ov.userId)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))
+                      )}
                     </div>
-                  ))
-                )}
-              </div>
+                  </>
+                );
+              })()}
             </div>
           )}
         </div>
