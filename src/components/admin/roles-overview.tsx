@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
-import { MANAGED_PAGES, ALL_PERMS, PERM_LABELS, DEFAULT_ROLE_PERMS, type AppRole } from "@/lib/permissions";
+import { MANAGED_PAGES, ALL_PERMS, PERM_LABELS, DEFAULT_ROLE_PERMS, type AppRole, type Perm } from "@/lib/permissions";
 
 function getUserId(): string {
   if (typeof window === "undefined") return "";
@@ -38,9 +38,27 @@ interface User {
   role: string;
 }
 
+// ── Helper: check if override differs from role default ───────────────────────
+function hasOverrideDiff(overridePerms: string[], userRole: string | undefined): boolean {
+  if (!userRole) return false;
+  const roleDefault: Perm[] = DEFAULT_ROLE_PERMS[userRole as AppRole] ?? [];
+  const a = [...overridePerms].sort().join(',');
+  const b = [...roleDefault].sort().join(',');
+  return a !== b;
+}
+
+// ── Semantic perm colors (risk-mapped, mirrors modal CSS) ─────────────────────
+const PERM_CHIP_COLORS: Record<string, { bg: string; border: string }> = {
+  r: { bg: "rgba(56,189,248,0.15)",  border: "rgba(56,189,248,0.4)"  },
+  w: { bg: "rgba(52,211,153,0.15)",  border: "rgba(52,211,153,0.4)"  },
+  u: { bg: "rgba(251,191,36,0.15)",  border: "rgba(251,191,36,0.4)"  },
+  d: { bg: "rgba(248,113,113,0.15)", border: "rgba(248,113,113,0.4)" },
+};
+
 // ── Helper: perm chip ─────────────────────────────────────────────────────────
 function PermChip({ p, active }: { p: string; active: boolean }) {
   const { icon } = PERM_LABELS[p as keyof typeof PERM_LABELS] || { icon: p };
+  const colors   = PERM_CHIP_COLORS[p] ?? { bg: "rgba(129,140,248,0.15)", border: "rgba(129,140,248,0.3)" };
   return (
     <span
       title={PERM_LABELS[p as keyof typeof PERM_LABELS]?.label ?? p}
@@ -52,9 +70,10 @@ function PermChip({ p, active }: { p: string; active: boolean }) {
         height: "1.6rem",
         borderRadius: "0.375rem",
         fontSize: "0.75rem",
-        opacity: active ? 1 : 0.2,
-        background: active ? "rgba(129,140,248,0.15)" : "transparent",
-        border: active ? "1px solid rgba(129,140,248,0.3)" : "1px solid transparent",
+        opacity: active ? 1 : 0.18,
+        background: active ? colors.bg : "transparent",
+        border: `1px solid ${active ? colors.border : "transparent"}`,
+        transition: "opacity 0.15s, background 0.15s",
       }}
     >
       {icon}
@@ -250,11 +269,11 @@ export function RolesOverview({ users }: { users: User[] }) {
           </Card>
         ) : (() => {
           // Collect all overrides across pages keyed by userId
-          const byUser: Record<string, { name: string; email: string; pages: { pageName: string; perms: string[] }[] }> = {};
+          const byUser: Record<string, { name: string; email: string; role?: string; pages: { pageName: string; perms: string[]; pageId: string }[] }> = {};
           for (const pd of pagePerms) {
             for (const [uid, ov] of Object.entries(pd.userOverrides ?? {})) {
-              if (!byUser[uid]) byUser[uid] = { name: ov.name, email: ov.email, pages: [] };
-              byUser[uid].pages.push({ pageName: pd.pageName, perms: ov.perms });
+              if (!byUser[uid]) byUser[uid] = { name: ov.name, email: ov.email, role: (ov as any).userRole, pages: [] };
+              byUser[uid].pages.push({ pageName: pd.pageName, perms: ov.perms, pageId: pd.pageId });
             }
           }
           const entries = Object.entries(byUser);
@@ -314,27 +333,42 @@ export function RolesOverview({ users }: { users: User[] }) {
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                     {info.pages.map((pg) => {
                       const activePerms = ALL_PERMS.filter((p) => pg.perms.includes(p));
+                      const hasDiff     = hasOverrideDiff(pg.perms, info.role);
                       return (
                         <div key={pg.pageName} style={{
                           display: "flex", alignItems: "center", gap: "0.75rem",
                           background: "rgba(255,255,255,0.03)",
-                          border: "1px solid rgba(255,255,255,0.06)",
+                          border: hasDiff
+                            ? "1px solid rgba(129,140,248,0.2)"
+                            : "1px solid rgba(255,255,255,0.06)",
                           borderRadius: "0.5rem", padding: "0.5rem 0.75rem",
                         }}>
-                          {/* Page name */}
-                          <span style={{
-                            fontSize: "0.775rem", color: "#cbd5e1", fontWeight: 600,
-                            minWidth: "7rem", flexShrink: 0,
-                          }}>
-                            {pg.pageName}
-                          </span>
+                          {/* Page name + ★ Override badge */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", minWidth: "7rem", flexShrink: 0 }}>
+                            <span style={{ fontSize: "0.775rem", color: "#cbd5e1", fontWeight: 600 }}>
+                              {pg.pageName}
+                            </span>
+                            {hasDiff && (
+                              <span
+                                title={`Custom access — differs from ${info.role ? info.role.replace("_", " ") : "role"} default`}
+                                style={{
+                                  fontSize: "0.62rem", fontWeight: 700, color: "#818cf8",
+                                  background: "rgba(129,140,248,0.12)", border: "1px solid rgba(129,140,248,0.28)",
+                                  borderRadius: "0.35rem", padding: "0.05rem 0.35rem",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                ★ Override
+                              </span>
+                            )}
+                          </div>
 
                           <span style={{ width: "1px", height: "1rem", background: "rgba(255,255,255,0.08)", flexShrink: 0 }} />
 
                           {/* Labeled permission pills */}
                           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", flex: 1 }}>
                             {ALL_PERMS.map((p) => {
-                              const lbl = PERM_LABELS[p as keyof typeof PERM_LABELS];
+                              const lbl    = PERM_LABELS[p as keyof typeof PERM_LABELS];
                               const active = pg.perms.includes(p);
                               return (
                                 <span key={p} title={active ? `${lbl?.label} — granted` : `${lbl?.label} — not granted`} style={{

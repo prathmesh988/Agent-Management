@@ -10,12 +10,12 @@ This document maps **every gap** between the current RBAC UI and the eight sugge
 
 ### Where the UI lives
 
-| File | Role |
-|------|------|
+| File                                                                                                          | Role                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | [`permission-modal.tsx`](file:///d:/projects/hrms/Agent-Management/src/components/admin/permission-modal.tsx) | Per-page modal triggered by the sidebar gear icon. Two tabs: **Roles** (edit role defaults) and **Users** (search + override individuals). |
-| [`roles-overview.tsx`](file:///d:/projects/hrms/Agent-Management/src/components/admin/roles-overview.tsx) | Full-page summary on the Admins page: role membership cards → page × role matrix → per-user override cards. |
-| [`permissions.ts`](file:///d:/projects/hrms/Agent-Management/src/lib/permissions.ts) | Shared types, defaults, `hasPermission`, `getPageIdFromPath`. |
-| [`permission-modal.css`](file:///d:/projects/hrms/Agent-Management/src/components/admin/permission-modal.css) | Flat toggle chips (`pm-perm-toggle`), uniform indigo color for all permission states. |
+| [`roles-overview.tsx`](file:///d:/projects/hrms/Agent-Management/src/components/admin/roles-overview.tsx)     | Full-page summary on the Admins page: role membership cards → page × role matrix → per-user override cards.                                |
+| [`permissions.ts`](file:///d:/projects/hrms/Agent-Management/src/lib/permissions.ts)                          | Shared types, defaults, `hasPermission`, `getPageIdFromPath`.                                                                              |
+| [`permission-modal.css`](file:///d:/projects/hrms/Agent-Management/src/components/admin/permission-modal.css) | Flat toggle chips (`pm-perm-toggle`), uniform indigo color for all permission states.                                                      |
 
 ### What the current UI does well
 
@@ -62,7 +62,7 @@ active={role === "admin" || ((rp as any)[role] ?? []).includes(p)}
 ```ts
 // permissions.ts — make the code match the comment
 export function hasPermission(permissions, role, userId, perm): boolean {
-  if (role === 'admin') return true;          // ← add this line
+  if (role === "admin") return true; // ← add this line
   if (!permissions) return DEFAULT_ROLE_PERMS[role]?.includes(perm) ?? false;
   const override = permissions.userOverrides[userId];
   if (override) return override.perms.includes(perm);
@@ -72,7 +72,7 @@ export function hasPermission(permissions, role, userId, perm): boolean {
 
 ### UI change to match the code fix
 
-In the **Roles tab** of `PermissionModal`, the admin row should render with all four chips in the "on" state and a **lock badge** ("System — always full access") instead of interactive toggles. Clicking any chip shows a tooltip: *"Admin always has full access. This cannot be changed."*
+In the **Roles tab** of `PermissionModal`, the admin row should render with all four chips in the "on" state and a **lock badge** ("System — always full access") instead of interactive toggles. Clicking any chip shows a tooltip: _"Admin always has full access. This cannot be changed."_
 
 ```
 👑 Admin  [👁 Read ●] [✏ Write ●] [🔄 Update ●] [🗑 Delete ●]  🔒 System — always full access
@@ -94,6 +94,7 @@ In `roles-overview.tsx` the matrix's admin column already renders correctly; the
 ### Why it feels like a spreadsheet
 
 The underlying model has **three distinct lenses**:
+
 1. **Role defaults** — "What can a Manager do in general?"
 2. **Page scope** — "Which roles govern this specific page?"
 3. **Exception list** — "Who's a special case and why?"
@@ -128,6 +129,7 @@ The current UI treats these as equal weight. They're not. Lens 1 is strategic co
 ```
 
 Key decisions:
+
 - **One unified view** instead of two tabs. Role defaults and overrides coexist, making the priority hierarchy (`override → role → default-false`) spatially obvious.
 - **Role matrix is the primary area** (top, larger). Overrides are secondary (below a divider), because they should be rare.
 - **+ Add user override** is a collapsible section — expands to the existing search input + user list. Collapsed by default to avoid the directory dominating.
@@ -135,11 +137,11 @@ Key decisions:
 
 #### B. `RolesOverview` — three independent sections with clear primacy
 
-| Section | Purpose | Current | Proposed |
-|---------|---------|---------|---------|
-| **Role membership** | Who is in each role | Card grid (good) | Keep, add user count + quick role-change trigger |
+| Section                | Purpose                             | Current                      | Proposed                                                                          |
+| ---------------------- | ----------------------------------- | ---------------------------- | --------------------------------------------------------------------------------- |
+| **Role membership**    | Who is in each role                 | Card grid (good)             | Keep, add user count + quick role-change trigger                                  |
 | **Page × role matrix** | Strategic overview across all pages | Full scrollable table (good) | Add column-level cascade warnings, make cells clickable to open that page's modal |
-| **User exceptions** | Who has overrides | Card list (good) | Group by severity (users with delete override > write > read) |
+| **User exceptions**    | Who has overrides                   | Card list (good)             | Group by severity (users with delete override > write > read)                     |
 
 ---
 
@@ -164,25 +166,41 @@ An admin scanning the grid cannot tell at a glance whether a role can delete thi
 
 Map risk level to color, applied consistently across the modal, the matrix chips, the overrides cards, and (eventually) sidebar badges:
 
-| Permission | Risk | Color token | Active background | Active border |
-|-----------|------|------------|-----------------|--------------|
-| **Read** | Info | `--perm-r` = `#38bdf8` (sky-400) | `rgba(56,189,248,0.12)` | `rgba(56,189,248,0.4)` |
-| **Write** | Additive | `--perm-w` = `#34d399` (emerald-400) | `rgba(52,211,153,0.12)` | `rgba(52,211,153,0.4)` |
-| **Update** | Caution | `--perm-u` = `#fbbf24` (amber-400) | `rgba(251,191,36,0.12)` | `rgba(251,191,36,0.4)` |
-| **Delete** | Destructive | `--perm-d` = `#f87171` (red-400) | `rgba(248,113,113,0.12)` | `rgba(248,113,113,0.4)` |
+| Permission | Risk        | Color token                          | Active background        | Active border           |
+| ---------- | ----------- | ------------------------------------ | ------------------------ | ----------------------- |
+| **Read**   | Info        | `--perm-r` = `#38bdf8` (sky-400)     | `rgba(56,189,248,0.12)`  | `rgba(56,189,248,0.4)`  |
+| **Write**  | Additive    | `--perm-w` = `#34d399` (emerald-400) | `rgba(52,211,153,0.12)`  | `rgba(52,211,153,0.4)`  |
+| **Update** | Caution     | `--perm-u` = `#fbbf24` (amber-400)   | `rgba(251,191,36,0.12)`  | `rgba(251,191,36,0.4)`  |
+| **Delete** | Destructive | `--perm-d` = `#f87171` (red-400)     | `rgba(248,113,113,0.12)` | `rgba(248,113,113,0.4)` |
 
 **Implementation**: Replace `.pm-perm-toggle--on` with four perm-specific modifier classes:
 
 ```css
-.pm-perm-toggle--on-r { background: rgba(56,189,248,0.12); border-color: rgba(56,189,248,0.4); color: #38bdf8; }
-.pm-perm-toggle--on-w { background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.4); color: #34d399; }
-.pm-perm-toggle--on-u { background: rgba(251,191,36,0.12);  border-color: rgba(251,191,36,0.4);  color: #fbbf24; }
-.pm-perm-toggle--on-d { background: rgba(248,113,113,0.12); border-color: rgba(248,113,113,0.4); color: #f87171; }
+.pm-perm-toggle--on-r {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+.pm-perm-toggle--on-w {
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+.pm-perm-toggle--on-u {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+}
+.pm-perm-toggle--on-d {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #f87171;
+}
 ```
 
 In `PermChip` (roles-overview): replace the uniform indigo background with the same four-color mapping.
 
-**Where this cascades**: The sidebar badges shown for each page's current permissions, audit log entries, and the user override pills in RolesOverview all get the same mapping — the color becomes a *system-wide language*, not decoration.
+**Where this cascades**: The sidebar badges shown for each page's current permissions, audit log entries, and the user override pills in RolesOverview all get the same mapping — the color becomes a _system-wide language_, not decoration.
 
 ---
 
@@ -194,21 +212,23 @@ Every `PermToggle` fires `toggleRolePerm` or `toggleUserPerm` immediately on cli
 
 ### Proposed friction ladder
 
-| Action | Friction | Rationale |
-|--------|---------|-----------|
-| Toggle **Read** ON or OFF | Instant — single click, optimistic UI | Info-level, easily reversed |
-| Toggle **Write** ON | Instant | Additive but low-blast-radius |
-| Toggle **Write** OFF | Inline warning badge for 0.8s, then saves | Removing write from a role that has update is unusual |
-| Toggle **Update** ON or OFF | Instant | Mid-level, expected config change |
-| Toggle **Delete** ON | **Inline confirm step** — chip expands to show consequence text + "Confirm" button | Granting delete to a role affects everyone in that role |
-| Toggle **Delete** OFF | Instant + brief success flash | Removing destructive access is safe |
-| **Remove an entire user override** | Red confirmation tooltip for 1s before save | Silently removes all custom access |
+| Action                             | Friction                                                                           | Rationale                                               |
+| ---------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Toggle **Read** ON or OFF          | Instant — single click, optimistic UI                                              | Info-level, easily reversed                             |
+| Toggle **Write** ON                | Instant                                                                            | Additive but low-blast-radius                           |
+| Toggle **Write** OFF               | Inline warning badge for 0.8s, then saves                                          | Removing write from a role that has update is unusual   |
+| Toggle **Update** ON or OFF        | Instant                                                                            | Mid-level, expected config change                       |
+| Toggle **Delete** ON               | **Inline confirm step** — chip expands to show consequence text + "Confirm" button | Granting delete to a role affects everyone in that role |
+| Toggle **Delete** OFF              | Instant + brief success flash                                                      | Removing destructive access is safe                     |
+| **Remove an entire user override** | Red confirmation tooltip for 1s before save                                        | Silently removes all custom access                      |
 
 **Delete chip confirm UX** (no modal, no blocking):
+
 ```
 Before click:                 After click (expanded):
 [🗑 Delete]          →        [🗑 Delete — lets managers remove records · Confirm ✓  Cancel ✕]
 ```
+
 The chip expands inline; 3s timeout auto-cancels. This closes in ~400ms of added interaction time — not a roadblock.
 
 **Implementation note**: `PermToggle` needs a `confirmStep` prop and local state `[pendingConfirm, setPendingConfirm]`. Only perm `'d'` with `active=false→true` (granting delete) triggers the confirm step.
@@ -219,7 +239,7 @@ The chip expands inline; 3s timeout auto-cancels. This closes in ~400ms of added
 
 ### Current behavior
 
-`RolesOverview` shows "Riya Patel — Employees: Read, Write" with no indication of *why* (override vs. role default). The user override rows in `PermissionModal` show toggles, but there's no "what this role would normally give them" baseline.
+`RolesOverview` shows "Riya Patel — Employees: Read, Write" with no indication of _why_ (override vs. role default). The user override rows in `PermissionModal` show toggles, but there's no "what this role would normally give them" baseline.
 
 `hasPermission` correctly prioritizes override → role → false, but the UI offers no way to see that chain without dev tools.
 
@@ -241,7 +261,7 @@ Each override row adds a **Role Default** ghost line beneath the user's name:
 
 #### In `RolesOverview` — override cards get a "★ Override" badge
 
-The existing per-user override cards get a small `★ Override` badge next to each page row where the user's actual perms differ from their role default. Hover reveals: *"Riya is a Viewer, but has custom Write access here."*
+The existing per-user override cards get a small `★ Override` badge next to each page row where the user's actual perms differ from their role default. Hover reveals: _"Riya is a Viewer, but has custom Write access here."_
 
 ---
 
@@ -314,9 +334,10 @@ A role selector in the modal header (right side, next to close button):
 ```
 
 When a role is selected in the preview dropdown:
+
 - The **role row for that role** highlights with a pulsing ring.
 - A **preview bar** below the header shows what that role can actually do (accounting for the current unsaved state in the matrix).
-- The overrides section dims + a badge reads: *"Showing role-level access. User overrides exist for 2 users — they may differ."*
+- The overrides section dims + a badge reads: _"Showing role-level access. User overrides exist for 2 users — they may differ."_
 - The matrix is still editable in preview mode so the admin can see changes reflected in the preview bar in real time.
 
 Preview state is local-only (`previewRole: AppRole | null`) — no API calls needed because `canRead/canWrite/canUpdate/canDelete` are pure.
@@ -372,31 +393,40 @@ On "Preview as [Role]" select:
 
 ### Visual spec summary
 
-| Element | Current | Proposed |
-|---------|---------|---------|
-| Perm chip colors | Uniform indigo for all active | Sky/Emerald/Amber/Red per perm type |
-| Admin row | Interactive toggles, all on | Locked chips + "System — always full access" badge |
-| Cascade warning | None | Sticky banner with per-role user counts |
-| Override rows | Toggles only | Toggles + role-default ghost + ↩ Reset |
-| Delete confirm | None | Inline chip expansion (no modal) |
-| Preview mode | None | Role dropdown in header + preview bar |
-| Sub-route indicator | None | "Inherited from X" banner when applicable |
-| Tab structure | Roles tab / Users tab | Single scroll: role matrix → override list → add-user expander |
+| Element             | Current                       | Proposed                                                       |
+| ------------------- | ----------------------------- | -------------------------------------------------------------- |
+| Perm chip colors    | Uniform indigo for all active | Sky/Emerald/Amber/Red per perm type                            |
+| Admin row           | Interactive toggles, all on   | Locked chips + "System — always full access" badge             |
+| Cascade warning     | None                          | Sticky banner with per-role user counts                        |
+| Override rows       | Toggles only                  | Toggles + role-default ghost + ↩ Reset                         |
+| Delete confirm      | None                          | Inline chip expansion (no modal)                               |
+| Preview mode        | None                          | Role dropdown in header + preview bar                          |
+| Sub-route indicator | None                          | "Inherited from X" banner when applicable                      |
+| Tab structure       | Roles tab / Users tab         | Single scroll: role matrix → override list → add-user expander |
 
 ---
 
-## What to Implement First (Priority Order)
+## Implementation Status
 
-| # | Change | Effort | Impact |
-|---|--------|--------|--------|
-| 1 | **Fix `hasPermission` admin short-circuit** | 1 line | Critical bug |
-| 2 | **Lock admin row in modal UI** | Small (add disabled + badge) | High — safety |
-| 3 | **Semantic perm colors** in CSS | Medium (4 CSS classes, update PermToggle + PermChip) | High — scanability |
-| 4 | **Cascade user-count banner** | Medium (pass `roleCounts` prop + banner UI) | High — informed decisions |
-| 5 | **Delete confirm chip expansion** | Medium (add confirm state to PermToggle) | High — friction-matched risk |
-| 6 | **Override row: role-default ghost + ↩ Reset** | Medium (requires userRole in UserOverride type) | Medium |
-| 7 | **Collapse tabs into single scroll** | Medium-Large (layout refactor) | Medium |
-| 8 | **Preview As mode** | Medium (local state + preview bar component) | Medium |
-| 9 | **Sub-route inherited-from banner** | Small (defensive, preventive) | Low now, High later |
+> **All 9 items completed.** Build verified — `tsc --noEmit` zero errors, `next build` passed.
 
-Items 1–5 deliver the largest safety and usability improvements with the smallest surface area of change. Items 6–9 build on them for the full intuitive experience.
+| #   | Change                                         | Status | Files changed                                                       |
+| --- | ---------------------------------------------- | ------ | ------------------------------------------------------------------- |
+| 1   | **Fix `hasPermission` admin short-circuit**    | ✅ Done | `permissions.ts` — added `if (role === 'admin') return true`        |
+| 2   | **Lock admin row in modal UI**                 | ✅ Done | `permission-modal.tsx` — `locked` prop + amber badge                |
+| 3   | **Semantic perm colors** in CSS                | ✅ Done | `permission-modal.css` — 4 risk-mapped classes; `roles-overview.tsx` — `PERM_CHIP_COLORS` |
+| 4   | **Cascade user-count banner**                  | ✅ Done | `permission-modal.tsx` — sticky info banner with per-role counts, highlights on row hover |
+| 5   | **Delete confirm chip expansion**              | ✅ Done | `permission-modal.tsx` — `pendingConfirm` state + inline expand; `permission-modal.css` — `pm-perm-toggle--confirm` classes |
+| 6   | **Override row: role-default ghost + ↩ Reset** | ✅ Done | `permissions.ts` — `userRole?` added to `UserOverride`; `permission-modal.tsx` — ghost chips + Reset btn; `roles-overview.tsx` — `★ Override` badge when perms differ from role default |
+| 7   | **Collapse tabs into single scroll**           | ✅ Done | `permission-modal.tsx` — tabs removed; single scroll: cascade banner → role matrix → overrides → `+ Add user override…` expander |
+| 8   | **Preview As mode**                            | ✅ Done | `permission-modal.tsx` — role dropdown in header, live preview bar, pulsing ring on selected role row |
+| 9   | **Sub-route inherited-from banner**            | ✅ Done | `permission-modal.tsx` — amber banner when `resolvedFrom` prop is set; `permission-modal.css` — `pm-subroute-banner` |
+
+### Summary of files changed
+
+| File | Changes |
+|------|---------|
+| [`permissions.ts`](file:///d:/projects/hrms/Agent-Management/src/lib/permissions.ts) | Admin short-circuit (task 1); `userRole?` on `UserOverride` (task 6) |
+| [`permission-modal.tsx`](file:///d:/projects/hrms/Agent-Management/src/components/admin/permission-modal.tsx) | Tasks 2–9 — full rewrite: locked admin row, cascade banner, delete confirm, ghost+reset, single scroll, preview as, sub-route banner |
+| [`permission-modal.css`](file:///d:/projects/hrms/Agent-Management/src/components/admin/permission-modal.css) | Tasks 3, 5, 7, 8, 9 — semantic color classes, confirm chip styles, preview bar, sub-route banner, section divider, add-override expander |
+| [`roles-overview.tsx`](file:///d:/projects/hrms/Agent-Management/src/components/admin/roles-overview.tsx) | Tasks 3, 6 — `PERM_CHIP_COLORS`, `hasOverrideDiff`, `★ Override` badge, `userRole` stored in byUser map |

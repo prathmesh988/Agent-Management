@@ -22,10 +22,11 @@ export const APP_ROLES: AppRole[] = ['admin', 'manager', 'hr', 'viewer', 'new_us
 
 /** Per-user override stored inside the page document */
 export interface UserOverride {
-  userId:  string;
-  name:    string;
-  email:   string;
-  perms:   Perm[];
+  userId:   string;
+  name:     string;
+  email:    string;
+  perms:    Perm[];
+  userRole?: AppRole; // optional — stored when override is created so ghost line can show role default
 }
 
 /** Page permission document shape (mirrors Appwrite document) */
@@ -92,6 +93,9 @@ export function hasPermission(
   userId: string,
   perm: Perm,
 ): boolean {
+  // Admin always has full access — cannot be revoked via the UI
+  if (role === 'admin') return true;
+
   // No permissions doc → use defaults
   if (!permissions) return DEFAULT_ROLE_PERMS[role]?.includes(perm) ?? false;
 
