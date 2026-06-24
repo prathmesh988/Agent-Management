@@ -23,6 +23,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
   admin:    '#f59e0b',
   manager:  '#8b5cf6',
   hr:       '#06b6d4',
+  mvp:      '#10b981',
   viewer:   '#64748b',
   new_user: '#ef4444',
 };
@@ -31,6 +32,7 @@ const ROLE_ICONS: Record<AppRole, string> = {
   admin:    '👑',
   manager:  '🏢',
   hr:       '👥',
+  mvp:      '🚀',
   viewer:   '👁',
   new_user: '⏳',
 };
@@ -39,6 +41,7 @@ const ROLE_DISPLAY: Record<AppRole, string> = {
   admin:    'Admin',
   manager:  'Manager',
   hr:       'HR',
+  mvp:      'MVP',
   viewer:   'Viewer',
   new_user: 'New User',
 };

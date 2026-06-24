@@ -22,11 +22,15 @@ export async function GET(request: NextRequest) {
 
     // Transform users to include role/permission information based on labels
     const formattedUsers = response.users.map((user: any) => {
-      // Determine role based on labels
+      // Determine role based on labels (highest-priority wins)
       const userLabels: string[] = user.labels || [];
       let role = 'new_user'; // default — no label means awaiting approval
       if (userLabels.includes('admin')) {
         role = 'admin';
+      } else if (userLabels.includes('manager')) {
+        role = 'manager';
+      } else if (userLabels.includes('hr')) {
+        role = 'hr';
       } else if (userLabels.includes('mvp')) {
         role = 'mvp';
       } else if (userLabels.includes('viewer')) {
@@ -36,11 +40,12 @@ export async function GET(request: NextRequest) {
       }
 
       // Map role to permissions
-      const permissions = role === 'admin'
-        ? ['READ', 'WRITE', 'UPDATE', 'DELETE']
-        : role === 'new_user'
-        ? []
-        : ['READ'];
+      const permissions =
+        role === 'admin'   ? ['READ', 'WRITE', 'UPDATE', 'DELETE'] :
+        role === 'manager' ? ['READ', 'WRITE', 'UPDATE'] :
+        role === 'hr'      ? ['READ', 'WRITE'] :
+        role === 'new_user'? [] :
+        ['READ']; // mvp + viewer
 
       return {
         id: user.$id,

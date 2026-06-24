@@ -9,15 +9,40 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Save, AlertCircle, Mail, Users, Calendar, BarChart3, Gift } from "lucide-react";
+import { Save, AlertCircle, Mail, Users, Calendar, BarChart3, Gift, Lock } from "lucide-react";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 import { usePagePermission } from "@/hooks/usePagePermission";
+import { useRoleGuard } from "@/hooks/useRoleGuard";
+import { resolveEmployeeRole } from "@/lib/role-resolver";
+import type { AppRole } from "@/lib/permissions";
 
 interface EmployeeDetailPanelProps {
   employee: Employee;
   employeeId: string;
+}
+
+/** Salary fields that require a hierarchy check before displaying. */
+const SALARY_FIELD_KEYS = new Set([
+  'ctc', 'attendanceAllowance', 'shiftAllowance', 'grossSalary', 'netSalary',
+  'attendanceDeduction', 'tds5perc', 'employeeContribution', 'employeeEsic',
+  'employerContribution', 'employerEsic', 'paidAmount', 'arrear', 'advance', 'penalty',
+  'incentiveAmount', 'performanceBonus', 'referralBonus', 'festivalBonus',
+  'retentionBonus', 'totalIncentive',
+]);
+
+/** Renders children when allowed; otherwise shows a lock + "Restricted" label. */
+function SalaryCensor({ allowed, children }: { allowed: boolean; children: React.ReactNode }) {
+  if (allowed) return <>{children}</>;
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-muted-foreground text-sm select-none"
+      title="You do not have permission to view this field"
+    >
+      <Lock className="h-3 w-3" /> Restricted
+    </span>
+  );
 }
 
 // Helper to parse dates correctly from possible Excel serial number or Unix timestamp
@@ -160,6 +185,8 @@ export function EmployeeDetailPanel({
   employeeId,
 }: EmployeeDetailPanelProps) {
   const { canUpdate, loading } = usePagePermission("employees");
+  const { canSeeSalaryOf } = useRoleGuard();
+  const [targetRole, setTargetRole] = useState<AppRole>('new_user');
   const [employee, setEmployee] = useState<Employee>(initialEmployee);
   const [editedFields, setEditedFields] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
@@ -189,6 +216,14 @@ export function EmployeeDetailPanel({
     };
     fetchIncentives();
   }, [employee.employeeId, employeeId]);
+
+  // Resolve the employee's role for salary visibility checks
+  useEffect(() => {
+    if (!employee.email) return;
+    resolveEmployeeRole(employee.email)
+      .then(setTargetRole)
+      .catch(() => setTargetRole('new_user'));
+  }, [employee.email]);
 
   useEffect(() => {
     const base = Number(employee.incentiveAmount) || 0;
@@ -334,6 +369,8 @@ export function EmployeeDetailPanel({
   const renderField = (field: FieldDefinition, value: unknown) => {
     const isEdited = editedFields.has(field.key);
     const isDisabled = field.key === "totalIncentive" || !canUpdate || loading;
+    const isSalaryField = SALARY_FIELD_KEYS.has(field.key);
+    const salaryAllowed = !isSalaryField || canSeeSalaryOf(targetRole);
     
     // Check if this is an incentive field
     const isIncentiveField = [
@@ -360,27 +397,29 @@ export function EmployeeDetailPanel({
       const numValue = typeof value === "number" ? value : (typeof value === "string" ? parseFloat(value) : "");
       
       return (
-        <div className="space-y-1">
-          <Input
-            type="text"
-            disabled={isDisabled}
-            placeholder={isIncentiveField ? "e.g., 12% or 5000" : "0"}
-            value={numValue === "" ? "" : numValue}
-            onChange={(e) => {
-              if (e.target.value === "") {
-                handleFieldChange(field.key, "");
-              } else {
-                handleFieldChange(field.key, e.target.value);
-              }
-            }}
-            className={isEdited ? "border-primary bg-primary/5" : ""}
-          />
-          {isIncentiveField && !isDisabled && (
-            <p className="text-xs text-muted-foreground">
-              💡 Enter as percentage (12%) or amount (5000)
-            </p>
-          )}
-        </div>
+        <SalaryCensor allowed={salaryAllowed}>
+          <div className="space-y-1">
+            <Input
+              type="text"
+              disabled={isDisabled}
+              placeholder={isIncentiveField ? "e.g., 12% or 5000" : "0"}
+              value={numValue === "" ? "" : numValue}
+              onChange={(e) => {
+                if (e.target.value === "") {
+                  handleFieldChange(field.key, "");
+                } else {
+                  handleFieldChange(field.key, e.target.value);
+                }
+              }}
+              className={isEdited ? "border-primary bg-primary/5" : ""}
+            />
+            {isIncentiveField && !isDisabled && (
+              <p className="text-xs text-muted-foreground">
+                💡 Enter as percentage (12%) or amount (5000)
+              </p>
+            )}
+          </div>
+        </SalaryCensor>
       );
     }
 

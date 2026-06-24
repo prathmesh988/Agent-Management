@@ -11,11 +11,14 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { RolesOverview } from "@/components/admin/roles-overview";
 import { usePagePermission } from "@/hooks/usePagePermission";
+import { useRoleGuard } from "@/hooks/useRoleGuard";
+import type { AppRole } from "@/lib/permissions";
 
 export default function AdminsPage() {
   const { canWrite, canUpdate, canDelete, loading: permsLoading } = usePagePermission("admins");
   const { admins, loading, error, updateAdminRole, deleteAdmin, disapproveAdmin, fetchAdmins } = useAdmins();
   const { currentUser, loading: currentUserLoading, error: currentUserError } = useCurrentUser();
+  const { canChangeRoleOf } = useRoleGuard();
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   const pendingUsers  = admins.filter((a) => a.role === 'new_user');
@@ -26,7 +29,17 @@ export default function AdminsPage() {
   const handleUpdateRole = async (adminId: string, role: 'admin' | 'manager' | 'hr' | 'viewer' | 'mvp' | 'new_user') => {
     if (!canUpdate || permsLoading) { setUpdateError('You do not have permission to change user roles'); return; }
     const admin = admins.find((a) => a.id === adminId);
-    const previousRole = admin?.role;
+    if (!admin) return;
+
+    // Client-side hierarchy pre-check (UX guard — server enforces authoritatively)
+    if (!canChangeRoleOf(admin.role as AppRole)) {
+      toast.error('Permission denied', {
+        description: 'You cannot change the role of a user with equal or higher rank.',
+      });
+      return;
+    }
+
+    const previousRole = admin.role;
     try {
       setUpdateError(null);
       await updateAdminRole(adminId, role);
