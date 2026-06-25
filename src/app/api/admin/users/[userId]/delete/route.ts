@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client, Users } from 'node-appwrite';
+import { auditLog, extractActorMeta } from '@/lib/audit-logger';
 
 /**
  * DELETE /api/admin/users/[userId]
@@ -34,6 +35,23 @@ export async function DELETE(
 
     // Delete the user
     await users.delete(userId);
+
+    // Audit log — critical: permanent user deletion
+    const actorId = request.headers.get('x-user-id');
+    const { actor_ip, actor_user_agent } = extractActorMeta(request);
+    auditLog({
+      actor_id:             actorId ?? undefined,
+      actor_ip,
+      actor_user_agent,
+      module:               'employee',
+      action_type:          'delete',
+      severity:             'critical',
+      result:               'success',
+      target_id:            userId,
+      target_name_snapshot: deletedUser.name,
+      target_employee_id:   deletedUser.email,
+      description:          'User account permanently deleted',
+    });
 
     return NextResponse.json(
       {

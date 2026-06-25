@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client, Users } from 'node-appwrite';
 import { canChangeRoleOf, ROLE_RANK, type AppRole } from '@/lib/permissions';
+import { auditLog, extractActorMeta } from '@/lib/audit-logger';
 
 type AssignableRole = 'admin' | 'manager' | 'hr' | 'mvp' | 'viewer' | 'new_user';
 
@@ -96,6 +97,30 @@ export async function PATCH(
       body.role === 'hr'       ? ['READ', 'WRITE'] :
       body.role === 'new_user' ? [] :
       ['READ']; // mvp + viewer
+
+    // ── Audit log — role change with field diff ──────────────────────────────
+    const actorUserForLog = actorId ? await users.get(actorId).catch(() => null) : null;
+    const targetUserForLog = await users.get(userId).catch(() => currentUser);
+    const oldRole = resolveRole((currentUser as any).labels ?? []);
+    const { actor_ip, actor_user_agent } = extractActorMeta(request);
+    auditLog({
+      actor_id:             actorId ?? undefined,
+      actor_name_snapshot:  actorUserForLog?.name ?? '',
+      actor_role_snapshot:  actorId ? resolveRole((actorUserForLog as any)?.labels ?? []) : '',
+      actor_ip,
+      actor_user_agent,
+      module:               'roles',
+      action_type:          'update',
+      result:               'success',
+      target_id:            userId,
+      target_name_snapshot: currentUser.name,
+      field_changes: [{
+        field:     'role',
+        old_value: oldRole,
+        new_value: body.role,
+      }],
+      description: `Role changed: ${currentUser.name} — ${oldRole} → ${body.role}`,
+    });
 
     return NextResponse.json(
       {

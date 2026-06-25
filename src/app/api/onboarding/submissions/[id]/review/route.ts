@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Client, Databases, ID, Query } from 'node-appwrite';
 import { ensureOnboardingSchema } from '@/lib/onboarding-init';
 import { getAuthenticatedUser } from '@/lib/auth-utils';
+import { auditLog, extractActorMeta } from '@/lib/audit-logger';
 
 // ── Appwrite admin client ─────────────────────────────────────────────────────
 
@@ -191,11 +192,57 @@ export async function PATCH(
         reviewData.employeeId = empId;
         employeeId = empId;
         console.log(`[review] Created employee ${empId} for submission ${id}`);
+
+        // Audit: onboarding approved + employee created
+        const { actor_ip, actor_user_agent } = extractActorMeta(req);
+        auditLog({
+          actor_id:             (user as any).$id,
+          actor_name_snapshot:  (user as any).name,
+          actor_role_snapshot:  (user as any).labels?.[0],
+          actor_ip,
+          actor_user_agent,
+          module:               'employee',
+          action_type:          'create',
+          result:               'success',
+          target_name_snapshot: sub.fullName,
+          target_employee_id:   empId,
+          description:          `Onboarding approved — employee created with ID ${empId}`,
+        });
       } catch (empErr: any) {
         // Still approve the submission, but surface the error to the caller
         employeeCreationError = empErr.message;
         console.error('[review] Employee record creation failed:', empErr);
+
+        // Audit: approval failed
+        const { actor_ip, actor_user_agent } = extractActorMeta(req);
+        auditLog({
+          actor_id:             (user as any).$id,
+          actor_name_snapshot:  (user as any).name,
+          actor_role_snapshot:  (user as any).labels?.[0],
+          actor_ip,
+          actor_user_agent,
+          module:               'employee',
+          action_type:          'create',
+          result:               'failed',
+          target_name_snapshot: sub.fullName,
+          description:          `Onboarding approved but employee record creation failed: ${empErr.message}`,
+        });
       }
+    } else {
+      // Reject path
+      const { actor_ip, actor_user_agent } = extractActorMeta(req);
+      auditLog({
+        actor_id:             (user as any).$id,
+        actor_name_snapshot:  (user as any).name,
+        actor_role_snapshot:  (user as any).labels?.[0],
+        actor_ip,
+        actor_user_agent,
+        module:               'employee',
+        action_type:          'update',
+        result:               'success',
+        target_name_snapshot: sub.fullName,
+        description:          `Onboarding rejected — candidate: ${sub.fullName}`,
+      });
     }
 
     // Update the submission document

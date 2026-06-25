@@ -4,6 +4,7 @@ import archiver from "archiver";
 import { Readable } from "stream";
 import { uploadCertificateToBucket, checkIfCertificateExists, getPdfFromBucket } from "@/lib/appwrite-storage";
 import { getExactCertificateHTML } from "@/lib/certificate-html-generator";
+import { auditLog, extractActorMeta } from "@/lib/audit-logger";
 
 interface CertificateData {
   id: string;
@@ -184,6 +185,20 @@ export async function POST(request: NextRequest) {
     console.log(
       `Certificate generation complete: ${successCount}/${certificates.length} processed (generated or reused)`
     );
+
+    // Audit log — bulk certificate export
+    const actorId = request.headers.get('x-user-id');
+    const { actor_ip, actor_user_agent } = extractActorMeta(request);
+    auditLog({
+      actor_id:            actorId ?? undefined,
+      actor_ip,
+      actor_user_agent,
+      module:              'documents',
+      action_type:         'export',
+      result:              'success',
+      description:         `Bulk certificate download — ${certificates.length} certificates`,
+      metadata:            { count: certificates.length },
+    });
 
     // Return ZIP file as response with metadata
     return new NextResponse(new Uint8Array(zipBuffer), {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Client, Storage, ID } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 import { DB_CONFIG } from "@/services/database/client";
+import { auditLog, extractActorMeta } from "@/lib/audit-logger";
 
 /**
  * POST /api/leave/upload
@@ -82,6 +83,20 @@ export async function POST(request: NextRequest) {
 
       fileIndex++;
     }
+
+    // Audit log — leave document upload
+    const actorId = request.headers.get('x-user-id');
+    const { actor_ip, actor_user_agent } = extractActorMeta(request);
+    auditLog({
+      actor_id:        actorId ?? undefined,
+      actor_ip,
+      actor_user_agent,
+      module:          'documents',
+      action_type:     'create',
+      result:          'success',
+      target_id:       leaveId,
+      description:     `Leave document uploaded — leaveId: ${leaveId}, ${uploaded.length} file(s)`,
+    });
 
     return NextResponse.json({ 
       success: true, 

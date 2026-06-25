@@ -16,6 +16,7 @@ import {
   batchSaveMonthlyAttendance,
 } from "@/services/database/monthly-attendance";
 import { getEmployee } from "./employees";
+import { auditLog } from "@/lib/audit-logger";
 
 /**
  * Fetch attendance data for a specific employee + year + month.
@@ -50,6 +51,17 @@ export async function saveMonthlyAttendanceAction(
   try {
     const dayData = calendarKeysToDayNumbers(updates);
     await saveMonthlyAttendance(employeeId, year, month, dayData);
+
+    // Audit log — attendance saved
+    auditLog({
+      actor_ip:          'server-action',
+      module:            'attendance',
+      action_type:       'update',
+      result:            'success',
+      target_employee_id: employeeId,
+      description:       `Attendance saved — ${employeeId}, ${month}/${year}`,
+    });
+
     return { success: true };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
@@ -127,6 +139,17 @@ export async function deleteMonthlyAttendanceAction(
 ): Promise<{ success: boolean; message: string }> {
   try {
     const deleted = await deleteMonthlyAttendance(employeeId, year, month);
+
+    // Audit log — attendance deleted
+    auditLog({
+      actor_ip:          'server-action',
+      module:            'attendance',
+      action_type:       'delete',
+      result:            deleted ? 'success' : 'failed',
+      target_employee_id: employeeId,
+      description:       `Attendance deleted — ${employeeId}, ${month}/${year}`,
+    });
+
     return {
       success: deleted,
       message: deleted ? "Attendance record deleted" : "Record not found",
@@ -201,6 +224,17 @@ export async function saveBulkAttendanceAction(
     }
 
     await saveMonthlyAttendance(employeeId, saveYear, saveMonth, dayData);
+
+    // Audit log — bulk attendance cell saved
+    auditLog({
+      actor_ip:          'server-action',
+      module:            'attendance',
+      action_type:       'update',
+      result:            'success',
+      target_employee_id: employeeId,
+      description:       `Bulk attendance import — ${employeeId}, ${saveMonth}/${saveYear}`,
+    });
+
     return { success: true };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);

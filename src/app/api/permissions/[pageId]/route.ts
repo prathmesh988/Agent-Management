@@ -8,6 +8,7 @@ import { Client, Databases } from 'node-appwrite';
 import { getAuthenticatedUser } from '@/lib/auth-utils';
 import { ensurePermissionsSchema, COLLECTION_ID } from '@/lib/permissions-init';
 import { DEFAULT_ROLE_PERMS, MANAGED_PAGES, hasPermission, parsePagePermissions, type Perm, type AppRole } from '@/lib/permissions';
+import { auditLog, extractActorMeta } from '@/lib/audit-logger';
 
 function createAdminClient() {
   return new Client()
@@ -152,32 +153,98 @@ export async function PATCH(
   if (type === 'role') {
     const { role, perms }: { role: AppRole; perms: Perm[] } = body;
     if (!role) return NextResponse.json({ error: 'role is required' }, { status: 400 });
+    const oldPerms: Perm[] = (rolePerms[role] ?? []);
     rolePerms[role] = perms ?? [];
+
+    const updated = await db.updateDocument({
+      databaseId:   DB_ID(),
+      collectionId: COLLECTION_ID(),
+      documentId:   pageId,
+      data: {
+        rolePerms:     JSON.stringify(rolePerms),
+        userOverrides: JSON.stringify(userOverrides),
+      },
+    });
+
+    const { actor_ip, actor_user_agent } = extractActorMeta(req);
+    auditLog({
+      actor_id:             user.$id,
+      actor_name_snapshot:  user.name,
+      actor_role_snapshot:  (user as any).labels?.[0] ?? '',
+      actor_ip,
+      actor_user_agent,
+      module:               'roles',
+      action_type:          'update',
+      result:               'success',
+      description:          `Role permissions updated — page: ${pageId}, role: ${role}`,
+      field_changes: [{ field: `${pageId}.${role}`, old_value: oldPerms.join(','), new_value: (perms ?? []).join(',') }],
+    });
+
+    return NextResponse.json({ pageId: updated.pageId, rolePerms, userOverrides });
+
   } else if (type === 'user') {
-    const { userId, name, email, perms } = body;
-    if (!userId) return NextResponse.json({ error: 'userId is required' }, { status: 400 });
-    userOverrides[userId] = { userId, name: name ?? '', email: email ?? '', perms: perms ?? [] };
+    const { userId: targetUserId, name, email, perms } = body;
+    if (!targetUserId) return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    const oldPerms = userOverrides[targetUserId]?.perms ?? null;
+    userOverrides[targetUserId] = { userId: targetUserId, name: name ?? '', email: email ?? '', perms: perms ?? [] };
+
+    const updated = await db.updateDocument({
+      databaseId:   DB_ID(),
+      collectionId: COLLECTION_ID(),
+      documentId:   pageId,
+      data: {
+        rolePerms:     JSON.stringify(rolePerms),
+        userOverrides: JSON.stringify(userOverrides),
+      },
+    });
+
+    const { actor_ip, actor_user_agent } = extractActorMeta(req);
+    auditLog({
+      actor_id:             user.$id,
+      actor_name_snapshot:  user.name,
+      actor_role_snapshot:  (user as any).labels?.[0] ?? '',
+      actor_ip,
+      actor_user_agent,
+      module:               'roles',
+      action_type:          'update',
+      result:               'success',
+      description:          `User permission override set — page: ${pageId}, user: ${name ?? targetUserId}`,
+      field_changes: [{ field: `${pageId}.user.${targetUserId}`, old_value: oldPerms ?? 'none', new_value: (perms ?? []).join(',') }],
+    });
+
+    return NextResponse.json({ pageId: updated.pageId, rolePerms, userOverrides });
+
   } else if (type === 'removeUser') {
-    const { userId } = body;
-    if (!userId) return NextResponse.json({ error: 'userId is required' }, { status: 400 });
-    delete userOverrides[userId];
+    const { userId: targetUserId } = body;
+    if (!targetUserId) return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    delete userOverrides[targetUserId];
+
+    const updated = await db.updateDocument({
+      databaseId:   DB_ID(),
+      collectionId: COLLECTION_ID(),
+      documentId:   pageId,
+      data: {
+        rolePerms:     JSON.stringify(rolePerms),
+        userOverrides: JSON.stringify(userOverrides),
+      },
+    });
+
+    const { actor_ip, actor_user_agent } = extractActorMeta(req);
+    auditLog({
+      actor_id:             user.$id,
+      actor_name_snapshot:  user.name,
+      actor_role_snapshot:  (user as any).labels?.[0] ?? '',
+      actor_ip,
+      actor_user_agent,
+      module:               'roles',
+      action_type:          'delete',
+      result:               'success',
+      description:          `User permission override removed — page: ${pageId}, user: ${targetUserId}`,
+    });
+
+    return NextResponse.json({ pageId: updated.pageId, rolePerms, userOverrides });
+
   } else {
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
   }
-
-  const updated = await db.updateDocument({
-    databaseId:   DB_ID(),
-    collectionId: COLLECTION_ID(),
-    documentId:   pageId,
-    data: {
-      rolePerms:     JSON.stringify(rolePerms),
-      userOverrides: JSON.stringify(userOverrides),
-    },
-  });
-
-  return NextResponse.json({
-    pageId:        updated.pageId,
-    rolePerms,
-    userOverrides,
-  });
 }

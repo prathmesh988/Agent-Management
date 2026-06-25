@@ -20,6 +20,14 @@ import {
   type LeaveRequest,
 } from "@/services/database/leave-requests";
 import { fetchAllEmployees } from "@/services/database/employees";
+import { auditLog } from "@/lib/audit-logger";
+
+/** Optional actor context for server actions that have no Request object. */
+interface ActorContext {
+  actorId?:   string;
+  actorName?: string;
+  actorRole?: string;
+}
 
 /**
  * Strip Appwrite metadata from LeaveRequest before returning to client.
@@ -75,7 +83,8 @@ export async function applyForLeaveAction(
   leaveType: LeaveType,
   startDate: string,
   endDate: string,
-  reason: string
+  reason: string,
+  actorContext?: ActorContext
 ): Promise<{
   success: boolean;
   request?: LeaveRequest;
@@ -109,6 +118,20 @@ export async function applyForLeaveAction(
       reason
     );
 
+    // Audit log — leave applied
+    auditLog({
+      actor_id:             actorContext?.actorId,
+      actor_name_snapshot:  actorContext?.actorName ?? employeeName,
+      actor_role_snapshot:  actorContext?.actorRole ?? '',
+      actor_ip:             'server-action',
+      module:               'leave',
+      action_type:          'create',
+      result:               'success',
+      target_employee_id:   employeeId,
+      target_name_snapshot: employeeName,
+      description:          `${leaveType} leave applied — ${startDate} to ${endDate} (${duration} days)`,
+    });
+
     return { success: true, request: cleanLeaveRequest(request), availableBalance: available - duration };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
@@ -135,7 +158,8 @@ export async function getPendingRequestsAction(): Promise<LeaveRequest[]> {
  */
 export async function approveLeaveAction(
   requestId: string,
-  approverName: string
+  approverName: string,
+  actorContext?: ActorContext
 ): Promise<{
   success: boolean;
   request?: LeaveRequest;
@@ -152,6 +176,20 @@ export async function approveLeaveAction(
       request.duration
     );
 
+    // Audit log — leave approved
+    auditLog({
+      actor_id:             actorContext?.actorId,
+      actor_name_snapshot:  actorContext?.actorName ?? approverName,
+      actor_role_snapshot:  actorContext?.actorRole ?? '',
+      actor_ip:             'server-action',
+      module:               'leave',
+      action_type:          'update',
+      result:               'success',
+      target_employee_id:   request.employeeId,
+      target_name_snapshot: request.employeeName,
+      description:          `Leave approved — ${request.employeeName}, ${request.duration} days ${request.leaveType}`,
+    });
+
     return { success: true, request: cleanLeaveRequest(request) };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
@@ -165,7 +203,8 @@ export async function approveLeaveAction(
  */
 export async function rejectLeaveAction(
   requestId: string,
-  approverName: string
+  approverName: string,
+  actorContext?: ActorContext
 ): Promise<{
   success: boolean;
   request?: LeaveRequest;
@@ -173,6 +212,21 @@ export async function rejectLeaveAction(
 }> {
   try {
     const request = await rejectLeaveRequest(requestId, approverName);
+
+    // Audit log — leave rejected
+    auditLog({
+      actor_id:             actorContext?.actorId,
+      actor_name_snapshot:  actorContext?.actorName ?? approverName,
+      actor_role_snapshot:  actorContext?.actorRole ?? '',
+      actor_ip:             'server-action',
+      module:               'leave',
+      action_type:          'update',
+      result:               'success',
+      target_employee_id:   request.employeeId,
+      target_name_snapshot: request.employeeName,
+      description:          `Leave rejected — ${request.employeeName}`,
+    });
+
     return { success: true, request: cleanLeaveRequest(request) };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";

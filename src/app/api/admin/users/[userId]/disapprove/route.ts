@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client, Users } from 'node-appwrite';
+import { auditLog, extractActorMeta } from '@/lib/audit-logger';
 
 /**
  * POST /api/admin/users/[userId]/disapprove
@@ -34,6 +35,25 @@ export async function POST(
 
     // Remove ALL labels to lock the account
     const updatedUser = await users.updateLabels(userId, []);
+
+    // Audit log — account disapproval
+    const actorId = request.headers.get('x-user-id');
+    const { actor_ip, actor_user_agent } = extractActorMeta(request);
+    const currentRole = (currentUser.labels ?? []).find(l =>
+      ['admin','manager','hr','mvp','viewer','new_user'].includes(l)
+    ) ?? 'unknown';
+    auditLog({
+      actor_id:             actorId ?? undefined,
+      actor_ip,
+      actor_user_agent,
+      module:               'roles',
+      action_type:          'update',
+      result:               'success',
+      target_id:            userId,
+      target_name_snapshot: currentUser.name,
+      field_changes: [{ field: 'role', old_value: currentRole, new_value: 'none (disapproved)' }],
+      description:          'Account disapproved — all labels removed',
+    });
 
     return NextResponse.json(
       {

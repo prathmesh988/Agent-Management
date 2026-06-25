@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Client, Databases, ID, Query } from 'node-appwrite';
 import { ensureOnboardingSchema } from '@/lib/onboarding-init';
 import { getAuthenticatedUser } from '@/lib/auth-utils';
+import { auditLog, extractActorMeta } from '@/lib/audit-logger';
 
 const createAdminClient = () =>
   new Client()
@@ -55,6 +56,20 @@ export async function POST(req: NextRequest) {
     // Build invite URL — prefer request origin so it works in all environments
     const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || '';
     const inviteUrl = `${origin}/onboard/${token}`;
+
+    // Audit log — invite creation
+    const { actor_ip, actor_user_agent } = extractActorMeta(req);
+    auditLog({
+      actor_id:             (hrUser as any).$id,
+      actor_name_snapshot:  (hrUser as any).name,
+      actor_role_snapshot:  (hrUser as any).labels?.[0] ?? '',
+      actor_ip,
+      actor_user_agent,
+      module:               'employee',
+      action_type:          'create',
+      result:               'success',
+      description:          `Onboarding invite created — label: ${label || 'default'}, expires: ${expiresAt.toISOString()}`,
+    });
 
     return NextResponse.json({ success: true, token: doc, inviteUrl });
   } catch (error: any) {
