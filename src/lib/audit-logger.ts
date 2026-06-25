@@ -57,12 +57,13 @@ export interface FieldChange {
 
 export interface AuditEntry {
   // Actor
-  actor_id?:             string | null;
-  actor_name_snapshot?:  string;
-  actor_role_snapshot?:  string;
-  actor_ip?:             string;
-  actor_user_agent?:     string;
-  session_id?:           string;
+  actor_id?:              string | null;
+  actor_name_snapshot?:   string;
+  actor_email_snapshot?:  string;          // email of the actor (person doing the action)
+  actor_role_snapshot?:   string;
+  actor_ip?:              string;
+  actor_user_agent?:      string;
+  session_id?:            string;
 
   // Event
   module:       AuditModule;
@@ -141,16 +142,17 @@ export async function auditLog(entry: AuditEntry): Promise<void> {
       timestamp:            new Date().toISOString(),
 
       // ── Actor ──────────────────────────────────────────────────────────────
-      actor_id:             entry.actor_id            ?? null,
-      actor_name_snapshot:  entry.actor_name_snapshot ?? '',
-      actor_employee_id:    entry.target_employee_id  ?? '',   // maps best available employee id
-      actor_role_snapshot:  entry.actor_role_snapshot ?? '',
-      actor_ip:             entry.actor_ip            ?? '',
-      actor_user_agent:     entry.actor_user_agent    ?? '',
-      session_id:           entry.session_id          ?? '',
+      actor_id:              entry.actor_id             ?? null,
+      actor_name_snapshot:   entry.actor_name_snapshot  ?? '',
+      actor_email_snapshot:  entry.actor_email_snapshot ?? '',
+      actor_employee_id:     entry.target_employee_id   ?? '',
+      actor_role_snapshot:   entry.actor_role_snapshot  ?? '',
+      actor_ip:              entry.actor_ip             ?? '',
+      actor_user_agent:      entry.actor_user_agent     ?? '',
+      session_id:            entry.session_id           ?? '',
 
       // ── Legacy required fields (pre-existing schema) ───────────────────────
-      performedBy:          entry.actor_name_snapshot ?? String(entry.actor_id ?? 'system'),
+      performedBy:          entry.actor_email_snapshot || entry.actor_name_snapshot || String(entry.actor_id ?? 'system'),
       action:               entry.action_type,   // legacy alias — required
       target:               targetValue,          // legacy required — human-readable target label
 

@@ -33,6 +33,8 @@ const ATTRIBUTES = [
   // Actor snapshot
   { key: 'actor_id',             type: 'string',  size: 255,   required: false },
   { key: 'actor_name_snapshot',  type: 'string',  size: 255,   required: false },
+  { key: 'actor_email_snapshot', type: 'string',  size: 255,   required: false },
+  { key: 'actor_employee_id',    type: 'string',  size: 64,    required: false },
   { key: 'actor_role_snapshot',  type: 'string',  size: 64,    required: false },
   { key: 'actor_ip',             type: 'string',  size: 64,    required: false },
   { key: 'actor_user_agent',     type: 'string',  size: 512,   required: false },

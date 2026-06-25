@@ -106,6 +106,7 @@ export async function PATCH(
     auditLog({
       actor_id:             actorId ?? undefined,
       actor_name_snapshot:  actorUserForLog?.name ?? '',
+      actor_email_snapshot: actorUserForLog?.email ?? '',
       actor_role_snapshot:  actorId ? resolveRole((actorUserForLog as any)?.labels ?? []) : '',
       actor_ip,
       actor_user_agent,
