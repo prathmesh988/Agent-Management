@@ -42,22 +42,24 @@ export async function POST(
 
       // Log login + new account activation
       auditLog({
-        actor_id:            userId,
-        actor_name_snapshot: user.name,
-        actor_role_snapshot: 'new_user',
-        module:              'auth',
-        action_type:         'login',
-        result:              'success',
-        description:         'Magic link login — first login, assigned new_user',
+        actor_id:             userId,
+        actor_name_snapshot:  user.name,
+        actor_email_snapshot: user.email,
+        actor_role_snapshot:  'new_user',
+        module:               'auth',
+        action_type:          'login',
+        result:               'success',
+        description:          'Magic link login — first login, assigned new_user',
       });
       auditLog({
-        actor_id:            userId,
-        actor_name_snapshot: user.name,
-        actor_role_snapshot: 'new_user',
-        module:              'employee',
-        action_type:         'create',
-        result:              'success',
-        description:         'New account activated via magic link',
+        actor_id:             userId,
+        actor_name_snapshot:  user.name,
+        actor_email_snapshot: user.email,
+        actor_role_snapshot:  'new_user',
+        module:               'employee',
+        action_type:          'create',
+        result:               'success',
+        description:          'New account activated via magic link',
       });
 
       return NextResponse.json({
@@ -76,13 +78,14 @@ export async function POST(
 
     // Log recurring login
     auditLog({
-      actor_id:            userId,
-      actor_name_snapshot: user.name,
-      actor_role_snapshot: role,
-      module:              'auth',
-      action_type:         'login',
-      result:              'success',
-      description:         `Magic link login — existing role: ${role}`,
+      actor_id:             userId,
+      actor_name_snapshot:  user.name,
+      actor_email_snapshot: user.email,
+      actor_role_snapshot:  role,
+      module:               'auth',
+      action_type:          'login',
+      result:               'success',
+      description:          `Magic link login — existing role: ${role}`,
     });
 
     return NextResponse.json({

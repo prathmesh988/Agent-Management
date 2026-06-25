@@ -10,6 +10,7 @@ interface AuditDoc {
   timestamp: string;
   actor_id?: string;
   actor_name_snapshot?: string;
+  actor_email_snapshot?: string;
   actor_role_snapshot?: string;
   actor_ip?: string;
   module?: string;
@@ -158,6 +159,9 @@ function AuditRow({ doc, idx }: { doc: AuditDoc; idx: number }) {
         {/* Actor */}
         <td className="px-2 py-2.5 text-xs">
           <div className="font-medium text-slate-800 dark:text-slate-200">{doc.actor_name_snapshot || "system"}</div>
+          {doc.actor_email_snapshot && (
+            <div className="text-[11px] text-indigo-500 dark:text-indigo-400 font-mono">{doc.actor_email_snapshot}</div>
+          )}
           {doc.actor_role_snapshot && (
             <div className="text-[11px] text-slate-400 dark:text-slate-500">{doc.actor_role_snapshot}</div>
           )}
@@ -181,12 +185,14 @@ function AuditRow({ doc, idx }: { doc: AuditDoc; idx: number }) {
           <td colSpan={9} className="px-6 py-3">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-3 text-xs">
               {([
-                ["Actor ID",        doc.actor_id],
-                ["Actor IP",        doc.actor_ip],
-                ["Target",          doc.target_name_snapshot],
-                ["Employee ID",     doc.target_employee_id],
-                ["Timestamp (UTC)", doc.timestamp],
-                ["Log ID",          doc.$id],
+                ["Actor",          doc.actor_name_snapshot],
+                ["Actor Email",    doc.actor_email_snapshot],
+                ["Actor ID",       doc.actor_id],
+                ["Actor IP",       doc.actor_ip],
+                ["Target",         doc.target_name_snapshot],
+                ["Employee ID",    doc.target_employee_id],
+                ["Timestamp (UTC)",doc.timestamp],
+                ["Log ID",         doc.$id],
               ] as [string, string | undefined][]).map(([label, value]) =>
                 value ? (
                   <div key={label}>

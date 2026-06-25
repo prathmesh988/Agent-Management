@@ -39,8 +39,11 @@ export async function DELETE(
     // Audit log — critical: permanent user deletion
     const actorId = request.headers.get('x-user-id');
     const { actor_ip, actor_user_agent } = extractActorMeta(request);
+    const actorUser = actorId ? await users.get(actorId).catch(() => null) : null;
     auditLog({
       actor_id:             actorId ?? undefined,
+      actor_name_snapshot:  actorUser?.name ?? '',
+      actor_email_snapshot: actorUser?.email ?? '',
       actor_ip,
       actor_user_agent,
       module:               'employee',

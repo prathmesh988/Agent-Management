@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "init-db": "node scripts/init-all-collections.js",
-    "dev": "node scripts/init-all-collections.js && next dev",
-    "build": "node scripts/init-all-collections.js && next build",
-    "start": "node scripts/init-all-collections.js && next start",
+    "dev": "node init && node scripts/init-all-collections.js && next dev",
+    "build": "node init && node scripts/init-all-collections.js && next build",
+    "start": "node init && node scripts/init-all-collections.js && next start",
     "lint": "eslint"
   },
   "dependencies": {

@@ -21,14 +21,15 @@ export async function POST(req: NextRequest) {
 
     await auditLog({
       ...body,
-      module:              body.module      ?? 'audit',
-      action_type:         body.action_type ?? 'read',
-      result:              body.result      ?? 'success',
-      actor_id:            user?.$id            ?? body.actor_id ?? null,
-      actor_name_snapshot: user?.name           ?? body.actor_name_snapshot ?? '',
-      actor_role_snapshot: (user as any)?.labels?.[0] ?? body.actor_role_snapshot ?? '',
-      actor_ip:            meta.actor_ip,
-      actor_user_agent:    meta.actor_user_agent,
+      module:               body.module      ?? 'audit',
+      action_type:          body.action_type ?? 'read',
+      result:               body.result      ?? 'success',
+      actor_id:             user?.$id            ?? body.actor_id ?? null,
+      actor_name_snapshot:  user?.name           ?? body.actor_name_snapshot ?? '',
+      actor_email_snapshot: user?.email          ?? body.actor_email_snapshot ?? '',
+      actor_role_snapshot:  (user as any)?.labels?.[0] ?? body.actor_role_snapshot ?? '',
+      actor_ip:             meta.actor_ip,
+      actor_user_agent:     meta.actor_user_agent,
     });
 
     return NextResponse.json({ ok: true });
