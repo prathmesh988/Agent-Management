@@ -181,7 +181,16 @@ function SubmissionModal({ sub, onClose, onRefresh }: { sub: Submission; onClose
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
-      toast.success(action === 'approve' ? '✅ Candidate approved and employee record created!' : '❌ Submission rejected');
+
+      if (data.warning) {
+        toast.warning(`⚠️ ${data.warning}`);
+      } else {
+        toast.success(
+          action === 'approve'
+            ? `✅ Approved! Employee ID: ${data.employeeId}`
+            : '❌ Submission rejected',
+        );
+      }
       onRefresh();
       onClose();
     } catch (e: any) {

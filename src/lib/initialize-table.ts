@@ -111,6 +111,8 @@ export async function initializeEmployeesTable() {
       { key: "netSalary", type: "double" as const, required: false },
       { key: "penalty", type: "double" as const, required: false },
       { key: "paidAmount", type: "double" as const, required: false },
+      { key: "email",  type: "string" as const, size: 255, required: false },
+      { key: "status", type: "string" as const, size: 32,  required: false },
     ];
 
     for (const col of columns) {
