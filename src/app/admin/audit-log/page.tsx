@@ -31,30 +31,36 @@ interface FetchResult {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const MODULES     = ["", "auth", "employee", "payroll", "leave", "attendance", "roles", "documents", "reports", "audit"];
-const SEVERITIES  = ["", "critical", "high", "medium", "low"];
+const MODULES      = ["", "auth", "employee", "payroll", "leave", "attendance", "roles", "documents", "reports", "audit"];
+const SEVERITIES   = ["", "critical", "high", "medium", "low"];
 const ACTION_TYPES = ["", "create", "read", "update", "delete", "export", "login", "login_failed", "password_reset"];
-const RESULTS     = ["", "success", "failed"];
+const RESULTS      = ["", "success", "failed"];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function severityColor(s?: string) {
+function severityClasses(s?: string) {
   switch (s) {
-    case "critical": return { bg: "#fee2e2", text: "#b91c1c", dot: "#ef4444" };
-    case "high":     return { bg: "#ffedd5", text: "#c2410c", dot: "#f97316" };
-    case "medium":   return { bg: "#fef9c3", text: "#92400e", dot: "#eab308" };
-    case "low":      return { bg: "#dcfce7", text: "#166534", dot: "#22c55e" };
-    default:         return { bg: "#f1f5f9", text: "#475569", dot: "#94a3b8" };
+    case "critical": return { badge: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400", dot: "bg-red-500", bar: "bg-red-500" };
+    case "high":     return { badge: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400", dot: "bg-orange-500", bar: "bg-orange-500" };
+    case "medium":   return { badge: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400", dot: "bg-yellow-500", bar: "bg-yellow-500" };
+    case "low":      return { badge: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400", dot: "bg-green-500", bar: "bg-green-500" };
+    default:         return { badge: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400", dot: "bg-slate-400", bar: "bg-slate-400" };
   }
 }
 
-function moduleColor(m?: string) {
+function moduleClasses(m?: string) {
   const map: Record<string, string> = {
-    auth: "#6366f1", employee: "#0ea5e9", payroll: "#8b5cf6",
-    leave: "#ec4899", attendance: "#14b8a6", roles: "#f59e0b",
-    documents: "#64748b", reports: "#10b981", audit: "#f43f5e",
+    auth:       "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400",
+    employee:   "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400",
+    payroll:    "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
+    leave:      "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-400",
+    attendance: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400",
+    roles:      "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    documents:  "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
+    reports:    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
+    audit:      "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
   };
-  return map[m ?? ""] ?? "#94a3b8";
+  return map[m ?? ""] ?? "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400";
 }
 
 function actionIcon(a?: string) {
@@ -67,154 +73,133 @@ function actionIcon(a?: string) {
 
 function fmtTime(iso?: string) {
   if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
+  return new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 }
 
 function parseJson(s?: string) {
   try { return s ? JSON.parse(s) : null; } catch { return null; }
 }
 
-// ── Field Changes pill ────────────────────────────────────────────────────────
+// ── Field Changes ─────────────────────────────────────────────────────────────
 
 function FieldChanges({ raw }: { raw?: string }) {
   const changes = parseJson(raw);
   if (!changes || !Array.isArray(changes) || changes.length === 0) return null;
   return (
-    <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", gap: 4 }}>
+    <div className="mt-1.5 flex flex-wrap gap-1">
       {changes.map((c: { field: string; old_value: string; new_value: string }, i: number) => (
-        <span key={i} style={{
-          fontSize: 11, padding: "1px 6px", borderRadius: 4,
-          background: "#f8fafc", border: "1px solid #e2e8f0", color: "#334155",
-          fontFamily: "monospace",
-        }}>
-          {c.field}: <span style={{ color: "#dc2626" }}>{c.old_value || "∅"}</span>
+        <span key={i} className="font-mono text-[11px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+          {c.field}:{" "}
+          <span className="text-red-500 dark:text-red-400">{c.old_value || "∅"}</span>
           {" → "}
-          <span style={{ color: "#16a34a" }}>{c.new_value || "∅"}</span>
+          <span className="text-green-600 dark:text-green-400">{c.new_value || "∅"}</span>
         </span>
       ))}
     </div>
   );
 }
 
-// ── Row ───────────────────────────────────────────────────────────────────────
+// ── Table Row ─────────────────────────────────────────────────────────────────
 
 function AuditRow({ doc, idx }: { doc: AuditDoc; idx: number }) {
   const [expanded, setExpanded] = useState(false);
-  const sc = severityColor(doc.severity);
-  const mc = moduleColor(doc.module);
+  const sc  = severityClasses(doc.severity);
+  const mc  = moduleClasses(doc.module);
   const meta = parseJson(doc.metadata);
 
   return (
     <>
       <tr
         onClick={() => setExpanded(e => !e)}
-        style={{
-          background: idx % 2 === 0 ? "#ffffff" : "#f8fafc",
-          cursor: "pointer",
-          transition: "background 0.15s",
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = "#eff6ff")}
-        onMouseLeave={e => (e.currentTarget.style.background = idx % 2 === 0 ? "#ffffff" : "#f8fafc")}
+        className={`cursor-pointer transition-colors hover:bg-blue-50 dark:hover:bg-slate-800/60 ${idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50/60 dark:bg-slate-900/60"}`}
       >
-        {/* Severity bar */}
-        <td style={{ width: 4, padding: 0 }}>
-          <div style={{ width: 4, height: "100%", minHeight: 48, background: sc.dot }} />
+        {/* Severity left bar */}
+        <td className="p-0 w-1">
+          <div className={`w-1 min-h-[48px] h-full ${sc.bar}`} />
         </td>
 
         {/* Timestamp */}
-        <td style={{ padding: "10px 12px", fontSize: 12, color: "#64748b", whiteSpace: "nowrap" }}>
+        <td className="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
           {fmtTime(doc.timestamp)}
         </td>
 
         {/* Severity */}
-        <td style={{ padding: "10px 8px" }}>
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 4,
-            padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600,
-            background: sc.bg, color: sc.text,
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: sc.dot, display: "inline-block" }} />
+        <td className="px-2 py-2.5">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${sc.badge}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
             {doc.severity ?? "—"}
           </span>
         </td>
 
         {/* Module */}
-        <td style={{ padding: "10px 8px" }}>
-          <span style={{
-            display: "inline-block", padding: "2px 8px", borderRadius: 4,
-            fontSize: 11, fontWeight: 600, background: mc + "1a", color: mc,
-            textTransform: "uppercase", letterSpacing: "0.04em",
-          }}>
+        <td className="px-2 py-2.5">
+          <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide ${mc}`}>
             {doc.module ?? "—"}
           </span>
         </td>
 
         {/* Action */}
-        <td style={{ padding: "10px 8px", fontSize: 12, color: "#334155" }}>
-          <span style={{ marginRight: 4 }}>{actionIcon(doc.action_type)}</span>
+        <td className="px-2 py-2.5 text-xs text-slate-700 dark:text-slate-300 whitespace-nowrap">
+          <span className="mr-1">{actionIcon(doc.action_type)}</span>
           {doc.action_type ?? "—"}
         </td>
 
         {/* Result */}
-        <td style={{ padding: "10px 8px" }}>
-          <span style={{
-            padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 600,
-            background: doc.result === "success" ? "#dcfce7" : "#fee2e2",
-            color: doc.result === "success" ? "#166534" : "#b91c1c",
-          }}>
+        <td className="px-2 py-2.5">
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+            doc.result === "success"
+              ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+              : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400"
+          }`}>
             {doc.result ?? "—"}
           </span>
         </td>
 
         {/* Actor */}
-        <td style={{ padding: "10px 8px", fontSize: 12, color: "#334155" }}>
-          <div style={{ fontWeight: 500 }}>{doc.actor_name_snapshot || "system"}</div>
+        <td className="px-2 py-2.5 text-xs">
+          <div className="font-medium text-slate-800 dark:text-slate-200">{doc.actor_name_snapshot || "system"}</div>
           {doc.actor_role_snapshot && (
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>{doc.actor_role_snapshot}</div>
+            <div className="text-[11px] text-slate-400 dark:text-slate-500">{doc.actor_role_snapshot}</div>
           )}
         </td>
 
         {/* Description */}
-        <td style={{ padding: "10px 12px", fontSize: 12, color: "#475569", maxWidth: 280 }}>
-          <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {doc.description || "—"}
-          </div>
+        <td className="px-3 py-2.5 text-xs text-slate-600 dark:text-slate-400 max-w-xs">
+          <div className="truncate">{doc.description || "—"}</div>
           <FieldChanges raw={doc.field_changes} />
         </td>
 
-        {/* Expand chevron */}
-        <td style={{ padding: "10px 8px", color: "#94a3b8", fontSize: 12 }}>
+        {/* Expand */}
+        <td className="px-2 py-2.5 text-[11px] text-slate-400 dark:text-slate-500">
           {expanded ? "▲" : "▼"}
         </td>
       </tr>
 
-      {/* Expanded detail row */}
+      {/* Expanded detail */}
       {expanded && (
-        <tr style={{ background: "#f0f7ff" }}>
-          <td colSpan={9} style={{ padding: "12px 24px 16px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "10px 24px", fontSize: 12 }}>
-              {[
+        <tr className="bg-blue-50/50 dark:bg-slate-800/40 border-b border-blue-100 dark:border-slate-700">
+          <td colSpan={9} className="px-6 py-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-3 text-xs">
+              {([
                 ["Actor ID",        doc.actor_id],
                 ["Actor IP",        doc.actor_ip],
                 ["Target",          doc.target_name_snapshot],
                 ["Employee ID",     doc.target_employee_id],
                 ["Timestamp (UTC)", doc.timestamp],
                 ["Log ID",          doc.$id],
-              ].map(([label, value]) => value ? (
-                <div key={label}>
-                  <div style={{ color: "#94a3b8", fontSize: 11, marginBottom: 2 }}>{label}</div>
-                  <div style={{ color: "#334155", fontFamily: "monospace", wordBreak: "break-all" }}>{value}</div>
-                </div>
-              ) : null)}
+              ] as [string, string | undefined][]).map(([label, value]) =>
+                value ? (
+                  <div key={label}>
+                    <div className="text-[11px] text-slate-400 dark:text-slate-500 mb-0.5">{label}</div>
+                    <div className="font-mono text-slate-700 dark:text-slate-300 break-all">{value}</div>
+                  </div>
+                ) : null
+              )}
 
               {meta && Object.keys(meta).length > 0 && (
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <div style={{ color: "#94a3b8", fontSize: 11, marginBottom: 4 }}>Metadata</div>
-                  <pre style={{
-                    background: "#1e293b", color: "#e2e8f0", padding: "8px 12px",
-                    borderRadius: 6, fontSize: 11, overflow: "auto", margin: 0,
-                  }}>
+                <div className="col-span-full">
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Metadata</div>
+                  <pre className="bg-slate-900 dark:bg-slate-950 text-emerald-400 dark:text-emerald-300 p-3 rounded-lg text-[11px] overflow-auto">
                     {JSON.stringify(meta, null, 2)}
                   </pre>
                 </div>
@@ -227,26 +212,20 @@ function AuditRow({ doc, idx }: { doc: AuditDoc; idx: number }) {
   );
 }
 
-// ── Filter bar ────────────────────────────────────────────────────────────────
+// ── Select filter ─────────────────────────────────────────────────────────────
 
-function Select({ label, value, onChange, options }: {
+function FilterSelect({ label, value, onChange, options }: {
   label: string; value: string;
   onChange: (v: string) => void;
   options: string[];
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        {label}
-      </label>
+    <div className="flex flex-col gap-1">
+      <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{label}</label>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        style={{
-          padding: "6px 10px", borderRadius: 8, border: "1px solid #e2e8f0",
-          background: "#fff", color: "#334155", fontSize: 13,
-          outline: "none", cursor: "pointer",
-        }}
+        className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
       >
         {options.map(o => (
           <option key={o} value={o}>{o === "" ? `All ${label}s` : o}</option>
@@ -256,7 +235,7 @@ function Select({ label, value, onChange, options }: {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AuditLogPage() {
   const { currentUser } = useCurrentUser();
@@ -269,7 +248,6 @@ export default function AuditLogPage() {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
 
-  // Filters
   const [module_,    setModule]     = useState("");
   const [severity,   setSeverity]   = useState("");
   const [actionType, setActionType] = useState("");
@@ -278,32 +256,29 @@ export default function AuditLogPage() {
   const [from,       setFrom]       = useState("");
   const [to,         setTo]         = useState("");
 
-  // Self-log page view once on mount
+  // Self-log page view
   useEffect(() => {
     if (hasLogged.current || !currentUser) return;
     hasLogged.current = true;
     const userId = (currentUser as any)?.$id ?? (currentUser as any)?.id;
     fetch("/api/audit-logs/record", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(userId ? { "x-user-id": userId } : {}),
-      },
+      headers: { "Content-Type": "application/json", ...(userId ? { "x-user-id": userId } : {}) },
       body: JSON.stringify({ module: "audit", action_type: "read", result: "success", severity: "low", description: "Viewed audit log page" }),
     }).catch(() => {});
   }, [currentUser]);
 
   const buildQuery = useCallback(() => {
     const p = new URLSearchParams();
-    p.set("page",  String(page));
+    p.set("page", String(page));
     p.set("limit", "30");
-    if (module_)    p.set("module",       module_);
-    if (severity)   p.set("severity",     severity);
-    if (actionType) p.set("action_type",  actionType);
-    if (result)     p.set("result",       result);
-    if (search)     p.set("search",       search);
-    if (from)       p.set("from",         from);
-    if (to)         p.set("to",           to);
+    if (module_)    p.set("module",      module_);
+    if (severity)   p.set("severity",    severity);
+    if (actionType) p.set("action_type", actionType);
+    if (result)     p.set("result",      result);
+    if (search)     p.set("search",      search);
+    if (from)       p.set("from",        from);
+    if (to)         p.set("to",          to);
     return p.toString();
   }, [page, module_, severity, actionType, result, search, from, to]);
 
@@ -329,13 +304,15 @@ export default function AuditLogPage() {
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  const handleFilterChange = (setter: (v: string) => void) => (v: string) => {
+  const setFilter = (setter: (v: string) => void) => (v: string) => {
     setter(v);
     setPage(1);
   };
 
+  const hasFilters = !!(module_ || severity || actionType || result || search || from || to);
+
   const exportCsv = () => {
-    const userId = (currentUser as any)?.$id ?? (currentUser as any)?.id;
+    const userId = (currentUser as any)?.$id;
     const p = new URLSearchParams();
     if (module_)    p.set("module",      module_);
     if (severity)   p.set("severity",    severity);
@@ -343,75 +320,51 @@ export default function AuditLogPage() {
     if (from)       p.set("from",        from);
     if (to)         p.set("to",          to);
     const url = `/api/audit-logs/export?${p.toString()}`;
-    const a = document.createElement("a");
-    a.href = url;
-    if (userId) {
-      // Add header via fetch + blob for authenticated download
-      fetch(url, { headers: { "x-user-id": userId } })
-        .then(r => r.blob())
-        .then(blob => {
-          a.href = URL.createObjectURL(blob);
-          a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
-          a.click();
-        });
-    } else {
-      a.click();
-    }
+    fetch(url, { headers: userId ? { "x-user-id": userId } : {} })
+      .then(r => r.blob())
+      .then(blob => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+      });
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 font-sans">
+
       {/* ── Header ── */}
-      <div style={{
-        background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-        padding: "24px 32px",
-        display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10,
-            background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
-          }}>🔍</div>
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 px-6 py-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700 dark:border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-xl shadow-lg">
+            🔍
+          </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#f8fafc" }}>Audit Log</h1>
-            <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>
+            <h1 className="text-xl font-bold text-white">Audit Log</h1>
+            <p className="text-xs text-slate-400">
               Immutable activity trail · {total.toLocaleString()} total entries
             </p>
           </div>
-          <span style={{
-            padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
-            background: "#22c55e22", color: "#4ade80", border: "1px solid #22c55e44",
-            display: "flex", alignItems: "center", gap: 5,
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-green-500/10 text-green-400 border border-green-500/30">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
             TAMPER-PROOF
           </span>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex gap-2">
           <button
             id="audit-log-refresh-btn"
             onClick={fetchLogs}
             disabled={loading}
-            style={{
-              padding: "8px 16px", borderRadius: 8, border: "1px solid #334155",
-              background: "#1e293b", color: "#94a3b8", fontSize: 13, cursor: "pointer",
-              display: "flex", alignItems: "center", gap: 6,
-            }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors text-sm disabled:opacity-50"
           >
-            <span style={{ display: "inline-block", animation: loading ? "spin 1s linear infinite" : "none" }}>⟳</span>
+            <span className={loading ? "animate-spin inline-block" : ""}>⟳</span>
             Refresh
           </button>
           <button
             id="audit-log-export-btn"
             onClick={exportCsv}
-            style={{
-              padding: "8px 16px", borderRadius: 8, border: "none",
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-              color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
-              display: "flex", alignItems: "center", gap: 6,
-            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white text-sm font-semibold shadow transition-all"
           >
             ⬇ Export CSV
           </button>
@@ -419,151 +372,137 @@ export default function AuditLogPage() {
       </div>
 
       {/* ── Filter bar ── */}
-      <div style={{
-        background: "#fff", borderBottom: "1px solid #e2e8f0",
-        padding: "14px 32px", display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end",
-      }}>
+      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex flex-wrap items-end gap-4">
         {/* Search */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "1 1 220px" }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Search
-          </label>
+        <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
+          <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Search</label>
           <input
             id="audit-search-input"
             type="text"
             placeholder="description, actor name…"
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            style={{
-              padding: "6px 10px", borderRadius: 8, border: "1px solid #e2e8f0",
-              fontSize: 13, color: "#334155", outline: "none",
-            }}
+            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
           />
         </div>
 
-        <Select label="Module"   value={module_}    onChange={handleFilterChange(setModule)}     options={MODULES} />
-        <Select label="Severity" value={severity}   onChange={handleFilterChange(setSeverity)}   options={SEVERITIES} />
-        <Select label="Action"   value={actionType} onChange={handleFilterChange(setActionType)} options={ACTION_TYPES} />
-        <Select label="Result"   value={result}     onChange={handleFilterChange(setResult)}     options={RESULTS} />
+        <FilterSelect label="Module"   value={module_}    onChange={setFilter(setModule)}     options={MODULES} />
+        <FilterSelect label="Severity" value={severity}   onChange={setFilter(setSeverity)}   options={SEVERITIES} />
+        <FilterSelect label="Action"   value={actionType} onChange={setFilter(setActionType)} options={ACTION_TYPES} />
+        <FilterSelect label="Result"   value={result}     onChange={setFilter(setResult)}     options={RESULTS} />
 
-        {/* Date range */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>From</label>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">From</label>
           <input type="date" value={from} onChange={e => { setFrom(e.target.value); setPage(1); }}
-            style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13, color: "#334155" }} />
+            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>To</label>
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">To</label>
           <input type="date" value={to} onChange={e => { setTo(e.target.value); setPage(1); }}
-            style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: 13, color: "#334155" }} />
+            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
 
-        {(module_ || severity || actionType || result || search || from || to) && (
+        {hasFilters && (
           <button
             onClick={() => { setModule(""); setSeverity(""); setActionType(""); setResult(""); setSearch(""); setFrom(""); setTo(""); setPage(1); }}
-            style={{
-              padding: "6px 14px", borderRadius: 8, border: "1px solid #fca5a5",
-              background: "#fee2e2", color: "#b91c1c", fontSize: 13, cursor: "pointer",
-            }}
+            className="px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
           >
             ✕ Clear
           </button>
         )}
       </div>
 
-      {/* ── Table ── */}
-      <div style={{ padding: "24px 32px" }}>
+      {/* ── Content ── */}
+      <div className="flex-1 overflow-auto px-6 py-4">
+
         {error && (
-          <div style={{ padding: 16, borderRadius: 10, background: "#fee2e2", color: "#b91c1c", marginBottom: 16, fontSize: 13 }}>
+          <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
             ⚠ {error}
           </div>
         )}
 
         {loading && logs.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "#94a3b8" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>⟳</div>
-            <p>Loading audit entries…</p>
+          <div className="flex flex-col items-center justify-center py-24 text-slate-400 dark:text-slate-500">
+            <span className="text-4xl mb-3 animate-spin">⟳</span>
+            <p className="text-sm">Loading audit entries…</p>
           </div>
         ) : logs.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "#94a3b8" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: "#475569" }}>No entries found</p>
-            <p style={{ fontSize: 13 }}>Try adjusting your filters</p>
+          <div className="flex flex-col items-center justify-center py-24 text-slate-400 dark:text-slate-500">
+            <span className="text-5xl mb-4">📋</span>
+            <p className="text-base font-semibold text-slate-600 dark:text-slate-300 mb-1">No entries found</p>
+            <p className="text-sm">Try adjusting your filters</p>
           </div>
         ) : (
           <>
-            <div style={{
-              background: "#fff", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.07)",
-              border: "1px solid #e2e8f0", overflow: "hidden",
-            }}>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            {/* Table */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                      {["", "Timestamp", "Severity", "Module", "Action", "Result", "Actor", "Description", ""].map((h, i) => (
-                        <th key={i} style={{
-                          padding: i === 0 ? 0 : "10px 12px",
-                          textAlign: "left", fontSize: 11, fontWeight: 700,
-                          color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em",
-                          whiteSpace: "nowrap",
-                        }}>{h}</th>
+                    <tr className="bg-slate-50 dark:bg-slate-800/80 border-b-2 border-slate-200 dark:border-slate-700">
+                      <th className="w-1 p-0" />
+                      {["Timestamp", "Severity", "Module", "Action", "Result", "Actor", "Description", ""].map(h => (
+                        <th key={h} className="px-3 py-2.5 text-left text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {logs.map((doc, i) => <AuditRow key={doc.$id} doc={doc} idx={i} />)}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            {/* ── Pagination ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, flexWrap: "wrap", gap: 8 }}>
-              <span style={{ fontSize: 13, color: "#64748b" }}>
-                Showing {((page - 1) * 30) + 1}–{Math.min(page * 30, total)} of {total.toLocaleString()} entries
+            {/* Pagination */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Showing {((page - 1) * 30) + 1}–{Math.min(page * 30, total)} of{" "}
+                <strong className="text-slate-700 dark:text-slate-200">{total.toLocaleString()}</strong> entries
               </span>
-              <div style={{ display: "flex", gap: 4 }}>
-                <button
-                  onClick={() => setPage(1)}
-                  disabled={page === 1}
-                  style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #e2e8f0", background: page === 1 ? "#f8fafc" : "#fff", cursor: page === 1 ? "default" : "pointer", color: "#475569" }}
-                >«</button>
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: page === 1 ? "#f8fafc" : "#fff", cursor: page === 1 ? "default" : "pointer", color: "#475569" }}
-                >‹ Prev</button>
+
+              <div className="flex gap-1">
+                {[
+                  { label: "«", p: 1,         disabled: page === 1 },
+                  { label: "‹", p: page - 1,  disabled: page === 1 },
+                ].map(({ label, p, disabled }) => (
+                  <button key={label} onClick={() => setPage(p)} disabled={disabled}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-default transition-colors">
+                    {label}
+                  </button>
+                ))}
+
                 {Array.from({ length: Math.min(7, pages) }, (_, i) => {
                   const start = Math.max(1, Math.min(page - 3, pages - 6));
                   const p = start + i;
                   if (p > pages) return null;
                   return (
-                    <button key={p} onClick={() => setPage(p)} style={{
-                      padding: "6px 12px", borderRadius: 6,
-                      border: p === page ? "1px solid #6366f1" : "1px solid #e2e8f0",
-                      background: p === page ? "#6366f1" : "#fff",
-                      color: p === page ? "#fff" : "#475569",
-                      fontWeight: p === page ? 700 : 400, cursor: "pointer",
-                    }}>{p}</button>
+                    <button key={p} onClick={() => setPage(p)}
+                      className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                        p === page
+                          ? "border-indigo-500 bg-indigo-500 text-white"
+                          : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      }`}>
+                      {p}
+                    </button>
                   );
                 })}
-                <button
-                  onClick={() => setPage(p => Math.min(pages, p + 1))}
-                  disabled={page === pages}
-                  style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #e2e8f0", background: page === pages ? "#f8fafc" : "#fff", cursor: page === pages ? "default" : "pointer", color: "#475569" }}
-                >Next ›</button>
-                <button
-                  onClick={() => setPage(pages)}
-                  disabled={page === pages}
-                  style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #e2e8f0", background: page === pages ? "#f8fafc" : "#fff", cursor: page === pages ? "default" : "pointer", color: "#475569" }}
-                >»</button>
+
+                {[
+                  { label: "›", p: page + 1, disabled: page === pages },
+                  { label: "»", p: pages,    disabled: page === pages },
+                ].map(({ label, p, disabled }) => (
+                  <button key={label} onClick={() => setPage(p)} disabled={disabled}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-default transition-colors">
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
           </>
         )}
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
