@@ -1,16 +1,34 @@
+'use client';
+
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Lock } from 'lucide-react';
 import { exportPayrollToExcel, exportPayrollToCSV } from '@/lib/payroll-export';
 import type { MonthlyPayrollRecord, PayrollSummary } from '@/services/database/monthly-payroll';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
+import type { AppRole } from '@/lib/permissions';
 
 interface PayrollTableProps {
   payrollData: MonthlyPayrollRecord[];
   summary?: PayrollSummary | null;
   monthYear?: string;
+  /** Optional pre-built map of employee email → role for salary visibility checks. */
+  roleMap?: Map<string, AppRole>;
 }
 
-export function PayrollTable({ payrollData, summary = null, monthYear = '' }: PayrollTableProps) {
+/** Renders value when allowed, otherwise a lock badge. */
+function SalaryCell({ allowed, children }: { allowed: boolean; children: React.ReactNode }) {
+  if (allowed) return <>{children}</>;
+  return (
+    <span className="text-muted-foreground text-xs flex items-center justify-end gap-1">
+      <Lock className="h-3 w-3" /> Restricted
+    </span>
+  );
+}
+
+export function PayrollTable({ payrollData, summary = null, monthYear = '', roleMap }: PayrollTableProps) {
+  const { canSeeSalaryOf } = useRoleGuard();
+
   if (payrollData.length === 0) return null;
 
   const handleExportExcel = () => {
@@ -64,38 +82,52 @@ export function PayrollTable({ payrollData, summary = null, monthYear = '' }: Pa
           </tr>
         </thead>
         <tbody>
-          {payrollData.map((record, index) => (
-            <tr key={record.$id || `${record.employeeId}-${record.year}-${record.month}`} className="border-b border-border hover:bg-muted/50">
-              <td className="py-3 px-4 text-foreground">{record.employeeId}</td>
-              <td className="py-3 px-4 text-right text-foreground">
-                ₹{Number(record.grossSalary).toLocaleString('en-IN')}
-              </td>
-              <td className="py-3 px-4 text-right text-foreground">{record.presentDays}</td>
-              <td className="py-3 px-4 text-right text-red-600">{record.absentDays}</td>
-              <td className="py-3 px-4 text-right text-red-600">
-                ₹{Number(record.deductedAmount).toLocaleString('en-IN')}
-              </td>
-              <td className="py-3 px-4 text-right text-orange-600">
-                ₹{Number(record.tdsDeducted).toLocaleString('en-IN')}
-              </td>
-              <td className="py-3 px-4 text-right font-semibold text-green-600">
-                ₹{Number(record.netSalary).toLocaleString('en-IN')}
-              </td>
-              <td className="py-3 px-4 text-center">
-                <span
-                  className={`text-xs font-medium px-2 py-1 rounded ${
-                    record.status === 'draft'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                      : record.status === 'approved'
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                        : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                  }`}
-                >
-                  {record.status}
-                </span>
-              </td>
-            </tr>
-          ))}
+          {payrollData.map((record) => {
+            // Derive the target employee's role from the roleMap (if provided)
+            const employeeRole: AppRole = (roleMap?.get(record.employeeId ?? '') ?? 'new_user');
+            const canSee = canSeeSalaryOf(employeeRole);
+
+            return (
+              <tr key={record.$id || `${record.employeeId}-${record.year}-${record.month}`} className="border-b border-border hover:bg-muted/50">
+                <td className="py-3 px-4 text-foreground">{record.employeeId}</td>
+                <td className="py-3 px-4 text-right text-foreground">
+                  <SalaryCell allowed={canSee}>
+                    ₹{Number(record.grossSalary).toLocaleString('en-IN')}
+                  </SalaryCell>
+                </td>
+                <td className="py-3 px-4 text-right text-foreground">{record.presentDays}</td>
+                <td className="py-3 px-4 text-right text-red-600">{record.absentDays}</td>
+                <td className="py-3 px-4 text-right text-red-600">
+                  <SalaryCell allowed={canSee}>
+                    ₹{Number(record.deductedAmount).toLocaleString('en-IN')}
+                  </SalaryCell>
+                </td>
+                <td className="py-3 px-4 text-right text-orange-600">
+                  <SalaryCell allowed={canSee}>
+                    ₹{Number(record.tdsDeducted).toLocaleString('en-IN')}
+                  </SalaryCell>
+                </td>
+                <td className="py-3 px-4 text-right font-semibold text-green-600">
+                  <SalaryCell allowed={canSee}>
+                    ₹{Number(record.netSalary).toLocaleString('en-IN')}
+                  </SalaryCell>
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <span
+                    className={`text-xs font-medium px-2 py-1 rounded ${
+                      record.status === 'draft'
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                        : record.status === 'approved'
+                          ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    }`}
+                  >
+                    {record.status}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </Card>

@@ -12,6 +12,7 @@ import { Employee } from "@/lib/types";
 import { Query } from "node-appwrite";
 import { createDatabasesWithAuth, DB_CONFIG } from "@/services/database/client";
 import { requireAuth } from "@/lib/auth-utils";
+import { auditLog, diffFields } from "@/lib/audit-logger";
 
 /**
  * Transform EmployeeRecord from database to Employee interface for UI
@@ -194,9 +195,12 @@ export async function updateEmployeeAction(
   updates: Partial<Employee>,
 ): Promise<Employee> {
   // Verify user is authenticated before allowing updates
-  await requireAuth();
+  const actor = await requireAuth();
 
   try {
+    // Fetch the current record BEFORE update for field diffing
+    const before = await dbFetchEmployee(employeeId);
+
     // All numeric fields from database schema (double type)
     const numericFields = new Set([
       'sno', 'ctc', 'attendanceAllowance', 'dateOfJoining',
@@ -306,6 +310,34 @@ export async function updateEmployeeAction(
     console.log("📦 Updating employee with cleaned updates:", cleanedUpdates);
     const updated = await dbUpdateEmployee(employeeId, cleanedUpdates);
     console.log("✅ Employee updated successfully:", updated);
+
+    // Audit log — employee update with field diff (fire and forget)
+    if (before) {
+      const watchKeys: (keyof EmployeeRecord)[] = [
+        'name', 'designation', 'process', 'ctc', 'accountNumber',
+        'ifscCode', 'bankName', 'uanNumber', 'paymentMode',
+      ];
+      const fieldChanges = diffFields(
+        before as Record<string, unknown>,
+        cleanedUpdates as Record<string, unknown>,
+        watchKeys as string[],
+      );
+      auditLog({
+        actor_id:             (actor as any)?.$id,
+        actor_name_snapshot:  (actor as any)?.name ?? '',
+        actor_role_snapshot:  (actor as any)?.labels?.[0] ?? '',
+        actor_ip:             'server-action',
+        module:               'employee',
+        action_type:          'update',
+        result:               'success',
+        target_id:            employeeId,
+        target_name_snapshot: before.name ?? '',
+        target_employee_id:   before.employeeId ?? '',
+        field_changes:        fieldChanges,
+        description:          `Employee updated: ${before.name ?? employeeId}`,
+      });
+    }
+
     return transformEmployeeRecord(updated);
   } catch (error) {
     console.error("❌ Error updating employee:", error);

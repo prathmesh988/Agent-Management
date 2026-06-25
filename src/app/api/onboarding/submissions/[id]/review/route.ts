@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Client, Databases, ID, Query } from 'node-appwrite';
 import { ensureOnboardingSchema } from '@/lib/onboarding-init';
 import { getAuthenticatedUser } from '@/lib/auth-utils';
+import { auditLog, extractActorMeta } from '@/lib/audit-logger';
 
 // ── Appwrite admin client ─────────────────────────────────────────────────────
 
@@ -71,12 +72,38 @@ async function fetchExistingEmployeeNumbers(databases: Databases): Promise<Set<n
 async function generateEmployeeId(databases: Databases): Promise<string> {
   const used = await fetchExistingEmployeeNumbers(databases);
 
-  if (used.size === 0) {
-    return `${ID_PREFIX}1001`; // First employee ever
+  // Also scan onboarding_submissions for already-assigned IDs
+  // (covers the case where the employee doc failed to create but employeeId was set on submission)
+  try {
+    let cursor: string | undefined;
+    for (let page = 0; page < 50; page++) {
+      const queries: string[] = [
+        Query.limit(100),
+        Query.select(['employeeId']),
+        Query.isNotNull('employeeId'),
+      ];
+      if (cursor) queries.push(Query.cursorAfter(cursor));
+      const result = await databases.listDocuments({
+        databaseId:   DB_ID(),
+        collectionId: SUBS_COL(),
+        queries,
+      });
+      for (const doc of result.documents) {
+        const raw: string = doc.employeeId ?? '';
+        if (raw.startsWith(ID_PREFIX)) {
+          const num = parseInt(raw.slice(ID_PREFIX.length), 10);
+          if (!isNaN(num)) used.add(num);
+        }
+      }
+      if (result.documents.length < 100) break;
+      cursor = result.documents[result.documents.length - 1].$id;
+    }
+  } catch {
+    /* non-fatal — submission scan is best-effort */
   }
 
-  const max = Math.max(...used);
-  let candidate = max + 1;
+  const base = used.size === 0 ? 1000 : Math.max(...used);
+  let candidate = base + 1;
 
   // Self-resolving: skip any collision (e.g. manually entered AIR IDs)
   while (used.has(candidate)) {
@@ -136,6 +163,7 @@ export async function PATCH(
 
     // ── Approval path: generate AIR#### ID and create employee record ──────────
     let employeeId: string | undefined;
+    let employeeCreationError: string | undefined;
     if (action === 'approve') {
       try {
         const empId = await generateEmployeeId(databases);
@@ -156,16 +184,65 @@ export async function PATCH(
             bankName:      sub.bankName      || '',
             paymentMode:   'bank',
             uanNumber:     '',
+            dateOfJoining: Date.now(),   // unix ms — matches double column
+            status:        'active',     // visible in employees list; no salary = stub indicator
           },
         });
 
         reviewData.employeeId = empId;
         employeeId = empId;
         console.log(`[review] Created employee ${empId} for submission ${id}`);
+
+        // Audit: onboarding approved + employee created
+        const { actor_ip, actor_user_agent } = extractActorMeta(req);
+        auditLog({
+          actor_id:             (user as any).$id,
+          actor_name_snapshot:  (user as any).name,
+          actor_role_snapshot:  (user as any).labels?.[0],
+          actor_ip,
+          actor_user_agent,
+          module:               'employee',
+          action_type:          'create',
+          result:               'success',
+          target_name_snapshot: sub.fullName,
+          target_employee_id:   empId,
+          description:          `Onboarding approved — employee created with ID ${empId}`,
+        });
       } catch (empErr: any) {
-        // Non-fatal — submission is still marked approved
-        console.warn('[review] Could not auto-create employee record:', empErr.message);
+        // Still approve the submission, but surface the error to the caller
+        employeeCreationError = empErr.message;
+        console.error('[review] Employee record creation failed:', empErr);
+
+        // Audit: approval failed
+        const { actor_ip, actor_user_agent } = extractActorMeta(req);
+        auditLog({
+          actor_id:             (user as any).$id,
+          actor_name_snapshot:  (user as any).name,
+          actor_role_snapshot:  (user as any).labels?.[0],
+          actor_ip,
+          actor_user_agent,
+          module:               'employee',
+          action_type:          'create',
+          result:               'failed',
+          target_name_snapshot: sub.fullName,
+          description:          `Onboarding approved but employee record creation failed: ${empErr.message}`,
+        });
       }
+    } else {
+      // Reject path
+      const { actor_ip, actor_user_agent } = extractActorMeta(req);
+      auditLog({
+        actor_id:             (user as any).$id,
+        actor_name_snapshot:  (user as any).name,
+        actor_role_snapshot:  (user as any).labels?.[0],
+        actor_ip,
+        actor_user_agent,
+        module:               'employee',
+        action_type:          'update',
+        result:               'success',
+        target_name_snapshot: sub.fullName,
+        description:          `Onboarding rejected — candidate: ${sub.fullName}`,
+      });
     }
 
     // Update the submission document
@@ -176,7 +253,14 @@ export async function PATCH(
       data:         reviewData,
     });
 
-    return NextResponse.json({ success: true, status: newStatus, employeeId });
+    return NextResponse.json({
+      success: true,
+      status: newStatus,
+      employeeId,
+      ...(employeeCreationError
+        ? { warning: `Submission approved but employee record could not be created: ${employeeCreationError}` }
+        : {}),
+    });
   } catch (error: any) {
     console.error('[review] error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

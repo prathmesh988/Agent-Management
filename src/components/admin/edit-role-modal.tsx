@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { AdminUser } from "@/lib/types";
 import { Card } from "@/components/ui/card";
+import { Lock } from "lucide-react";
+import { ROLE_RANK, type AppRole } from "@/lib/permissions";
 
 type AssignableRole = 'admin' | 'manager' | 'hr' | 'viewer' | 'mvp' | 'new_user';
 
@@ -12,6 +14,8 @@ interface EditRoleModalProps {
   isUpdating: boolean;
   onClose: () => void;
   onRoleChange: (role: AssignableRole) => Promise<void>;
+  /** The currently logged-in user's role — used to lock out-of-reach options. */
+  myRole?: AppRole;
 }
 
 const ROLES: {
@@ -71,12 +75,26 @@ export function EditRoleModal({
   isUpdating,
   onClose,
   onRoleChange,
+  myRole,
 }: EditRoleModalProps) {
   const [selectedRole, setSelectedRole] = useState<AssignableRole>(
     (admin.role as AssignableRole) ?? 'mvp'
   );
 
+  /**
+   * A role option is locked when:
+   * - The actor is not admin AND
+   * - The role's rank >= the actor's own rank
+   */
+  const isRoleLocked = (role: AssignableRole): boolean => {
+    if (!myRole || myRole === 'admin') return false;
+    return ROLE_RANK[role as AppRole] >= ROLE_RANK[myRole];
+  };
+
+  const selectedIsLocked = isRoleLocked(selectedRole);
+
   const handleSave = async () => {
+    if (selectedIsLocked) return;
     if (selectedRole !== admin.role) {
       await onRoleChange(selectedRole);
     }
@@ -97,31 +115,41 @@ export function EditRoleModal({
         </p>
 
         <div className="space-y-2 mb-6">
-          {ROLES.map((r) => (
-            <label
-              key={r.value}
-              className={`flex items-center p-3.5 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                selectedRole === r.value
-                  ? r.accent
-                  : 'border-border bg-transparent hover:bg-muted/50'
-              }`}
-            >
-              <input
-                type="radio"
-                name="role"
-                value={r.value}
-                checked={selectedRole === r.value}
-                onChange={() => setSelectedRole(r.value)}
-                className="w-4 h-4 accent-current"
-                disabled={isUpdating}
-              />
-              <span className="ml-2 text-lg leading-none flex-shrink-0">{r.icon}</span>
-              <div className="ml-3">
-                <p className="font-semibold text-foreground text-sm">{r.label}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{r.desc}</p>
-              </div>
-            </label>
-          ))}
+          {ROLES.map((r) => {
+            const locked = isRoleLocked(r.value);
+            return (
+              <label
+                key={r.value}
+                className={`flex items-center p-3.5 border-2 rounded-lg transition-all duration-200 ${
+                  locked
+                    ? 'border-border bg-muted/30 cursor-not-allowed opacity-60'
+                    : selectedRole === r.value
+                    ? r.accent + ' cursor-pointer'
+                    : 'border-border bg-transparent hover:bg-muted/50 cursor-pointer'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value={r.value}
+                  checked={selectedRole === r.value}
+                  onChange={() => !locked && setSelectedRole(r.value)}
+                  className="w-4 h-4 accent-current"
+                  disabled={isUpdating || locked}
+                />
+                <span className="ml-2 text-lg leading-none flex-shrink-0">{r.icon}</span>
+                <div className="ml-3 flex-1">
+                  <p className="font-semibold text-foreground text-sm">{r.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{r.desc}</p>
+                </div>
+                {locked && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Lock className="h-3 w-3" /> Locked
+                  </span>
+                )}
+              </label>
+            );
+          })}
         </div>
 
         <div className="flex gap-3 justify-end">
@@ -134,7 +162,7 @@ export function EditRoleModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={isUpdating || selectedRole === admin.role}
+            disabled={isUpdating || selectedRole === admin.role || selectedIsLocked}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
           >
             {isUpdating ? 'Saving…' : 'Save Changes'}
@@ -144,3 +172,5 @@ export function EditRoleModal({
     </div>
   );
 }
+
+

@@ -20,6 +20,7 @@ import {
   Crown,
   Eye,
   UserPlus,
+  ClipboardList,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -156,6 +157,7 @@ const navItems = [
   { title: 'Upload Employees', href: '/admin/employees/upload',  icon: Upload,          pageId: 'employees'        },
   { title: 'Certificates',     href: '/admin/certificates',      icon: FileText,        pageId: 'certificates'     },
   { title: 'Admins',           href: '/admin/admins',            icon: Shield,          pageId: 'admins'           },
+  { title: 'Audit Log',        href: '/admin/audit-log',         icon: ClipboardList,   pageId: 'audit-log'        },
   { title: 'Settings',         href: '/admin/settings',          icon: Settings,        pageId: 'settings'         },
 ].map((item) => ({
   ...item,

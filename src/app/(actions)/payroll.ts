@@ -17,6 +17,8 @@ import {
   type MonthlyAttendanceRecord,
 } from "@/services/database/monthly-attendance";
 import { fetchAllEmployeesPaginated } from "@/services/database/employees";
+import { auditLog } from "@/lib/audit-logger";
+import { requireAuth } from "@/lib/auth-utils";
 
 /**
  * Generate payroll for a specific month (calculate only, don't save to DB).
@@ -338,6 +340,9 @@ export async function approveMonthPayrollAction(
     let hasMore = true;
     const pageSize = 100;
 
+    // Resolve actor for audit logging
+    const actor = await requireAuth().catch(() => null);
+
     while (hasMore) {
       const { records, pages } = await getMonthPayrollPage(year, month, page, pageSize);
       
@@ -366,6 +371,20 @@ export async function approveMonthPayrollAction(
       `✅ Approved payroll for ${approved} employees, ${errors.length} errors`
     );
 
+    // Audit log — payroll approved (critical)
+    auditLog({
+      actor_id:    (actor as any)?.$id,
+      actor_name_snapshot: (actor as any)?.name ?? '',
+      actor_role_snapshot: (actor as any)?.labels?.[0] ?? '',
+      actor_ip:    'server-action',
+      module:      'payroll',
+      action_type: 'update',
+      severity:    'critical',
+      result:      errors.length > 0 ? 'failed' : 'success',
+      description: `Payroll approved — ${year}-${String(month).padStart(2, '0')}`,
+      metadata:    { year, month, approved, error_count: errors.length },
+    });
+
     return { approved, errors };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
@@ -388,6 +407,9 @@ export async function processMonthPayrollAction(
     let page = 1;
     let hasMore = true;
     const pageSize = 100;
+
+    // Resolve actor for audit logging
+    const actor = await requireAuth().catch(() => null);
 
     while (hasMore) {
       const { records, pages } = await getMonthPayrollPage(year, month, page, pageSize);
@@ -424,6 +446,20 @@ export async function processMonthPayrollAction(
       `✅ Processed payroll for ${processed} employees, ${errors.length} errors`
     );
 
+    // Audit log — payroll processed/locked (critical)
+    auditLog({
+      actor_id:    (actor as any)?.$id,
+      actor_name_snapshot: (actor as any)?.name ?? '',
+      actor_role_snapshot: (actor as any)?.labels?.[0] ?? '',
+      actor_ip:    'server-action',
+      module:      'payroll',
+      action_type: 'create',
+      severity:    'critical',
+      result:      errors.length > 0 ? 'failed' : 'success',
+      description: `Payroll processed — ${year}-${String(month).padStart(2, '0')}, ${processed} employees`,
+      metadata:    { year, month, employee_count: processed, error_count: errors.length },
+    });
+
     return { processed, errors };
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
@@ -456,7 +492,21 @@ export async function deletePayrollAction(
   month: number
 ): Promise<boolean> {
   try {
-    return await deleteMonthlyPayroll(employeeId, year, month);
+    const result = await deleteMonthlyPayroll(employeeId, year, month);
+
+    // Audit log — payroll deleted (critical)
+    auditLog({
+      actor_ip:          'server-action',
+      module:            'payroll',
+      action_type:       'delete',
+      severity:          'critical',
+      result:            result ? 'success' : 'failed',
+      target_employee_id: employeeId,
+      description:       `Payroll deleted — ${year}-${String(month).padStart(2, '0')}`,
+      metadata:          { year, month, employeeId },
+    });
+
+    return result;
   } catch (error) {
     console.error("Error deleting payroll:", error);
     return false;

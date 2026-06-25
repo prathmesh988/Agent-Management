@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client, Users } from 'node-appwrite';
+import { auditLog } from '@/lib/audit-logger';
 
 const ROLE_LABELS = ['admin', 'viewer', 'mvp', 'new_user'];
 
@@ -39,6 +40,28 @@ export async function POST(
       const newLabels = [...currentLabels, 'new_user'];
       await users.updateLabels(userId, newLabels);
 
+      // Log login + new account activation
+      auditLog({
+        actor_id:             userId,
+        actor_name_snapshot:  user.name,
+        actor_email_snapshot: user.email,
+        actor_role_snapshot:  'new_user',
+        module:               'auth',
+        action_type:          'login',
+        result:               'success',
+        description:          'Magic link login — first login, assigned new_user',
+      });
+      auditLog({
+        actor_id:             userId,
+        actor_name_snapshot:  user.name,
+        actor_email_snapshot: user.email,
+        actor_role_snapshot:  'new_user',
+        module:               'employee',
+        action_type:          'create',
+        result:               'success',
+        description:          'New account activated via magic link',
+      });
+
       return NextResponse.json({
         success: true,
         initialized: true,
@@ -52,6 +75,18 @@ export async function POST(
     else if (currentLabels.includes('mvp')) role = 'mvp';
     else if (currentLabels.includes('viewer')) role = 'viewer';
     else if (currentLabels.includes('new_user')) role = 'new_user';
+
+    // Log recurring login
+    auditLog({
+      actor_id:             userId,
+      actor_name_snapshot:  user.name,
+      actor_email_snapshot: user.email,
+      actor_role_snapshot:  role,
+      module:               'auth',
+      action_type:          'login',
+      result:               'success',
+      description:          `Magic link login — existing role: ${role}`,
+    });
 
     return NextResponse.json({
       success: true,

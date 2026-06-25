@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import { initializeEmployeesTable, tableExists, DATABASE_ID, COLLECTION_ID } from '@/lib/initialize-table';
 import { processExcelFileFromBuffer, TransformedEmployee } from '@/lib/excel-import';
 import { saveMonthlyAttendance } from '@/services/database/monthly-attendance';
+import { auditLog, extractActorMeta } from '@/lib/audit-logger';
 
 const CHUNK_SIZE = 100;
 
@@ -350,6 +351,26 @@ export async function POST(request: NextRequest) {
                 await new Promise((resolve) => setTimeout(resolve, 100));
             }
         }
+
+        // Audit log — bulk upload result
+        const { actor_ip, actor_user_agent } = extractActorMeta(request);
+        auditLog({
+            actor_id:            null,
+            actor_name_snapshot: 'system/upload',
+            actor_ip,
+            actor_user_agent,
+            module:              'employee',
+            action_type:         'create',
+            result:              totals.errors.length > 0 ? 'failed' : 'success',
+            description:         `Bulk employee upload — ${totals.inserted} created, ${totals.skipped} skipped, ${totals.errors.length} failed`,
+            metadata: {
+                created:   totals.inserted,
+                updated:   totals.skipped,
+                failed:    totals.errors.length,
+                filename:  file.name,
+                row_count: employees.length,
+            },
+        });
 
         return NextResponse.json(
             {

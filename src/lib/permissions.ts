@@ -16,16 +16,17 @@ export const PERM_LABELS: Record<Perm, { label: string; icon: string }> = {
 export const ALL_PERMS: Perm[] = ['r', 'w', 'u', 'd'];
 
 /** App-defined roles that map to Appwrite user labels */
-export type AppRole = 'admin' | 'manager' | 'hr' | 'viewer' | 'new_user';
+export type AppRole = 'admin' | 'manager' | 'hr' | 'mvp' | 'viewer' | 'new_user';
 
-export const APP_ROLES: AppRole[] = ['admin', 'manager', 'hr', 'viewer', 'new_user'];
+export const APP_ROLES: AppRole[] = ['admin', 'manager', 'hr', 'mvp', 'viewer', 'new_user'];
 
 /** Per-user override stored inside the page document */
 export interface UserOverride {
-  userId:  string;
-  name:    string;
-  email:   string;
-  perms:   Perm[];
+  userId:   string;
+  name:     string;
+  email:    string;
+  perms:    Perm[];
+  userRole?: AppRole; // optional — stored when override is created so ghost line can show role default
 }
 
 /** Page permission document shape (mirrors Appwrite document) */
@@ -53,6 +54,7 @@ export const DEFAULT_ROLE_PERMS: Record<AppRole, Perm[]> = {
   admin:    ['r', 'w', 'u', 'd'],
   manager:  ['r', 'w', 'u'],
   hr:       ['r', 'w'],
+  mvp:      ['r'],
   viewer:   ['r'],
   new_user: [],
 };
@@ -92,6 +94,9 @@ export function hasPermission(
   userId: string,
   perm: Perm,
 ): boolean {
+  // Admin always has full access — cannot be revoked via the UI
+  if (role === 'admin') return true;
+
   // No permissions doc → use defaults
   if (!permissions) return DEFAULT_ROLE_PERMS[role]?.includes(perm) ?? false;
 
@@ -107,6 +112,39 @@ export function canRead  (p: PagePermissions | null, role: AppRole, uid: string)
 export function canWrite (p: PagePermissions | null, role: AppRole, uid: string) { return hasPermission(p, role, uid, 'w'); }
 export function canUpdate(p: PagePermissions | null, role: AppRole, uid: string) { return hasPermission(p, role, uid, 'u'); }
 export function canDelete(p: PagePermissions | null, role: AppRole, uid: string) { return hasPermission(p, role, uid, 'd'); }
+
+// ── Role Hierarchy ─────────────────────────────────────────────────────────────
+
+/** Numeric rank. Higher = more senior. */
+export const ROLE_RANK: Record<AppRole, number> = {
+  admin:    5,
+  manager:  4,
+  hr:       3,
+  mvp:      2,
+  viewer:   1,
+  new_user: 0,
+};
+
+/**
+ * Returns true when actorRole outranks targetRole.
+ * Equal rank returns false — peers cannot see each other's salaries.
+ * admin always returns true.
+ */
+export function canSeeSalaryOf(actorRole: AppRole, targetRole: AppRole): boolean {
+  if (actorRole === 'admin') return true;
+  return ROLE_RANK[actorRole] > ROLE_RANK[targetRole];
+}
+
+/**
+ * Returns true when actorRole can assign or change the role of a user
+ * currently holding targetRole.
+ * Equal rank and upward are both blocked.
+ * admin always returns true.
+ */
+export function canChangeRoleOf(actorRole: AppRole, targetRole: AppRole): boolean {
+  if (actorRole === 'admin') return true;
+  return ROLE_RANK[actorRole] > ROLE_RANK[targetRole];
+}
 
 /**
  * Get pageId from pathname (e.g., "/admin/employees" → "employees")

@@ -21,6 +21,8 @@ import { EditRoleModal } from "./edit-role-modal";
 import { PageLoader } from "@/components/ui/page-loader";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Pagination } from "@/components/ui/pagination";
+import { useRoleGuard } from "@/hooks/useRoleGuard";
+import type { AppRole } from "@/lib/permissions";
 
 interface AdminTableProps {
   admins: AdminUser[];
@@ -66,6 +68,7 @@ export function AdminTable({
   canUpdate,
   canDelete,
 }: AdminTableProps) {
+  const { canChangeRoleOf, myRole } = useRoleGuard();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [disapproveTarget, setDisapproveTarget] = useState<AdminUser | null>(null);
@@ -201,20 +204,29 @@ export function AdminTable({
                         )}
                         {admin.role !== 'new_user' && (
                           <>
-                            {hasUpdatePerm && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => setEditingAdmin(admin)}
-                                    disabled={updatingId === admin.id}
-                                    className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200 disabled:opacity-50"
-                                  >
-                                    <Edit2 className="size-4" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs font-medium">Edit role</TooltipContent>
-                              </Tooltip>
-                            )}
+                            {hasUpdatePerm && (() => {
+                              const canEditRow = canChangeRoleOf(admin.role as AppRole);
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => canEditRow && setEditingAdmin(admin)}
+                                      disabled={updatingId === admin.id || !canEditRow}
+                                      className={`inline-flex items-center justify-center size-8 rounded-lg transition-all duration-200 ${
+                                        canEditRow
+                                          ? 'text-muted-foreground hover:bg-primary/10 hover:text-primary'
+                                          : 'text-muted-foreground/40 cursor-not-allowed opacity-50'
+                                      } disabled:opacity-50`}
+                                    >
+                                      <Edit2 className="size-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs font-medium">
+                                    {canEditRow ? 'Edit role' : 'Cannot edit a user with equal or higher rank'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })()}
                             {hasUpdatePerm && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -232,20 +244,29 @@ export function AdminTable({
                                 <TooltipContent side="top" className="text-xs font-medium">Disapprove user</TooltipContent>
                               </Tooltip>
                             )}
-                            {hasDeletePerm && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => setDeleteTarget(admin)}
-                                    disabled={updatingId === admin.id}
-                                    className="inline-flex items-center justify-center size-8 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 disabled:opacity-50"
-                                  >
-                                    <Trash2 className="size-4" />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs font-medium">Delete user</TooltipContent>
-                              </Tooltip>
-                            )}
+                            {hasDeletePerm && (() => {
+                              const canDelRow = canChangeRoleOf(admin.role as AppRole);
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => canDelRow && setDeleteTarget(admin)}
+                                      disabled={updatingId === admin.id || !canDelRow}
+                                      className={`inline-flex items-center justify-center size-8 rounded-lg transition-all duration-200 ${
+                                        canDelRow
+                                          ? 'text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+                                          : 'text-muted-foreground/40 cursor-not-allowed opacity-50'
+                                      } disabled:opacity-50`}
+                                    >
+                                      <Trash2 className="size-4" />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="text-xs font-medium">
+                                    {canDelRow ? 'Delete user' : 'Cannot delete a user with equal or higher rank'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })()}
                           </>
                         )}
                       </div>
@@ -278,6 +299,7 @@ export function AdminTable({
           isUpdating={updatingId === editingAdmin.id}
           onClose={() => setEditingAdmin(null)}
           onRoleChange={(role) => handleRoleChange(editingAdmin.id, role)}
+          myRole={myRole}
         />
       )}
 
