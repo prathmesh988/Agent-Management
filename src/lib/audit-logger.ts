@@ -127,29 +127,53 @@ export async function auditLog(entry: AuditEntry): Promise<void> {
     const databases = new Databases(createAdminClient());
     const severity  = assignSeverity(entry);
 
+    // ── Build the required "target" value (legacy field — must be non-empty string) ──
+    // Priority: explicit target_name_snapshot → target_id → target_employee_id → description excerpt → module
+    const targetValue =
+      entry.target_name_snapshot ||
+      entry.target_id            ||
+      entry.target_employee_id   ||
+      (entry.description ? entry.description.slice(0, 255) : '') ||
+      entry.module;
+
     const doc: Record<string, unknown> = {
-      timestamp:           new Date().toISOString(),
-      actor_id:            entry.actor_id   ?? null,
-      actor_name_snapshot: entry.actor_name_snapshot ?? '',
-      actor_role_snapshot: entry.actor_role_snapshot ?? '',
-      actor_ip:            entry.actor_ip            ?? '',
-      actor_user_agent:    entry.actor_user_agent    ?? '',
-      session_id:          entry.session_id          ?? '',
-      module:              entry.module,
-      action_type:         entry.action_type,
-      target_type:         entry.target_type          ?? '',
-      target_id:           entry.target_id            ?? '',
-      target_name_snapshot: entry.target_name_snapshot ?? '',
-      target_employee_id:  entry.target_employee_id   ?? '',
-      field_changes:       entry.field_changes
-                             ? JSON.stringify(entry.field_changes)
-                             : '[]',
-      result:              entry.result,
+      // ── datetime field — Appwrite expects ISO-8601 string for datetime type ──
+      timestamp:            new Date().toISOString(),
+
+      // ── Actor ──────────────────────────────────────────────────────────────
+      actor_id:             entry.actor_id            ?? null,
+      actor_name_snapshot:  entry.actor_name_snapshot ?? '',
+      actor_employee_id:    entry.target_employee_id  ?? '',   // maps best available employee id
+      actor_role_snapshot:  entry.actor_role_snapshot ?? '',
+      actor_ip:             entry.actor_ip            ?? '',
+      actor_user_agent:     entry.actor_user_agent    ?? '',
+      session_id:           entry.session_id          ?? '',
+
+      // ── Legacy required fields (pre-existing schema) ───────────────────────
+      performedBy:          entry.actor_name_snapshot ?? String(entry.actor_id ?? 'system'),
+      action:               entry.action_type,   // legacy alias — required
+      target:               targetValue,          // legacy required — human-readable target label
+
+      // ── Event classification ───────────────────────────────────────────────
+      module:               entry.module,
+      action_type:          entry.action_type,
+      result:               entry.result,
       severity,
-      description:         entry.description ?? '',
-      metadata:            entry.metadata
-                             ? JSON.stringify(entry.metadata)
-                             : '{}',
+      description:          entry.description ?? '',
+
+      // ── Target snapshot ────────────────────────────────────────────────────
+      target_type:          entry.target_type          ?? '',
+      target_id:            entry.target_id            ?? '',
+      target_name_snapshot: entry.target_name_snapshot ?? '',
+      target_employee_id:   entry.target_employee_id   ?? '',
+
+      // ── Payload (stringified JSON) ─────────────────────────────────────────
+      field_changes:        entry.field_changes
+                              ? JSON.stringify(entry.field_changes)
+                              : '[]',
+      metadata:             entry.metadata
+                              ? JSON.stringify(entry.metadata)
+                              : '{}',
     };
 
     await databases.createDocument({

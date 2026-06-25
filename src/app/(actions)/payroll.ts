@@ -18,6 +18,7 @@ import {
 } from "@/services/database/monthly-attendance";
 import { fetchAllEmployeesPaginated } from "@/services/database/employees";
 import { auditLog } from "@/lib/audit-logger";
+import { requireAuth } from "@/lib/auth-utils";
 
 /**
  * Generate payroll for a specific month (calculate only, don't save to DB).
@@ -339,6 +340,9 @@ export async function approveMonthPayrollAction(
     let hasMore = true;
     const pageSize = 100;
 
+    // Resolve actor for audit logging
+    const actor = await requireAuth().catch(() => null);
+
     while (hasMore) {
       const { records, pages } = await getMonthPayrollPage(year, month, page, pageSize);
       
@@ -369,6 +373,9 @@ export async function approveMonthPayrollAction(
 
     // Audit log — payroll approved (critical)
     auditLog({
+      actor_id:    (actor as any)?.$id,
+      actor_name_snapshot: (actor as any)?.name ?? '',
+      actor_role_snapshot: (actor as any)?.labels?.[0] ?? '',
       actor_ip:    'server-action',
       module:      'payroll',
       action_type: 'update',
@@ -400,6 +407,9 @@ export async function processMonthPayrollAction(
     let page = 1;
     let hasMore = true;
     const pageSize = 100;
+
+    // Resolve actor for audit logging
+    const actor = await requireAuth().catch(() => null);
 
     while (hasMore) {
       const { records, pages } = await getMonthPayrollPage(year, month, page, pageSize);
@@ -438,6 +448,9 @@ export async function processMonthPayrollAction(
 
     // Audit log — payroll processed/locked (critical)
     auditLog({
+      actor_id:    (actor as any)?.$id,
+      actor_name_snapshot: (actor as any)?.name ?? '',
+      actor_role_snapshot: (actor as any)?.labels?.[0] ?? '',
       actor_ip:    'server-action',
       module:      'payroll',
       action_type: 'create',
